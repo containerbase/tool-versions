@@ -1,4 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>containerbase/.github:renovate-config"]
+  "extends": ["local>containerbase/.github:renovate-config"],
+  "packageRules": [
+    {
+      "description": "Allow minor updates on the renovate rebuild trigger file for tools with linear releases within a major",
+      "matchFileNames": ["renovate.Dockerfile"],
+      "matchDepNames": ["helm", "java", "node", "pnpm", "poetry"],
+      "matchUpdateTypes": ["minor"],
+      "enabled": true
+    }
+  ]
 }

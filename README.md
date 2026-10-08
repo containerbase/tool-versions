@@ -42,6 +42,7 @@ A tool file looks like this:
 To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
 It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.
 A new kind of source needs a fetcher in [`src/datasources`](./src/datasources).
+Add its maintained release lines to [`renovate.Dockerfile`](./renovate.Dockerfile) too.
 
 ## Updates
 
@@ -53,6 +54,10 @@ Each build starts from the published files:
 - **Fallback:** when fetching a tool fails, its previous file is published again with its old `updatedAt`, so you can see it is stale, and the build logs a warning.
   The build only fails for a tool that has neither fresh nor previous versions, and then nothing is deployed.
 - **Full refresh:** run the `pages` workflow manually with the `full` input to skip the previous files and fetch every version again.
+- **Release trigger:** [`renovate.Dockerfile`](./renovate.Dockerfile) lists the maintained release lines of each tool.
+  There is one line per major, and Renovate updates it on a minor or patch release; Python has one line per minor, updated on patch releases.
+  The automerged update on `main` publishes the new version right away.
+  New lines are picked up by the nightly run; add them to the file when they are released.
 
 A missing, unreadable or invalid previous file counts as no previous file, as does a file of another source.
 
