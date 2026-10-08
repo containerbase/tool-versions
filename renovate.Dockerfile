@@ -48,7 +48,7 @@ ENV PNPM_VERSION=11.28.5
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=12.10.1
 
-# renovate: datasource=pypi depName=poetry versioning=pep440
+# renovate: datasource=pypi depName=poetry
 ENV POETRY_VERSION=2.5.1
 
 # renovate: datasource=github-releases depName=python packageName=containerbase/python-prebuild
