@@ -1,0 +1,61 @@
+name: pages
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Fetch every version again, without the previously published files
+        type: boolean
+        default: false
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: ⚙️ Setup
+        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+
+      # a failing tool falls back to its published file with a warning, the
+      # build only fails when a tool has neither fresh nor published versions
+      - name: build
+        run: pnpm build ${{ inputs.full && '--full' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,53 @@
+{
+  "name": "tool-versions",
+  "private": true,
+  "description": "Versions of the tools containerbase install-tool supports",
+  "license": "MIT",
+  "author": "Michael Kriese <michael.kriese@mend.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/containerbase/tool-versions.git"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node src/index.ts",
+    "lint": "run-s oxfmt oxlint lint:types",
+    "lint:types": "tsc",
+    "lint-fix": "run-s oxfmt-fix oxlint-fix",
+    "oxfmt": "oxfmt --check",
+    "oxfmt-fix": "oxfmt",
+    "oxlint": "oxlint",
+    "oxlint-fix": "oxlint --fix",
+    "prepare": "husky",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@containerbase/base": "14.29.1",
+    "@renovatebot/pep440": "5.0.1",
+    "semver": "7.8.5",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@containerbase/oxlint-plugin": "1.0.0",
+    "@tsconfig/node24": "24.0.5",
+    "@tsconfig/strictest": "2.0.8",
+    "@types/common-tags": "1.8.4",
+    "@types/node": "24.19.1",
+    "@types/semver": "7.8.0",
+    "common-tags": "1.8.2",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "nock": "15.0.1",
+    "npm-run-all2": "9.0.3",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": ">=24.10.0",
+    "pnpm": ">=11.0.0"
+  },
+  "packageManager": "pnpm@12.9.1"
+}

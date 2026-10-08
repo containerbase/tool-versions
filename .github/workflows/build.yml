@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+    branches-ignore:
+      - gh-readonly-queue/**
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number ||  github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.event_name == 'push' }}
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚙️ Setup
+        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+        with:
+          save-cache: true
+
+  lint:
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: ⚙️ Setup
+        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+
+      - name: lint
+        run: |
+          pnpm oxlint --format github
+          pnpm oxfmt
+          pnpm lint:types
+
+  test:
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: ⚙️ Setup
+        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+
+      - name: test
+        run: pnpm test

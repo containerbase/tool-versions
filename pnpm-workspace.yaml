@@ -1,0 +1,10 @@
+# https://pnpm.io/settings
+saveExact: true
+savePrefix: ''
+shellEmulator: true
+strictPeerDependencies: true
+
+# our own packages are used right after their release
+minimumReleaseAgeExclude:
+  - '@containerbase/base'
+  - '@containerbase/oxlint-plugin'

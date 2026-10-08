@@ -1,0 +1,14 @@
+{
+  "extends": ["@tsconfig/strictest/tsconfig.json", "@tsconfig/node24/tsconfig.json"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "noImplicitOverride": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  },
+  "exclude": ["node_modules", "bin", "dist", "coverage", "html"]
+}
