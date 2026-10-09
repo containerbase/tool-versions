@@ -5,7 +5,7 @@ import { datasources } from './datasources/index.ts';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type { Source, ToolIndex, ToolVersion, ToolVersions } from './schema.ts';
-import { toolSources } from './tools.ts';
+import { toolFiles, toolSources } from './tools.ts';
 import { sortVersions } from './versions.ts';
 
 /** The options of a build. */
@@ -45,22 +45,25 @@ async function loadPrevious(
 /**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
- * checksums are kept for fresh versions without any.
+ * files are kept for fresh versions without any.
+ * @param tool - the tool name
  * @param source - the source of the tool
  * @param previous - the previously published versions
  * @throws when the fetch fails or there are no versions at all
  */
-async function fetchVersions(source: Source, previous: ToolVersion[]): Promise<ToolVersion[]> {
+async function fetchVersions(
+  tool: string,
+  source: Source,
+  previous: ToolVersion[],
+): Promise<ToolVersion[]> {
   const { fetch, compare } = datasources[source.datasource];
   const known = new Set(previous.map(({ version }) => version));
-  const checksums = new Map(
-    previous.flatMap(({ version, checksums }) =>
-      checksums ? [[version, checksums] as const] : [],
-    ),
+  const files = new Map(
+    previous.flatMap(({ version, files }) => (files ? [[version, files] as const] : [])),
   );
-  const fresh = (await fetch(source.packageName, known, checksums)).map((entry) => {
-    const kept = checksums.get(entry.version);
-    return entry.checksums || !kept ? entry : { ...entry, checksums: kept };
+  const fresh = (await fetch(source.packageName, known, files, toolFiles[tool])).map((entry) => {
+    const kept = files.get(entry.version);
+    return entry.files || !kept ? entry : { ...entry, files: kept };
   });
   const versions = sortVersions([...fresh, ...previous], compare);
   if (!versions.length) {
@@ -102,7 +105,7 @@ export async function build({
         tool,
         source,
         updatedAt,
-        versions: await fetchVersions(source, previous?.versions ?? []),
+        versions: await fetchVersions(tool, source, previous?.versions ?? []),
       };
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {

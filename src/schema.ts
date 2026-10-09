@@ -17,19 +17,31 @@ export const Source = z.object({
 });
 export type Source = z.infer<typeof Source>;
 
-/** The checksums of release files, as `<algorithm>:<hex>` by file name. */
-export const Checksums = z.record(z.string().min(1), z.string().regex(/^sha512:[0-9a-f]+$/));
-export type Checksums = z.infer<typeof Checksums>;
+/** A file of a version: where to download it and how to verify it. */
+export const ToolFile = z.object({
+  /** the file name */
+  name: z.string().min(1),
+  /** the https download url */
+  url: z.url({ protocol: /^https$/ }),
+  /** `<algorithm>:<lowercase hex>` */
+  checksum: z.string().regex(/^(sha256:[0-9a-f]{64}|sha512:[0-9a-f]{128})$/),
+  /** the containerbase arch, omitted for arch-independent files */
+  arch: z.enum(['amd64', 'arm64']).optional(),
+  /** the distro of a distro specific file, like `jammy` */
+  distro: z.string().min(1).optional(),
+});
+export type ToolFile = z.infer<typeof ToolFile>;
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `checksums` only when some are known.
+ * `files` only when some are known.
  */
 export const ToolVersion = z.object({
   version: z.string().min(1),
   prerelease: z.literal(true).optional(),
   lts: z.literal(true).optional(),
-  checksums: Checksums.optional(),
+  /** sorted by name */
+  files: z.array(ToolFile).min(1).optional(),
 });
 export type ToolVersion = z.infer<typeof ToolVersion>;
 

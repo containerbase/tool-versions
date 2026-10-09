@@ -1,5 +1,6 @@
 import { compare as comparePep440 } from '@renovatebot/pep440';
-import type { Checksums, DatasourceName, ToolVersion } from '../schema.ts';
+import type { FileTemplate, PreviousFiles } from '../files.ts';
+import type { DatasourceName, ToolVersion } from '../schema.ts';
 import { compareSemver } from '../versions.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
@@ -9,13 +10,15 @@ import { fetchPypiVersions } from './pypi.ts';
 
 /**
  * Fetches the versions of a package, newest first. Paged sources may stop
- * early once they reach a known version. Sources with checksums reuse the
- * previously published ones instead of downloading them again.
+ * early once they reach a known version. The previously published files are
+ * reused by name instead of fetching them again. A template lists the files of
+ * a version where the source doesn't.
  */
 export type Fetcher = (
   packageName: string,
   known: ReadonlySet<string>,
-  checksums?: ReadonlyMap<string, Checksums>,
+  previous?: PreviousFiles,
+  template?: FileTemplate,
 ) => Promise<ToolVersion[]>;
 
 /** A datasource: how its versions are fetched and compared. */

@@ -1,3 +1,4 @@
+import type { FileTemplate } from './files.ts';
 import type { Source } from './schema.ts';
 
 /**
@@ -14,4 +15,17 @@ export const toolSources: Record<string, Source> = {
     datasource: 'github-releases',
     packageName: 'containerbase/python-prebuild',
   },
+};
+
+/**
+ * The files of the tools which don't publish them as release assets, with the
+ * checksum next to the download.
+ */
+export const toolFiles: Record<string, FileTemplate> = {
+  helm: (version) =>
+    (['amd64', 'arm64'] as const).map((arch) => {
+      const name = `helm-v${version}-linux-${arch}.tar.gz`;
+      const url = `https://get.helm.sh/${name}`;
+      return { name, url, checksumUrl: `${url}.sha256sum`, algorithm: 'sha256', arch };
+    }),
 };

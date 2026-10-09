@@ -181,11 +181,17 @@ describe('build', () => {
     });
   });
 
-  it('keeps the previous checksums of a fresh version', async () => {
-    const checksums = { 'pnpm.tgz': 'sha512:abcdef12' };
+  it('keeps the previous files of a fresh version', async () => {
+    const files = [
+      {
+        name: 'pnpm-9.0.0.tgz',
+        url: 'https://registry.npmjs.org/pnpm/-/pnpm-9.0.0.tgz',
+        checksum: `sha512:${'a'.repeat(128)}`,
+      },
+    ];
     nock(pages)
       .get('/pnpm.json')
-      .reply(200, previousPnpm([{ version: '9.0.0', checksums }]));
+      .reply(200, previousPnpm([{ version: '9.0.0', files }]));
     nock(registry)
       .get('/pnpm')
       .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } });
@@ -193,7 +199,43 @@ describe('build', () => {
     await build({ dir, sources: pnpmSource, now });
 
     expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
-      versions: [{ version: '10.0.0' }, { version: '9.0.0', checksums }],
+      versions: [{ version: '10.0.0' }, { version: '9.0.0', files }],
+    });
+  });
+
+  it('publishes the files of tools with a file template', async () => {
+    const sha = 'e'.repeat(64);
+    nock(pages).get('/helm.json').reply(404);
+    nock('https://api.github.com')
+      .get('/repos/helm/helm/releases')
+      .query({ per_page: '100' })
+      .reply(200, [{ tag_name: 'v3.19.0', draft: false, prerelease: false }]);
+    nock('https://get.helm.sh')
+      .get('/helm-v3.19.0-linux-amd64.tar.gz.sha256sum')
+      .reply(200, `${sha}  helm-v3.19.0-linux-amd64.tar.gz\n`)
+      .get('/helm-v3.19.0-linux-arm64.tar.gz.sha256sum')
+      .reply(404);
+
+    await build({
+      dir,
+      sources: { helm: { datasource: 'github-releases', packageName: 'helm/helm' } },
+      now,
+    });
+
+    expect(JSON.parse(await read('helm.json'))).toMatchObject({
+      versions: [
+        {
+          version: '3.19.0',
+          files: [
+            {
+              name: 'helm-v3.19.0-linux-amd64.tar.gz',
+              url: 'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz',
+              checksum: `sha256:${sha}`,
+              arch: 'amd64',
+            },
+          ],
+        },
+      ],
     });
   });
 

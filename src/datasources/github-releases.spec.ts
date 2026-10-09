@@ -1,10 +1,17 @@
 import { stdout } from 'node:process';
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { FileTemplate } from '../files.ts';
+import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
 
 const api = 'https://api.github.com';
 const none = new Set<string>();
+const dl = 'https://github.com/containerbase/python-prebuild/releases/download';
+const repo = 'containerbase/python-prebuild';
+const sum1 = 'a'.repeat(128);
+const sum2 = 'b'.repeat(128);
+const sum3 = 'c'.repeat(128);
 
 /**
  * A release of the GitHub api.
@@ -18,6 +25,43 @@ function release(
   draft = false,
 ): { tag_name: string; prerelease: boolean; draft: boolean } {
   return { tag_name, prerelease, draft };
+}
+
+/**
+ * A release with files.
+ * @param tag_name - the tag
+ * @param files - the file names
+ */
+function withAssets(
+  tag_name: string,
+  files: string[],
+): ReturnType<typeof release> & {
+  assets: { name: string; browser_download_url: string }[];
+} {
+  return {
+    ...release(tag_name),
+    assets: files.map((name) => ({
+      name,
+      browser_download_url: `${dl}/${tag_name}/${name}`,
+    })),
+  };
+}
+
+/**
+ * A published file of a prebuild.
+ * @param version - the version
+ * @param suffix - the rest of the file name
+ * @param checksum - the digest
+ * @param extra - arch and distro
+ */
+function prebuildFile(
+  version: string,
+  suffix: string,
+  checksum: string,
+  extra: Pick<ToolFile, 'arch' | 'distro'>,
+): ToolFile {
+  const name = `python-${version}-${suffix}.tar.xz`;
+  return { name, url: `${dl}/${version}/${name}`, checksum: `sha512:${checksum}`, ...extra };
 }
 
 describe('datasources/github-releases', () => {
@@ -84,53 +128,59 @@ describe('datasources/github-releases', () => {
     expect(scope.isDone()).toBe(true);
   });
 
-  describe('checksums', () => {
-    const dl = 'https://github.com/containerbase/python-prebuild/releases/download';
-    const repo = 'containerbase/python-prebuild';
-
-    /**
-     * A release with files.
-     * @param tag_name - the tag
-     * @param files - the file names
-     */
-    function withAssets(
-      tag_name: string,
-      files: string[],
-    ): ReturnType<typeof release> & {
-      assets: { name: string; browser_download_url: string }[];
-    } {
-      return {
-        ...release(tag_name),
-        assets: files.map((name) => ({
-          name,
-          browser_download_url: `${dl}/${tag_name}/${name}`,
-        })),
-      };
+  describe('files', () => {
+    /** Collects what is written to stdout. */
+    function captureOutput(): string[] {
+      const output: string[] = [];
+      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+        output.push(String(chunk));
+        return true;
+      });
+      return output;
     }
 
-    it('reads the checksums from the sidecar files', async () => {
-      const files = ['a.tar.xz', 'a.tar.xz.sha512', 'b.tar.xz', 'b.tar.xz.sha512', 'c.txt'];
+    it('reads the files from the sidecar files, with arch and distro', async () => {
+      const names = [
+        'python-3.14.8-jammy-x86_64.tar.xz',
+        'python-3.14.8-jammy-x86_64.tar.xz.sha512',
+        'python-3.14.8-noble-aarch64.tar.xz',
+        'python-3.14.8-noble-aarch64.tar.xz.sha512',
+        'python-3.14.8-x86_64.tar.xz',
+        'python-3.14.8-x86_64.tar.xz.sha512',
+        'other.tar.xz',
+        'other.tar.xz.sha512',
+        'notes.txt',
+      ];
       const scope = nock(api)
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
-        .reply(200, [withAssets('3.14.8', files)]);
+        .reply(200, [withAssets('3.14.8', names)]);
       const downloads = nock(dl)
-        .get('/3.14.8/a.tar.xz.sha512')
-        .reply(200, 'ABCDEF12  a.tar.xz\n')
-        .get('/3.14.8/b.tar.xz.sha512')
-        .reply(200, '0123abcd');
+        .get('/3.14.8/python-3.14.8-jammy-x86_64.tar.xz.sha512')
+        .reply(200, `${sum1.toUpperCase()}  python-3.14.8-jammy-x86_64.tar.xz\n`)
+        .get('/3.14.8/python-3.14.8-noble-aarch64.tar.xz.sha512')
+        .reply(200, sum2)
+        .get('/3.14.8/python-3.14.8-x86_64.tar.xz.sha512')
+        .reply(200, sum3)
+        .get('/3.14.8/other.tar.xz.sha512')
+        .reply(200, sum1);
 
       await expect(fetchGithubReleases(repo, none)).resolves.toEqual([
         {
           version: '3.14.8',
-          checksums: { 'a.tar.xz': 'sha512:abcdef12', 'b.tar.xz': 'sha512:0123abcd' },
+          files: [
+            { name: 'other.tar.xz', url: `${dl}/3.14.8/other.tar.xz`, checksum: `sha512:${sum1}` },
+            prebuildFile('3.14.8', 'jammy-x86_64', sum1, { arch: 'amd64', distro: 'jammy' }),
+            prebuildFile('3.14.8', 'noble-aarch64', sum2, { arch: 'arm64', distro: 'noble' }),
+            prebuildFile('3.14.8', 'x86_64', sum3, { arch: 'amd64' }),
+          ],
         },
       ]);
       expect(scope.isDone()).toBe(true);
       expect(downloads.isDone()).toBe(true);
     });
 
-    it('leaves out the checksums of releases without sidecar files', async () => {
+    it('leaves out the files of releases without sidecar files', async () => {
       nock(api)
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
@@ -139,53 +189,58 @@ describe('datasources/github-releases', () => {
       await expect(fetchGithubReleases(repo, none)).resolves.toEqual([{ version: '3.14.8' }]);
     });
 
-    it('reuses the previous checksums without a download', async () => {
-      const checksums = { 'a.tar.xz': 'sha512:abcdef12' };
+    it('reuses the previous files by name', async () => {
+      const x86 = prebuildFile('3.14.8', 'x86_64', sum1, { arch: 'amd64' });
+      const aarch64 = prebuildFile('3.14.8', 'aarch64', sum2, { arch: 'arm64' });
       nock(api)
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
         .reply(200, [
-          withAssets('3.14.8', ['a.tar.xz', 'a.tar.xz.sha512']),
+          withAssets('3.14.8', [
+            'python-3.14.8-x86_64.tar.xz',
+            'python-3.14.8-x86_64.tar.xz.sha512',
+            'python-3.14.8-aarch64.tar.xz',
+            'python-3.14.8-aarch64.tar.xz.sha512',
+          ]),
           withAssets('3.14.7', ['b.tar.xz', 'b.tar.xz.sha512']),
         ]);
-      const downloads = nock(dl).get('/3.14.7/b.tar.xz.sha512').reply(200, '1234');
-
-      await expect(
-        fetchGithubReleases(repo, new Set(['3.14.8']), new Map([['3.14.8', checksums]])),
-      ).resolves.toEqual([
-        { version: '3.14.8', checksums },
-        { version: '3.14.7', checksums: { 'b.tar.xz': 'sha512:1234' } },
-      ]);
-      expect(downloads.isDone()).toBe(true);
-    });
-
-    it('downloads only the missing checksums of a known version', async () => {
-      const files = ['a-x86_64.tar.xz', 'a-x86_64.tar.xz.sha512'];
-      nock(api)
-        .get(`/repos/${repo}/releases`)
-        .query({ per_page: '100' })
-        .reply(200, [
-          withAssets('3.14.8', [...files, 'a-aarch64.tar.xz', 'a-aarch64.tar.xz.sha512']),
-        ]);
-      const downloads = nock(dl).get('/3.14.8/a-aarch64.tar.xz.sha512').reply(200, '9876  a');
-      const previous = new Map([['3.14.8', { 'a-x86_64.tar.xz': 'sha512:abcdef12' }]]);
+      const downloads = nock(dl)
+        .get('/3.14.8/python-3.14.8-aarch64.tar.xz.sha512')
+        .reply(200, sum2)
+        .get('/3.14.7/b.tar.xz.sha512')
+        .reply(200, sum3);
+      const previous = new Map([['3.14.8', [x86]]]);
 
       await expect(fetchGithubReleases(repo, new Set(['3.14.8']), previous)).resolves.toEqual([
+        { version: '3.14.8', files: [aarch64, x86] },
         {
-          version: '3.14.8',
-          checksums: { 'a-x86_64.tar.xz': 'sha512:abcdef12', 'a-aarch64.tar.xz': 'sha512:9876' },
+          version: '3.14.7',
+          files: [{ name: 'b.tar.xz', url: `${dl}/3.14.7/b.tar.xz`, checksum: `sha512:${sum3}` }],
         },
       ]);
       expect(downloads.isDone()).toBe(true);
-      expect(previous.get('3.14.8')).toEqual({ 'a-x86_64.tar.xz': 'sha512:abcdef12' });
+      expect(previous.get('3.14.8')).toEqual([x86]);
     });
 
-    it('skips the checksum after a failed download and warns', async () => {
-      const output: string[] = [];
-      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
-        output.push(String(chunk));
-        return true;
-      });
+    it('makes no request when all files are known', async () => {
+      const x86 = prebuildFile('3.14.8', 'x86_64', sum1, { arch: 'amd64' });
+      nock(api)
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [
+          withAssets('3.14.8', [
+            'python-3.14.8-x86_64.tar.xz',
+            'python-3.14.8-x86_64.tar.xz.sha512',
+          ]),
+        ]);
+
+      await expect(
+        fetchGithubReleases(repo, new Set(['3.14.8']), new Map([['3.14.8', [x86]]])),
+      ).resolves.toEqual([{ version: '3.14.8', files: [x86] }]);
+    });
+
+    it('stays silent when a checksum file is missing', async () => {
+      const output = captureOutput();
       nock(api)
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
@@ -193,17 +248,25 @@ describe('datasources/github-releases', () => {
       nock(dl).get('/3.14.8/a.tar.xz.sha512').reply(404);
 
       await expect(fetchGithubReleases(repo, none)).resolves.toEqual([{ version: '3.14.8' }]);
+      expect(output).toEqual([]);
+    });
+
+    it('warns and skips the file after another failure', async () => {
+      const output = captureOutput();
+      nock(api)
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [withAssets('3.14.8', ['a.tar.xz', 'a.tar.xz.sha512'])]);
+      nock(dl).get('/3.14.8/a.tar.xz.sha512').reply(500);
+
+      await expect(fetchGithubReleases(repo, none)).resolves.toEqual([{ version: '3.14.8' }]);
       expect(output).toEqual([
-        `::warning::${repo}: no checksum for a.tar.xz: HttpError: GET ${dl}/3.14.8/a.tar.xz.sha512 failed with status 404\n`,
+        `::warning::${repo}: no checksum from ${dl}/3.14.8/a.tar.xz.sha512: HttpError: GET ${dl}/3.14.8/a.tar.xz.sha512 failed with status 500\n`,
       ]);
     });
 
-    it('skips a checksum file without a digest and warns', async () => {
-      const output: string[] = [];
-      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
-        output.push(String(chunk));
-        return true;
-      });
+    it('warns and skips a checksum file without a digest', async () => {
+      const output = captureOutput();
       nock(api)
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
@@ -212,7 +275,40 @@ describe('datasources/github-releases', () => {
 
       await expect(fetchGithubReleases(repo, none)).resolves.toEqual([{ version: '3.14.8' }]);
       expect(output).toEqual([
-        `::warning::${repo}: no checksum for a.tar.xz: Error: no valid sha512 digest\n`,
+        `::warning::${repo}: no valid sha512 digest in ${dl}/3.14.8/a.tar.xz.sha512\n`,
+      ]);
+    });
+
+    it('lists the files with a template', async () => {
+      const template: FileTemplate = (version) => [
+        {
+          name: `tool-${version}.tgz`,
+          url: `https://files.example.com/tool-${version}.tgz`,
+          checksumUrl: `https://files.example.com/tool-${version}.tgz.sha256sum`,
+          algorithm: 'sha256',
+          arch: 'arm64',
+        },
+      ];
+      nock(api)
+        .get('/repos/some/tool/releases')
+        .query({ per_page: '100' })
+        .reply(200, [release('v1.2.0')]);
+      nock('https://files.example.com')
+        .get('/tool-1.2.0.tgz.sha256sum')
+        .reply(200, `${'d'.repeat(64)}  tool-1.2.0.tgz\n`);
+
+      await expect(fetchGithubReleases('some/tool', none, new Map(), template)).resolves.toEqual([
+        {
+          version: '1.2.0',
+          files: [
+            {
+              name: 'tool-1.2.0.tgz',
+              url: 'https://files.example.com/tool-1.2.0.tgz',
+              checksum: `sha256:${'d'.repeat(64)}`,
+              arch: 'arm64',
+            },
+          ],
+        },
       ]);
     });
   });
