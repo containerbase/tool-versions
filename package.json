@@ -22,7 +22,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@containerbase/base": "14.29.1",
+    "@containerbase/base": "14.30.2",
     "@renovatebot/pep440": "5.0.1",
     "semver": "7.8.5",
     "zod": "4.6.5"
