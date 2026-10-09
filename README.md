@@ -72,7 +72,7 @@ A `java` version has one file per architecture:
 - `files` lists the download files of the version, sorted by `name`. It is only present when files are known.
   - `url` is the direct https download url.
   - `checksum` is `sha256:<hex>` or `sha512:<hex>` in lowercase.
-  - `arch` is `amd64` or `arm64`, as `install-tool` names them. It is left out for files which work on every architecture, like npm and pypi packages.
+  - `arch` is `amd64` or `arm64`, as `install-tool` names them. It is left out for files which work on every architecture.
   - `distro` is the distro of a distro specific file, like `jammy`. It is left out otherwise.
 
 ## Tools
@@ -82,12 +82,13 @@ A `java` version has one file per architecture:
 | `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`  |
 | `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                   |
 | `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt` |
-| `pnpm`   | `npm`             | `pnpm`                                 | the registry tarball, sha512 from its `integrity`                                  |
-| `poetry` | `pypi`            | `poetry`                               | the non-yanked files of the release, sha256 from pypi                              |
+| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                               |
+| `poetry` | `pypi`            | `poetry`                               | none                                                                               |
 | `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                           |
 
 To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
+Tools installed through npm, pip or gem have no files: the package manager installs and verifies them together with their dependencies.
 It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.
 A new kind of source needs a fetcher in [`src/datasources`](./src/datasources).
 Add its maintained release lines to [`renovate.Dockerfile`](./renovate.Dockerfile) too.

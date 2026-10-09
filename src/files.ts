@@ -89,19 +89,6 @@ export function parseChecksumFile(text: string, algorithm: Algorithm): string | 
 }
 
 /**
- * Converts a subresource integrity string to a checksum.
- * @param integrity - like `sha512-<base64>`, may list several hashes
- * @returns `sha512:<hex>`, or `undefined` without a valid sha512 hash
- */
-export function integrityToChecksum(integrity: string): string | undefined {
-  const hash = integrity
-    .split(/\s+/)
-    .find((part) => part.startsWith('sha512-'))
-    ?.slice('sha512-'.length);
-  return hash ? checksum(Buffer.from(hash, 'base64').toString('hex'), 'sha512') : undefined;
-}
-
-/**
  * Reads the arch and distro of a containerbase prebuild file name, like
  * `python-3.14.8-jammy-x86_64.tar.xz`.
  * @param name - the file name

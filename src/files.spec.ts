@@ -1,13 +1,5 @@
-import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import {
-  checksum,
-  integrityToChecksum,
-  parseChecksumFile,
-  parsePrebuildName,
-  runAll,
-  withFiles,
-} from './files.ts';
+import { checksum, parseChecksumFile, parsePrebuildName, runAll, withFiles } from './files.ts';
 
 describe('files', () => {
   describe('parsePrebuildName', () => {
@@ -20,27 +12,6 @@ describe('files', () => {
       ['readme.txt', {}],
     ])('parses %s', (name, expected) => {
       expect(parsePrebuildName(name)).toEqual(expected);
-    });
-  });
-
-  describe('integrityToChecksum', () => {
-    it('converts a sha512 integrity to hex', () => {
-      const hash = createHash('sha512').update('pnpm').digest();
-      expect(integrityToChecksum(`sha512-${hash.toString('base64')}`)).toBe(
-        `sha512:${hash.toString('hex')}`,
-      );
-    });
-
-    it('picks the sha512 hash of several', () => {
-      const hash = createHash('sha512').update('pnpm').digest();
-      expect(integrityToChecksum(`sha1-abc= sha512-${hash.toString('base64')}`)).toBe(
-        `sha512:${hash.toString('hex')}`,
-      );
-    });
-
-    it('rejects other or invalid hashes', () => {
-      expect(integrityToChecksum('sha1-abcdef==')).toBeUndefined();
-      expect(integrityToChecksum('sha512-AAAA')).toBeUndefined();
     });
   });
 

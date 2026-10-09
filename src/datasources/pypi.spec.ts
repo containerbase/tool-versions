@@ -41,34 +41,6 @@ describe('datasources/pypi', () => {
     expect(scope.isDone()).toBe(true);
   });
 
-  it('lists the non-yanked files with their sha256', async () => {
-    const sha256 = 'a'.repeat(64);
-    const url = 'https://files.pythonhosted.org/packages/ab/cd/poetry-2.1.0-py3-none-any.whl';
-    nock('https://pypi.org')
-      .get('/pypi/poetry/json')
-      .reply(200, {
-        releases: {
-          '2.1.0': [
-            { filename: 'poetry-2.1.0-py3-none-any.whl', url, digests: { sha256 }, yanked: false },
-            { filename: 'poetry-2.1.0.tar.gz', url: `${url}.gz`, digests: {}, yanked: false },
-            {
-              filename: 'poetry-2.1.0-yanked.whl',
-              url,
-              digests: { sha256: 'b'.repeat(64) },
-              yanked: true,
-            },
-          ],
-        },
-      });
-
-    await expect(fetchPypiVersions('poetry')).resolves.toEqual([
-      {
-        version: '2.1.0',
-        files: [{ name: 'poetry-2.1.0-py3-none-any.whl', url, checksum: `sha256:${sha256}` }],
-      },
-    ]);
-  });
-
   it('normalizes the package name', async () => {
     const scope = nock('https://pypi.org')
       .get('/pypi/pip-tools/json')
