@@ -10,10 +10,15 @@ export const DatasourceName = z.enum([
 ]);
 export type DatasourceName = z.infer<typeof DatasourceName>;
 
-/** Where the versions of a tool come from. */
+/** The Renovate versioning to compare and match the versions of a tool with. */
+export const VersioningName = z.enum(['node', 'npm', 'pep440', 'python', 'semver']);
+export type VersioningName = z.infer<typeof VersioningName>;
+
+/** Where the versions of a tool come from, and how to compare them. */
 export const Source = z.object({
   datasource: DatasourceName,
   packageName: z.string(),
+  versioning: VersioningName,
 });
 export type Source = z.infer<typeof Source>;
 
@@ -56,6 +61,15 @@ export const ToolVersions = z.object({
   versions: z.array(ToolVersion),
 });
 export type ToolVersions = z.infer<typeof ToolVersions>;
+
+/**
+ * A previously published `<tool>.json` file. Files published before the
+ * `versioning` was added have none, they still count as previous files.
+ */
+export const PreviousToolVersions = ToolVersions.extend({
+  source: Source.extend({ versioning: VersioningName.optional() }),
+});
+export type PreviousToolVersions = z.infer<typeof PreviousToolVersions>;
 
 /** The content of the `index.json` file. */
 export const ToolIndex = z.object({

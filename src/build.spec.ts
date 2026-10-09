@@ -12,7 +12,9 @@ import { toolSources } from './tools.ts';
 const now = new Date('2026-10-08T12:00:00.000Z');
 const pages = 'https://pages.example.com';
 const registry = 'https://registry.npmjs.org';
-const pnpmSource: Record<string, Source> = { pnpm: { datasource: 'npm', packageName: 'pnpm' } };
+const pnpmSource: Record<string, Source> = {
+  pnpm: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
+};
 
 /**
  * A previously published file of pnpm.
@@ -27,7 +29,7 @@ function previousPnpm(
 ): ToolVersions {
   return {
     tool: 'pnpm',
-    source: { datasource, packageName },
+    source: { datasource, packageName, versioning: 'npm' },
     updatedAt: '2026-10-07T03:00:00.000Z',
     versions,
   };
@@ -90,8 +92,8 @@ describe('build', () => {
       dir,
       sources: {
         ...pnpmSource,
-        npm: { datasource: 'npm', packageName: 'npm' },
-        corepack: { datasource: 'npm', packageName: 'corepack' },
+        npm: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
+        corepack: { datasource: 'npm', packageName: 'corepack', versioning: 'npm' },
       },
       now,
     });
@@ -110,7 +112,7 @@ describe('build', () => {
     expect(JSON.parse(await read('pnpm.json'))).toEqual({
       tool: 'pnpm',
       type: 'npm',
-      source: { datasource: 'npm', packageName: 'pnpm' },
+      source: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
       updatedAt: '2026-10-08T12:00:00.000Z',
       versions: [{ version: '10.0.0' }, { version: '9.0.0' }],
     });
@@ -141,6 +143,18 @@ describe('build', () => {
     expect(output).toContain(
       '::warning::pnpm: HttpError: GET https://registry.npmjs.org/pnpm failed with status 500, keeping the versions from 2026-10-07T03:00:00.000Z\n',
     );
+  });
+
+  it('keeps a previous file without versioning and writes the current one', async () => {
+    const previous = previousPnpm([{ version: '9.0.0' }]);
+    nock(pages)
+      .get('/pnpm.json')
+      .reply(200, { ...previous, source: { datasource: 'npm', packageName: 'pnpm' } });
+    nock(registry).get('/pnpm').reply(500);
+
+    await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual([]);
+
+    expect(JSON.parse(await read('pnpm.json'))).toEqual({ ...previous, type: 'npm' });
   });
 
   it('merges the fresh versions with the previous ones', async () => {
@@ -195,7 +209,7 @@ describe('build', () => {
 
     await build({
       dir,
-      sources: { node: { datasource: 'npm', packageName: 'node' } },
+      sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
       now,
     });
 
@@ -233,7 +247,11 @@ describe('build', () => {
         });
       nock(registry).get('/node').reply(500);
 
-      await build({ dir, sources: { node: { datasource: 'npm', packageName: 'node' } }, now });
+      await build({
+        dir,
+        sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
+        now,
+      });
 
       expect(JSON.parse(await read('node.json')).versions).toEqual([
         { version: '2.0.0', files: file('c.tar.xz', 'jammy') },
@@ -260,7 +278,10 @@ describe('build', () => {
 
       await build({
         dir,
-        sources: { node: { datasource: 'npm', packageName: 'node' }, ...pnpmSource },
+        sources: {
+          node: { datasource: 'npm', packageName: 'node', versioning: 'node' },
+          ...pnpmSource,
+        },
         now,
       });
 
@@ -293,7 +314,7 @@ describe('build', () => {
 
     await build({
       dir,
-      sources: { node: { datasource: 'npm', packageName: 'node' } },
+      sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
       now,
     });
 
@@ -318,7 +339,9 @@ describe('build', () => {
 
     await build({
       dir,
-      sources: { helm: { datasource: 'github-releases', packageName: 'helm/helm' } },
+      sources: {
+        helm: { datasource: 'github-releases', packageName: 'helm/helm', versioning: 'semver' },
+      },
       now,
     });
 
@@ -383,7 +406,9 @@ describe('build', () => {
 
     await build({
       dir,
-      sources: { pnpm: { datasource: 'github-releases', packageName: 'pnpm/pnpm' } },
+      sources: {
+        pnpm: { datasource: 'github-releases', packageName: 'pnpm/pnpm', versioning: 'npm' },
+      },
       now,
     });
 
@@ -425,7 +450,7 @@ describe('build', () => {
         dir,
         sources: {
           ...pnpmSource,
-          'not-a-tool': { datasource: 'npm', packageName: 'not-a-tool' },
+          'not-a-tool': { datasource: 'npm', packageName: 'not-a-tool', versioning: 'npm' },
         },
         now,
       }),

@@ -15,7 +15,7 @@ A tool file looks like this:
 ```json
 {
   "tool": "node",
-  "source": { "datasource": "node-version", "packageName": "node" },
+  "source": { "datasource": "node-version", "packageName": "node", "versioning": "node" },
   "updatedAt": "2026-10-08T03:00:00.000Z",
   "versions": [
     { "version": "25.0.0" },
@@ -66,6 +66,7 @@ A `java` version has one file per architecture:
 }
 ```
 
+- `source` is where the versions come from: the `datasource` and `packageName`, and the [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) to compare and match them with, e.g. `node`, `npm`, `pep440`, `python` or `semver`.
 - `type` is the package manager installing the tool, `gem`, `npm` or `pip`, as in [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), e.g. `"type": "npm"` for `pnpm`.
   It is omitted for other tools.
 - `versions` is sorted newest first and includes prereleases.
@@ -80,16 +81,16 @@ A `java` version has one file per architecture:
 
 ## Tools
 
-| Tool     | Datasource        | Package                                | Files                                                                                                            |
-| -------- | ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`, older releases from `.sha256` |
-| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                                                 |
-| `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt`                               |
-| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                                                             |
-| `poetry` | `pypi`            | `poetry`                               | none                                                                                                             |
-| `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                                                         |
+| Tool     | Datasource        | Package                                | Versioning | Files                                                                                                            |
+| -------- | ----------------- | -------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `helm`   | `github-releases` | `helm/helm`                            | `semver`   | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`, older releases from `.sha256` |
+| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | `npm`      | the Adoptium linux packages, sha256 from the Adoptium assets api                                                 |
+| `node`   | `node-version`    | `node` (nodejs.org)                    | `node`     | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt`                               |
+| `pnpm`   | `npm`             | `pnpm`                                 | `npm`      | none                                                                                                             |
+| `poetry` | `pypi`            | `poetry`                               | `pep440`   | none                                                                                                             |
+| `python` | `github-releases` | `containerbase/python-prebuild`        | `python`   | the release assets with a `.sha512` file, sha512 from it                                                         |
 
-To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
+To add a tool, map it in [`src/tools.ts`](./src/tools.ts), with the versioning Renovate uses for it.
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
 The `python` prebuilds of the distros `bionic` and `focal` are skipped, containerbase no longer supports them.
 Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.
@@ -119,6 +120,7 @@ Each build starts from the published files:
   New lines are picked up by the nightly run; add them to the file when they are released.
 
 A missing, unreadable or invalid previous file counts as no previous file, as does a file of another source.
+A previous file without a `versioning` still counts, the next build writes the current one.
 
 ## Development
 

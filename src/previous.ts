@@ -1,6 +1,6 @@
 import { env } from 'node:process';
 import { request } from './http.ts';
-import { ToolVersions } from './schema.ts';
+import { PreviousToolVersions } from './schema.ts';
 
 /** Where the files are published. */
 export const defaultPagesUrl = 'https://containerbase.github.io/tool-versions';
@@ -16,10 +16,10 @@ export function pagesUrl(): string {
  * @returns the file, or `undefined` when it is missing, can't be downloaded or
  * is invalid
  */
-export async function fetchPrevious(tool: string): Promise<ToolVersions | undefined> {
+export async function fetchPrevious(tool: string): Promise<PreviousToolVersions | undefined> {
   try {
     const res = await request(`${pagesUrl()}/${tool}.json`);
-    const parsed = ToolVersions.safeParse(await res.json());
+    const parsed = PreviousToolVersions.safeParse(await res.json());
     return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;

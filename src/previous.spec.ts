@@ -5,7 +5,7 @@ import type { ToolVersions } from './schema.ts';
 
 const previous: ToolVersions = {
   tool: 'helm',
-  source: { datasource: 'github-releases', packageName: 'helm/helm' },
+  source: { datasource: 'github-releases', packageName: 'helm/helm', versioning: 'semver' },
   updatedAt: '2026-10-07T03:00:00.000Z',
   versions: [{ version: '4.0.0' }],
 };
@@ -42,6 +42,17 @@ describe('previous', () => {
 
     await expect(fetchPrevious('helm')).resolves.toEqual(previous);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('accepts a file published without versioning', async () => {
+    vi.stubEnv('TOOL_VERSIONS_URL', 'https://fork.example.com');
+    const old = {
+      ...previous,
+      source: { datasource: 'github-releases', packageName: 'helm/helm' },
+    };
+    nock('https://fork.example.com').get('/helm.json').reply(200, old);
+
+    await expect(fetchPrevious('helm')).resolves.toEqual(old);
   });
 
   it('returns undefined for a missing file', async () => {

@@ -29,7 +29,7 @@ describe('output', () => {
   it('writes a tool file', async () => {
     const file = await writeToolVersions(dir, {
       tool: 'node',
-      source: { datasource: 'node-version', packageName: 'node' },
+      source: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
       updatedAt,
       versions: [
         { version: '25.0.0-rc.1', prerelease: true },
@@ -40,7 +40,7 @@ describe('output', () => {
     expect(file).toBe('node.json');
     // compact, with a trailing newline
     expect(await read(file)).toBe(
-      '{"tool":"node","source":{"datasource":"node-version","packageName":"node"},"updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.0-rc.1","prerelease":true},{"version":"24.21.0","lts":true}]}\n',
+      '{"tool":"node","source":{"datasource":"node-version","packageName":"node","versioning":"node"},"updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.0-rc.1","prerelease":true},{"version":"24.21.0","lts":true}]}\n',
     );
   });
 
@@ -48,7 +48,7 @@ describe('output', () => {
     await expect(
       writeToolVersions(dir, {
         tool: 'node',
-        source: { datasource: 'node-version', packageName: 'node' },
+        source: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
         updatedAt: 'yesterday',
         versions: [],
       }),
@@ -69,7 +69,7 @@ describe('output', () => {
   it('writes a sha512 file next to every json file', async () => {
     await writeToolVersions(dir, {
       tool: 'node',
-      source: { datasource: 'node-version', packageName: 'node' },
+      source: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
       updatedAt,
       versions: [{ version: '24.21.0' }],
     });
