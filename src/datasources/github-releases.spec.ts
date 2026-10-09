@@ -180,6 +180,32 @@ describe('datasources/github-releases', () => {
       expect(downloads.isDone()).toBe(true);
     });
 
+    it('skips the prebuilds of unsupported distros without downloading their checksums', async () => {
+      const names = [
+        'python-3.14.8-bionic-x86_64.tar.xz',
+        'python-3.14.8-bionic-x86_64.tar.xz.sha512',
+        'python-3.14.8-focal-aarch64.tar.xz',
+        'python-3.14.8-focal-aarch64.tar.xz.sha512',
+        'python-3.14.8-noble-x86_64.tar.xz',
+        'python-3.14.8-noble-x86_64.tar.xz.sha512',
+      ];
+      nock(api)
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [withAssets('3.14.8', names)]);
+      const downloads = nock(dl)
+        .get('/3.14.8/python-3.14.8-noble-x86_64.tar.xz.sha512')
+        .reply(200, sum1);
+
+      await expect(fetchGithubReleases(repo, none)).resolves.toEqual([
+        {
+          version: '3.14.8',
+          files: [prebuildFile('3.14.8', 'noble-x86_64', sum1, { arch: 'amd64', distro: 'noble' })],
+        },
+      ]);
+      expect(downloads.isDone()).toBe(true);
+    });
+
     it('leaves out the files of releases without sidecar files', async () => {
       nock(api)
         .get(`/repos/${repo}/releases`)

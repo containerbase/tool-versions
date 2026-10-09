@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
+import { isUnsupportedDistro } from './files.ts';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type { Source, ToolIndex, ToolVersion, ToolVersions } from './schema.ts';
@@ -66,14 +67,29 @@ function withType(data: ToolVersions): ToolVersions {
 }
 
 /**
- * Removes the files of all versions.
- * @param data - the tool versions
+ * Cleans the files of a previously published file. A tool without files loses
+ * them all, other tools lose the files of unsupported distros.
+ * @param data - the previously published tool versions
  */
-function withoutFiles(data: ToolVersions): ToolVersions {
+function cleanFiles(data: ToolVersions): ToolVersions {
+  const files = hasFiles(data.tool);
   return {
     ...data,
-    versions: data.versions.map(({ files: _files, ...version }) => version),
+    versions: data.versions.map(({ files: old, ...version }) => {
+      const kept = files ? old?.filter(({ distro }) => !isUnsupportedDistro(distro)) : undefined;
+      return kept?.length ? { ...version, files: kept } : version;
+    }),
   };
+}
+
+/**
+ * Leaves out the versions without files, as they can't be installed. Tools
+ * installed by a package manager have no files and keep all versions.
+ * @param tool - the tool name
+ * @param versions - the versions of the tool
+ */
+function installable(tool: string, versions: ToolVersion[]): ToolVersion[] {
+  return hasFiles(tool) ? versions.filter(({ files }) => files?.length) : versions;
 }
 
 /**
@@ -100,7 +116,7 @@ async function fetchVersions(
     const kept = files.get(entry.version);
     return entry.files || !kept ? entry : { ...entry, files: kept };
   });
-  const versions = sortVersions([...fresh, ...previous], compare);
+  const versions = installable(tool, sortVersions([...fresh, ...previous], compare));
   if (!versions.length) {
     throw new Error('No versions found');
   }
@@ -134,7 +150,7 @@ export async function build({
 
   for (const [tool, source] of Object.entries(sources)) {
     const loaded = await loadPrevious(tool, source, full);
-    const previous = loaded && !hasFiles(tool) ? withoutFiles(loaded) : loaded;
+    const previous = loaded && cleanFiles(loaded);
     let data: ToolVersions;
     try {
       data = {
@@ -150,7 +166,7 @@ export async function build({
         stdout.write(`::error::${tool}: ${String(err)}\n`);
         continue;
       }
-      data = previous;
+      data = { ...previous, versions: installable(tool, previous.versions) };
       stdout.write(
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );

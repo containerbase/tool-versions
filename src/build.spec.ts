@@ -199,8 +199,82 @@ describe('build', () => {
       now,
     });
 
+    // 10.0.0 has no files and is left out
     expect(JSON.parse(await read('node.json'))).toMatchObject({
-      versions: [{ version: '10.0.0' }, { version: '9.0.0', files }],
+      versions: [{ version: '9.0.0', files }],
+    });
+    expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
+      { tool: 'node', file: 'node.json', versionCount: 1 },
+    ]);
+  });
+
+  describe('installable versions', () => {
+    const sum = `sha512:${'a'.repeat(128)}`;
+    const file = (name: string, distro?: string): ToolVersions['versions'][number]['files'] => [
+      { name, url: `https://example.com/${name}`, checksum: sum, ...(distro && { distro }) },
+    ];
+
+    it('drops the unsupported distro files of the previous file and the versions left empty', async () => {
+      nock(pages)
+        .get('/node.json')
+        .reply(200, {
+          ...previousPnpm(
+            [
+              { version: '3.0.0', files: file('a.tar.xz', 'bionic') },
+              {
+                version: '2.0.0',
+                files: [...(file('b.tar.xz', 'focal') ?? []), ...(file('c.tar.xz', 'jammy') ?? [])],
+              },
+              { version: '1.0.0', files: file('d.tar.xz') },
+            ],
+            'node',
+          ),
+          tool: 'node',
+        });
+      nock(registry).get('/node').reply(500);
+
+      await build({ dir, sources: { node: { datasource: 'npm', packageName: 'node' } }, now });
+
+      expect(JSON.parse(await read('node.json')).versions).toEqual([
+        { version: '2.0.0', files: file('c.tar.xz', 'jammy') },
+        { version: '1.0.0', files: file('d.tar.xz') },
+      ]);
+      expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
+        { tool: 'node', file: 'node.json', versionCount: 2 },
+      ]);
+    });
+
+    it('leaves out versions without files when the fetch fails and keeps them for typed tools', async () => {
+      nock(pages)
+        .get('/node.json')
+        .reply(200, {
+          ...previousPnpm(
+            [{ version: '2.0.0' }, { version: '1.0.0', files: file('d.tar.xz') }],
+            'node',
+          ),
+          tool: 'node',
+        })
+        .get('/pnpm.json')
+        .reply(200, previousPnpm([{ version: '2.0.0' }, { version: '1.0.0' }]));
+      nock(registry).get('/node').reply(500).get('/pnpm').reply(500);
+
+      await build({
+        dir,
+        sources: { node: { datasource: 'npm', packageName: 'node' }, ...pnpmSource },
+        now,
+      });
+
+      expect(JSON.parse(await read('node.json')).versions).toEqual([
+        { version: '1.0.0', files: file('d.tar.xz') },
+      ]);
+      expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
+        { version: '2.0.0' },
+        { version: '1.0.0' },
+      ]);
+      expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
+        { tool: 'node', file: 'node.json', versionCount: 1 },
+        { tool: 'pnpm', file: 'pnpm.json', versionCount: 2 },
+      ]);
     });
   });
 

@@ -5,6 +5,7 @@ import {
   type FileTemplate,
   type PreviousFiles,
   checksumTasks,
+  isUnsupportedDistro,
   parsePrebuildName,
   runAll,
   withFiles,
@@ -61,7 +62,7 @@ function githubHeaders(): Record<string, string> {
 
 /**
  * Finds the release files which have a `<file>.sha512` sibling. The arch and
- * distro are read from the file name.
+ * distro are read from the file name, files of unsupported distros are skipped.
  * @param assets - the files of a release
  */
 function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
@@ -70,14 +71,15 @@ function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
   );
   return assets.flatMap(({ name, browser_download_url }) => {
     const checksumUrl = urls.get(`${name}.sha512`);
-    return checksumUrl
+    const parsed = parsePrebuildName(name);
+    return checksumUrl && !isUnsupportedDistro(parsed.distro)
       ? [
           {
             name,
             url: browser_download_url,
             checksumUrl,
             algorithm: 'sha512' as const,
-            ...parsePrebuildName(name),
+            ...parsed,
           },
         ]
       : [];

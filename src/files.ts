@@ -105,6 +105,17 @@ export function parsePrebuildName(name: string): Pick<ToolFile, 'arch' | 'distro
   };
 }
 
+/** The distros containerbase no longer supports, their prebuilds are skipped. */
+const unsupportedDistros = new Set(['bionic', 'focal']);
+
+/**
+ * Checks if a distro is no longer supported.
+ * @param distro - the distro of a file, if any
+ */
+export function isUnsupportedDistro(distro: string | undefined): boolean {
+  return distro !== undefined && unsupportedDistros.has(distro);
+}
+
 /**
  * Adds files to a version, sorted by name. Nothing is added without files.
  * @param entry - the version
