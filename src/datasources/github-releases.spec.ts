@@ -180,6 +180,32 @@ describe('datasources/github-releases', () => {
       expect(downloads.isDone()).toBe(true);
     });
 
+    it('skips the prebuilds of unsupported distros without downloading their checksums', async () => {
+      const names = [
+        'python-3.14.8-bionic-x86_64.tar.xz',
+        'python-3.14.8-bionic-x86_64.tar.xz.sha512',
+        'python-3.14.8-focal-aarch64.tar.xz',
+        'python-3.14.8-focal-aarch64.tar.xz.sha512',
+        'python-3.14.8-noble-x86_64.tar.xz',
+        'python-3.14.8-noble-x86_64.tar.xz.sha512',
+      ];
+      nock(api)
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [withAssets('3.14.8', names)]);
+      const downloads = nock(dl)
+        .get('/3.14.8/python-3.14.8-noble-x86_64.tar.xz.sha512')
+        .reply(200, sum1);
+
+      await expect(fetchGithubReleases(repo, none)).resolves.toEqual([
+        {
+          version: '3.14.8',
+          files: [prebuildFile('3.14.8', 'noble-x86_64', sum1, { arch: 'amd64', distro: 'noble' })],
+        },
+      ]);
+      expect(downloads.isDone()).toBe(true);
+    });
+
     it('leaves out the files of releases without sidecar files', async () => {
       nock(api)
         .get(`/repos/${repo}/releases`)
@@ -279,12 +305,56 @@ describe('datasources/github-releases', () => {
       ]);
     });
 
+    it('tries the next checksum file and stays silent when all are missing', async () => {
+      const output = captureOutput();
+      const host = 'https://files.example.com';
+      const template: FileTemplate = (version) => [
+        {
+          name: `tool-${version}.tgz`,
+          url: `${host}/tool-${version}.tgz`,
+          checksumUrls: [
+            `${host}/tool-${version}.tgz.sha256sum`,
+            `${host}/tool-${version}.tgz.sha256`,
+          ],
+          algorithm: 'sha256',
+        },
+      ];
+      nock(api)
+        .get('/repos/some/tool/releases')
+        .query({ per_page: '100' })
+        .reply(200, [release('v2.0.0'), release('v1.0.0')]);
+      nock(host)
+        .get('/tool-2.0.0.tgz.sha256sum')
+        .reply(404)
+        .get('/tool-2.0.0.tgz.sha256')
+        .reply(200, 'd'.repeat(64))
+        .get('/tool-1.0.0.tgz.sha256sum')
+        .reply(404)
+        .get('/tool-1.0.0.tgz.sha256')
+        .reply(404);
+
+      await expect(fetchGithubReleases('some/tool', none, new Map(), template)).resolves.toEqual([
+        {
+          version: '2.0.0',
+          files: [
+            {
+              name: 'tool-2.0.0.tgz',
+              url: `${host}/tool-2.0.0.tgz`,
+              checksum: `sha256:${'d'.repeat(64)}`,
+            },
+          ],
+        },
+        { version: '1.0.0' },
+      ]);
+      expect(output).toEqual([]);
+    });
+
     it('lists the files with a template', async () => {
       const template: FileTemplate = (version) => [
         {
           name: `tool-${version}.tgz`,
           url: `https://files.example.com/tool-${version}.tgz`,
-          checksumUrl: `https://files.example.com/tool-${version}.tgz.sha256sum`,
+          checksumUrls: [`https://files.example.com/tool-${version}.tgz.sha256sum`],
           algorithm: 'sha256',
           arch: 'arm64',
         },

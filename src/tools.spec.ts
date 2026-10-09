@@ -8,14 +8,20 @@ describe('tools', () => {
         {
           name: 'helm-v3.19.0-linux-amd64.tar.gz',
           url: 'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz',
-          checksumUrl: 'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz.sha256sum',
+          checksumUrls: [
+            'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz.sha256sum',
+            'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz.sha256',
+          ],
           algorithm: 'sha256',
           arch: 'amd64',
         },
         {
           name: 'helm-v3.19.0-linux-arm64.tar.gz',
           url: 'https://get.helm.sh/helm-v3.19.0-linux-arm64.tar.gz',
-          checksumUrl: 'https://get.helm.sh/helm-v3.19.0-linux-arm64.tar.gz.sha256sum',
+          checksumUrls: [
+            'https://get.helm.sh/helm-v3.19.0-linux-arm64.tar.gz.sha256sum',
+            'https://get.helm.sh/helm-v3.19.0-linux-arm64.tar.gz.sha256',
+          ],
           algorithm: 'sha256',
           arch: 'arm64',
         },

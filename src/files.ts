@@ -20,8 +20,8 @@ export interface FileCandidate {
   name: string;
   /** where the file is downloaded from */
   url: string;
-  /** where the checksum file is downloaded from */
-  checksumUrl: string;
+  /** where the checksum file is downloaded from, the first one that exists is used */
+  checksumUrls: string[];
   /** the algorithm of the checksum file */
   algorithm: Algorithm;
   arch?: ToolFile['arch'];
@@ -105,6 +105,17 @@ export function parsePrebuildName(name: string): Pick<ToolFile, 'arch' | 'distro
   };
 }
 
+/** The distros containerbase no longer supports, their prebuilds are skipped. */
+const unsupportedDistros = new Set(['bionic', 'focal']);
+
+/**
+ * Checks if a distro is no longer supported.
+ * @param distro - the distro of a file, if any
+ */
+export function isUnsupportedDistro(distro: string | undefined): boolean {
+  return distro !== undefined && unsupportedDistros.has(distro);
+}
+
 /**
  * Adds files to a version, sorted by name. Nothing is added without files.
  * @param entry - the version
@@ -118,7 +129,8 @@ export function withFiles(entry: ToolVersion, files: readonly ToolFile[]): ToolV
 
 /**
  * Creates the tasks which read the checksums of the candidates that are not
- * known yet.
+ * known yet. The checksum files of a candidate are tried in order, the next one
+ * is used when a file can't be downloaded.
  * @param label - names the tool or package in warnings
  * @param candidates - the files of a version
  * @param files - the known files of the version, the downloads add to it
@@ -130,8 +142,15 @@ export function checksumTasks(
 ): (() => Promise<void>)[] {
   return candidates
     .filter(({ name }) => !files.some((file) => file.name === name))
-    .map(({ name, url, checksumUrl, algorithm, arch, distro }) => async () => {
-      const text = await fetchText(checksumUrl, label);
+    .map(({ name, url, checksumUrls, algorithm, arch, distro }) => async () => {
+      let checksumUrl = '';
+      let text: string | undefined;
+      for (checksumUrl of checksumUrls) {
+        text = await fetchText(checksumUrl, label);
+        if (text !== undefined) {
+          break;
+        }
+      }
       if (text === undefined) {
         return;
       }

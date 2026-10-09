@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { checksum, parseChecksumFile, parsePrebuildName, runAll, withFiles } from './files.ts';
+import {
+  checksum,
+  isUnsupportedDistro,
+  parseChecksumFile,
+  parsePrebuildName,
+  runAll,
+  withFiles,
+} from './files.ts';
 
 describe('files', () => {
   describe('parsePrebuildName', () => {
@@ -35,6 +42,17 @@ describe('files', () => {
     it('rejects text without a digest', () => {
       expect(parseChecksumFile('', 'sha256')).toBeUndefined();
       expect(parseChecksumFile('<html>', 'sha256')).toBeUndefined();
+    });
+  });
+
+  describe('isUnsupportedDistro', () => {
+    it.each([
+      ['bionic', true],
+      ['focal', true],
+      ['jammy', false],
+      [undefined, false],
+    ])('%s is %s', (distro, expected) => {
+      expect(isUnsupportedDistro(distro)).toBe(expected);
     });
   });
 

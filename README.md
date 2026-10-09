@@ -69,6 +69,7 @@ A `java` version has one file per architecture:
 - `type` is the package manager installing the tool, `gem`, `npm` or `pip`, as in [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), e.g. `"type": "npm"` for `pnpm`.
   It is omitted for other tools.
 - `versions` is sorted newest first and includes prereleases.
+  Only installable versions are listed: a version needs at least one file, except for tools installed by a package manager (they have a `type`).
 - `version` is in exactly the format `install-tool` accepts, e.g. `25.0.2+10.0.LTS` for `java`.
 - `prerelease` and `lts` are only present when they are `true`.
 - `files` lists the download files of the version, sorted by `name`. It is only present when files are known.
@@ -79,17 +80,18 @@ A `java` version has one file per architecture:
 
 ## Tools
 
-| Tool     | Datasource        | Package                                | Files                                                                              |
-| -------- | ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
-| `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`  |
-| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                   |
-| `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt` |
-| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                               |
-| `poetry` | `pypi`            | `poetry`                               | none                                                                               |
-| `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                           |
+| Tool     | Datasource        | Package                                | Files                                                                                                            |
+| -------- | ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`, older releases from `.sha256` |
+| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                                                 |
+| `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt`                               |
+| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                                                             |
+| `poetry` | `pypi`            | `poetry`                               | none                                                                                                             |
+| `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                                                         |
 
 To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
+The `python` prebuilds of the distros `bionic` and `focal` are skipped, containerbase no longer supports them.
 Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.
 They are the tools with the `type` `npm`, `pip` or `gem` in `@containerbase/base`.
 It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.

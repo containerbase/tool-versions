@@ -26,6 +26,8 @@ export const toolFiles: Record<string, FileTemplate> = {
     (['amd64', 'arm64'] as const).map((arch) => {
       const name = `helm-v${version}-linux-${arch}.tar.gz`;
       const url = `https://get.helm.sh/${name}`;
-      return { name, url, checksumUrl: `${url}.sha256sum`, algorithm: 'sha256', arch };
+      // older releases only have a `.sha256` file with the bare digest
+      const checksumUrls = [`${url}.sha256sum`, `${url}.sha256`];
+      return { name, url, checksumUrls, algorithm: 'sha256', arch };
     }),
 };
