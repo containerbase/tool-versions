@@ -15,6 +15,8 @@ A tool file looks like this:
 ```json
 {
   "tool": "node",
+  "sourceUrl": "https://github.com/nodejs/node",
+  "homepage": "https://nodejs.org",
   "source": { "datasource": "node-version", "packageName": "node", "versioning": "node" },
   "updatedAt": "2026-10-08T03:00:00.000Z",
   "versions": [
@@ -73,6 +75,7 @@ A `java` version has one file per architecture:
 - `source` is where the versions come from: the `datasource` and `packageName`, and the [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) to compare and match them with, e.g. `node`, `npm`, `pep440`, `python` or `semver`.
 - `type` is the package manager installing the tool, `gem`, `npm` or `pip`, as in [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), e.g. `"type": "npm"` for `pnpm`.
   It is omitted for other tools.
+- `sourceUrl` and `homepage` are https urls of the source code and the homepage of the tool, used by Renovate for changelogs and links. Each is omitted when unset, like the `sourceUrl` of `java`.
 - `versions` is sorted newest first and includes prereleases.
   Only installable versions are listed: a version needs at least one file, except for tools installed by a package manager (they have a `type`).
 - `version` is in exactly the format `install-tool` accepts, e.g. `25.0.2+10.0.LTS` for `java`.
@@ -96,7 +99,7 @@ A `java` version has one file per architecture:
 | `poetry` | `pypi`            | `poetry`                               | `pep440`   | none                                                                                                             |
 | `python` | `github-releases` | `containerbase/python-prebuild`        | `python`   | the release assets with a `.sha512` file, sha512 from it                                                         |
 
-To add a tool, map it in [`src/tools.ts`](./src/tools.ts), with the versioning Renovate uses for it.
+To add a tool, map it in [`src/tools.ts`](./src/tools.ts), with the versioning Renovate uses for it and its `sourceUrl` and `homepage` in `toolLinks`.
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
 The `python` prebuilds of the distros `bionic` and `focal` are skipped, containerbase no longer supports them.
 Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.

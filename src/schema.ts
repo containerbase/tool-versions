@@ -57,6 +57,10 @@ export const ToolVersions = z.object({
   tool: z.string(),
   /** the package manager installing the tool, omitted for other tools */
   type: z.enum(['gem', 'npm', 'pip']).optional(),
+  /** where the source code of the tool lives, omitted when unset */
+  sourceUrl: z.url({ protocol: /^https$/ }).optional(),
+  /** the homepage of the tool, omitted when unset */
+  homepage: z.url({ protocol: /^https$/ }).optional(),
   source: Source,
   updatedAt: z.iso.datetime(),
   /** newest first */

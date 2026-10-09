@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ToolFile, ToolVersion } from './schema.ts';
+import { PreviousToolVersions, ToolFile, ToolVersion, ToolVersions } from './schema.ts';
 
 const file = {
   name: 'python-3.14.8-jammy-x86_64.tar.xz',
@@ -32,6 +32,29 @@ describe('schema', () => {
       expect(ToolFile.safeParse({ ...file, url: 'http://example.com/a' }).success).toBe(false);
       expect(ToolFile.safeParse({ ...file, arch: 'x86_64' }).success).toBe(false);
       expect(ToolFile.safeParse({ ...file, name: '' }).success).toBe(false);
+    });
+  });
+
+  describe('ToolVersions', () => {
+    const data = {
+      tool: 'node',
+      source: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
+      updatedAt: '2026-10-08T12:00:00.000Z',
+      versions: [],
+    };
+
+    it('accepts the links, which are optional', () => {
+      const links = { sourceUrl: 'https://github.com/nodejs/node', homepage: 'https://nodejs.org' };
+      expect(ToolVersions.parse({ ...data, ...links })).toEqual({ ...data, ...links });
+      expect(ToolVersions.parse(data)).toEqual(data);
+      expect(PreviousToolVersions.parse(data)).toEqual(data);
+    });
+
+    it.each(['sourceUrl', 'homepage'])('rejects a non-https %s', (field) => {
+      expect(ToolVersions.safeParse({ ...data, [field]: 'http://example.com' }).success).toBe(
+        false,
+      );
+      expect(ToolVersions.safeParse({ ...data, [field]: 'nodejs.org' }).success).toBe(false);
     });
   });
 
