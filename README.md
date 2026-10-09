@@ -64,9 +64,11 @@ A missing, unreadable or invalid previous file counts as no previous file, as do
 ## Development
 
 ```bash
+mise install
 pnpm install
 pnpm lint
 pnpm test
+jactionlint
 ```
 
 `pnpm build` fetches all tools and writes the files to `dist/`, `pnpm build --full` skips the previous files.
