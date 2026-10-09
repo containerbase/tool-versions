@@ -80,6 +80,24 @@ describe('datasources/node-version', () => {
     expect(scope.isDone()).toBe(true);
   });
 
+  it('reads the release timestamp from the date', async () => {
+    nock(dist)
+      .get('/dist/index.json')
+      .reply(200, [
+        { version: 'v25.1.0', date: '2025-10-28', lts: false },
+        { version: 'v25.0.0', lts: false },
+      ])
+      .get('/dist/v25.1.0/SHASUMS256.txt')
+      .reply(404)
+      .get('/dist/v25.0.0/SHASUMS256.txt')
+      .reply(404);
+
+    await expect(fetchNodeVersions('node')).resolves.toEqual([
+      { version: '25.1.0', releaseTimestamp: '2025-10-28T00:00:00.000Z' },
+      { version: '25.0.0' },
+    ]);
+  });
+
   it('only reads the missing files and skips complete releases', async () => {
     const scope = nock(dist)
       .get('/dist/index.json')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareSemver, sortVersions, toolVersion } from './versions.ts';
+import { compareSemver, sortVersions, toTimestamp, toolVersion } from './versions.ts';
 
 describe('versions', () => {
   describe('toolVersion', () => {
@@ -13,6 +13,31 @@ describe('versions', () => {
         prerelease: true,
         lts: true,
       });
+    });
+
+    it('only keeps a known release timestamp', () => {
+      expect(toolVersion('1.0.0', { releaseTimestamp: undefined })).toStrictEqual({
+        version: '1.0.0',
+      });
+      expect(toolVersion('1.0.0', { releaseTimestamp: '2025-01-01T00:00:00.000Z' })).toEqual({
+        version: '1.0.0',
+        releaseTimestamp: '2025-01-01T00:00:00.000Z',
+      });
+    });
+  });
+
+  describe('toTimestamp', () => {
+    it.each([
+      ['2025-10-28', '2025-10-28T00:00:00.000Z'],
+      ['2025-09-11T18:15:42+02:00', '2025-09-11T16:15:42.000Z'],
+      ['2024-10-15T09:00:00Z', '2024-10-15T09:00:00.000Z'],
+      ['2025-03-02T09:00:00.123456Z', '2025-03-02T09:00:00.123Z'],
+    ])('normalizes %s', (value, expected) => {
+      expect(toTimestamp(value)).toBe(expected);
+    });
+
+    it.each([undefined, null, '', 'yesterday'])('rejects %s', (value) => {
+      expect(toTimestamp(value)).toBeUndefined();
     });
   });
 

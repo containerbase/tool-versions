@@ -101,7 +101,7 @@ function installable(tool: string, versions: ToolVersion[]): ToolVersion[] {
 /**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
- * files are kept for fresh versions without any.
+ * files and release times are kept for fresh versions without any.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param previous - the previously published versions
@@ -117,10 +117,27 @@ async function fetchVersions(
   const files = new Map(
     previous.flatMap(({ version, files }) => (files ? [[version, files] as const] : [])),
   );
-  const fetched = await fetch(source.packageName, known, files, toolFiles[tool], hasFiles(tool));
+  const timestamps = new Map(
+    previous.flatMap(({ version, releaseTimestamp }) =>
+      releaseTimestamp ? [[version, releaseTimestamp] as const] : [],
+    ),
+  );
+  const fetched = await fetch(
+    source.packageName,
+    known,
+    files,
+    toolFiles[tool],
+    hasFiles(tool),
+    new Set(timestamps.keys()),
+  );
   const fresh = fetched.map((entry) => {
-    const kept = files.get(entry.version);
-    return entry.files || !kept ? entry : { ...entry, files: kept };
+    const keptFiles = files.get(entry.version);
+    const keptTimestamp = timestamps.get(entry.version);
+    return {
+      ...entry,
+      ...(!entry.files && keptFiles && { files: keptFiles }),
+      ...(!entry.releaseTimestamp && keptTimestamp && { releaseTimestamp: keptTimestamp }),
+    };
   });
   const versions = installable(tool, sortVersions([...fresh, ...previous], compare));
   if (!versions.length) {

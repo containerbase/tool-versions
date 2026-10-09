@@ -2,11 +2,31 @@ import { compare, explain } from '@renovatebot/pep440';
 import { z } from 'zod';
 import { getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
-import { sortVersions, toolVersion } from '../versions.ts';
+import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+
+const PypiFile = z.object({
+  upload_time_iso_8601: z.string().optional(),
+  yanked: z.boolean().optional(),
+});
+type PypiFile = z.infer<typeof PypiFile>;
 
 const PypiPackage = z.object({
-  releases: z.record(z.string(), z.array(z.unknown())),
+  releases: z.record(z.string(), z.array(PypiFile)),
 });
+
+/**
+ * Finds when a release was published: the earliest upload of its files which
+ * are not yanked.
+ * @param files - the files of the release
+ * @returns the time, or `undefined` without a valid upload time
+ */
+function releaseTimestamp(files: PypiFile[]): string | undefined {
+  return files
+    .filter(({ yanked }) => !yanked)
+    .map(({ upload_time_iso_8601 }) => toTimestamp(upload_time_iso_8601))
+    .filter((time) => time !== undefined)
+    .sort()[0];
+}
 
 /**
  * Normalizes a python package name, eg. `Foo_Bar` to `foo-bar`.
@@ -35,7 +55,12 @@ export async function fetchPypiVersions(packageName: string): Promise<ToolVersio
     if (!parsed || !files.length) {
       continue;
     }
-    versions.push(toolVersion(version, { prerelease: parsed.is_prerelease }));
+    versions.push(
+      toolVersion(version, {
+        prerelease: parsed.is_prerelease,
+        releaseTimestamp: releaseTimestamp(files),
+      }),
+    );
   }
   return sortVersions(versions, compare);
 }

@@ -13,7 +13,8 @@ import { fetchPypiVersions } from './pypi.ts';
  * early once they reach a known version. The previously published files are
  * reused by name instead of fetching them again. A template lists the files of
  * a version where the source doesn't. No files are fetched when `fetchFiles`
- * is `false`.
+ * is `false`. Sources which need a request for the release time of a version
+ * skip it for the versions in `hasTimestamp`, which already have one.
  */
 export type Fetcher = (
   packageName: string,
@@ -21,6 +22,7 @@ export type Fetcher = (
   previous?: PreviousFiles,
   template?: FileTemplate,
   fetchFiles?: boolean,
+  hasTimestamp?: ReadonlySet<string>,
 ) => Promise<ToolVersion[]>;
 
 /** A datasource: how its versions are fetched and compared. */

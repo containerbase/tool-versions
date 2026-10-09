@@ -41,6 +41,28 @@ describe('datasources/pypi', () => {
     expect(scope.isDone()).toBe(true);
   });
 
+  it('uses the earliest upload of the files which are not yanked', async () => {
+    nock('https://pypi.org')
+      .get('/pypi/poetry/json')
+      .reply(200, {
+        releases: {
+          '2.1.0': [
+            { upload_time_iso_8601: '2025-03-02T10:00:00.500000Z', yanked: false },
+            { upload_time_iso_8601: '2025-03-02T09:00:00.000000Z', yanked: false },
+            { upload_time_iso_8601: '2025-03-01T00:00:00.000000Z', yanked: true },
+          ],
+          '2.0.0': [{ upload_time_iso_8601: '2025-01-01T00:00:00.000000Z', yanked: true }],
+          '1.0.0': [{ yanked: false }],
+        },
+      });
+
+    await expect(fetchPypiVersions('poetry')).resolves.toEqual([
+      { version: '2.1.0', releaseTimestamp: '2025-03-02T09:00:00.000Z' },
+      { version: '2.0.0' },
+      { version: '1.0.0' },
+    ]);
+  });
+
   it('normalizes the package name', async () => {
     const scope = nock('https://pypi.org')
       .get('/pypi/pip-tools/json')

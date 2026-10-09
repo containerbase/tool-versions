@@ -45,6 +45,18 @@ describe('schema', () => {
       expect(ToolVersion.parse({ version: '3.14.8' })).toEqual({ version: '3.14.8' });
     });
 
+    it('accepts a release timestamp', () => {
+      const version = { version: '3.14.8', releaseTimestamp: '2025-10-28T00:00:00.000Z' };
+      expect(ToolVersion.parse(version)).toEqual(version);
+    });
+
+    it.each(['2025-10-28', 'yesterday', '2025-10-28T00:00:00+02:00'])(
+      'rejects the release timestamp %s',
+      (releaseTimestamp) => {
+        expect(ToolVersion.safeParse({ version: '3.14.8', releaseTimestamp }).success).toBe(false);
+      },
+    );
+
     it('rejects an empty file list', () => {
       expect(ToolVersion.safeParse({ version: '3.14.8', files: [] }).success).toBe(false);
     });
