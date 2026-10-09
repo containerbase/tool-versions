@@ -5,7 +5,13 @@ import { datasources } from './datasources/index.ts';
 import { isUnsupportedDistro } from './files.ts';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
-import type { Source, ToolIndex, ToolVersion, ToolVersions } from './schema.ts';
+import type {
+  PreviousToolVersions,
+  Source,
+  ToolIndex,
+  ToolVersion,
+  ToolVersions,
+} from './schema.ts';
 import { toolFiles, toolSources } from './tools.ts';
 import { sortVersions } from './versions.ts';
 
@@ -34,7 +40,7 @@ async function loadPrevious(
   tool: string,
   source: Source,
   full: boolean,
-): Promise<ToolVersions | undefined> {
+): Promise<PreviousToolVersions | undefined> {
   if (full) {
     return undefined;
   }
@@ -71,7 +77,7 @@ function withType(data: ToolVersions): ToolVersions {
  * them all, other tools lose the files of unsupported distros.
  * @param data - the previously published tool versions
  */
-function cleanFiles(data: ToolVersions): ToolVersions {
+function cleanFiles(data: PreviousToolVersions): PreviousToolVersions {
   const files = hasFiles(data.tool);
   return {
     ...data,
@@ -166,7 +172,8 @@ export async function build({
         stdout.write(`::error::${tool}: ${String(err)}\n`);
         continue;
       }
-      data = { ...previous, versions: installable(tool, previous.versions) };
+      // with the current source, so it gets the current versioning
+      data = { ...previous, source, versions: installable(tool, previous.versions) };
       stdout.write(
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
