@@ -159,6 +159,27 @@ describe('datasources/github-releases', () => {
       expect(downloads.isDone()).toBe(true);
     });
 
+    it('downloads only the missing checksums of a known version', async () => {
+      const files = ['a-x86_64.tar.xz', 'a-x86_64.tar.xz.sha512'];
+      nock(api)
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [
+          withAssets('3.14.8', [...files, 'a-aarch64.tar.xz', 'a-aarch64.tar.xz.sha512']),
+        ]);
+      const downloads = nock(dl).get('/3.14.8/a-aarch64.tar.xz.sha512').reply(200, '9876  a');
+      const previous = new Map([['3.14.8', { 'a-x86_64.tar.xz': 'sha512:abcdef12' }]]);
+
+      await expect(fetchGithubReleases(repo, new Set(['3.14.8']), previous)).resolves.toEqual([
+        {
+          version: '3.14.8',
+          checksums: { 'a-x86_64.tar.xz': 'sha512:abcdef12', 'a-aarch64.tar.xz': 'sha512:9876' },
+        },
+      ]);
+      expect(downloads.isDone()).toBe(true);
+      expect(previous.get('3.14.8')).toEqual({ 'a-x86_64.tar.xz': 'sha512:abcdef12' });
+    });
+
     it('skips the checksum after a failed download and warns', async () => {
       const output: string[] = [];
       vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {

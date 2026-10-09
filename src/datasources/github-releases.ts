@@ -64,9 +64,10 @@ interface SidecarDownload {
 const concurrency = 8;
 
 /**
- * Finds the release files which have a `<file>.sha512` sibling.
+ * Finds the release files which have a `<file>.sha512` sibling and no checksum
+ * yet.
  * @param assets - the files of a release
- * @param checksums - the checksums of the version, filled by the downloads
+ * @param checksums - the known checksums of the version, filled by the downloads
  */
 function sidecarDownloads(assets: GithubAsset[], checksums: Checksums): SidecarDownload[] {
   const urls = new Map(
@@ -74,7 +75,7 @@ function sidecarDownloads(assets: GithubAsset[], checksums: Checksums): SidecarD
   );
   return assets.flatMap(({ name }) => {
     const url = urls.get(`${name}.sha512`);
-    return url ? [{ file: name, url, checksums }] : [];
+    return url && !(name in checksums) ? [{ file: name, url, checksums }] : [];
   });
 }
 
@@ -123,7 +124,7 @@ async function downloadChecksums(packageName: string, downloads: SidecarDownload
  * GitHub lists the newest releases first, so paging stops after the first page
  * with an already known version.
  * The checksum of a release file comes from its `<file>.sha512` sibling. Known
- * checksums are reused, only the missing ones are downloaded.
+ * checksums are reused per file, only the missing ones are downloaded.
  * @param packageName - the repository, like `helm/helm`
  * @param known - the versions which are already known
  * @param previous - the already known checksums by version
@@ -149,14 +150,9 @@ export async function fetchGithubReleases(
       const entry = toolVersion(version, {
         prerelease: release.prerelease || isSemverPrerelease(version),
       });
-      const reused = previous.get(version);
-      if (reused) {
-        entry.checksums = reused;
-      } else {
-        const checksums: Checksums = {};
-        entry.checksums = checksums;
-        downloads.push(...sidecarDownloads(release.assets, checksums));
-      }
+      const checksums: Checksums = { ...previous.get(version) };
+      entry.checksums = checksums;
+      downloads.push(...sidecarDownloads(release.assets, checksums));
       versions.push(entry);
     }
     url = foundKnown ? undefined : nextPage(res.headers.get('link'));

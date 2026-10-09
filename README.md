@@ -65,8 +65,8 @@ Each build starts from the published files:
 - **Incremental:** the versions of the previous file are merged with the fresh ones, so a version that disappears upstream stays listed.
   Where a version is in both, the fresh flags win.
   Paged sources (`github-releases`, `java-version`) list the newest versions first and stop paging after the first page with a known version.
-  Checksums of the previous file are reused and never downloaded again; only versions without checksums get their `.sha512` files downloaded.
-  A version counts as known for paging whether or not it has checksums, so older versions without checksums are only filled by a full refresh.
+  Checksums of the previous file are reused and never downloaded again; only release files without a checksum get their `.sha512` file downloaded, so files uploaded after an earlier build are filled in later.
+  A version counts as known for paging whether or not it has checksums, so older versions on pages that are no longer fetched are only filled by a full refresh.
   A failed `.sha512` download only skips that checksum with a warning, the next build tries again.
 - **Fallback:** when fetching a tool fails, its previous file is published again with its old `updatedAt`, so you can see it is stale, and the build logs a warning.
   The build only fails for a tool that has neither fresh nor previous versions, and then nothing is deployed.
