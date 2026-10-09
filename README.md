@@ -8,6 +8,7 @@ A scheduled workflow fetches them daily from the same upstream sources the conta
 - `https://containerbase.github.io/tool-versions/<tool>.json`: the versions of one tool, e.g. [`node.json`](https://containerbase.github.io/tool-versions/node.json)
 - `https://containerbase.github.io/tool-versions/index.json`: every published tool with its file name and version count
 - `https://containerbase.github.io/tool-versions/tool.schema.json` and `index.schema.json`: the JSON schemas of those files
+- `<file>.sha512` next to each of these files, e.g. `node.json.sha512`: its SHA-512 digest as `<hex>  <file name>`, the format `sha512sum` prints, so a download can be verified
 
 A tool file looks like this:
 

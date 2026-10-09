@@ -95,9 +95,13 @@ describe('build', () => {
     expect(failed).toEqual(['npm', 'corepack']);
     expect((await readdir(dir)).sort()).toEqual([
       'index.json',
+      'index.json.sha512',
       'index.schema.json',
+      'index.schema.json.sha512',
       'pnpm.json',
+      'pnpm.json.sha512',
       'tool.schema.json',
+      'tool.schema.json.sha512',
     ]);
     expect(await read('pnpm.json')).toBe(
       `${codeBlock`
