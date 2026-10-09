@@ -19,6 +19,25 @@ export const toolSources: Record<string, Source> = {
   },
 };
 
+/** The links of a tool, published for Renovate's changelogs and links. */
+export interface ToolLinks {
+  sourceUrl?: string;
+  homepage?: string;
+}
+
+/** The source code and homepage of the tools. */
+export const toolLinks: Record<string, ToolLinks> = {
+  helm: { sourceUrl: 'https://github.com/helm/helm', homepage: 'https://helm.sh' },
+  java: { homepage: 'https://adoptium.net' },
+  node: { sourceUrl: 'https://github.com/nodejs/node', homepage: 'https://nodejs.org' },
+  pnpm: { sourceUrl: 'https://github.com/pnpm/pnpm', homepage: 'https://pnpm.io' },
+  poetry: {
+    sourceUrl: 'https://github.com/python-poetry/poetry',
+    homepage: 'https://python-poetry.org',
+  },
+  python: { sourceUrl: 'https://github.com/python/cpython', homepage: 'https://www.python.org' },
+};
+
 /**
  * The files of the tools which don't publish them as release assets, with the
  * checksum next to the download.

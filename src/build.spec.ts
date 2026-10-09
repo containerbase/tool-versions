@@ -12,6 +12,7 @@ import { toolSources } from './tools.ts';
 const now = new Date('2026-10-08T12:00:00.000Z');
 const pages = 'https://pages.example.com';
 const registry = 'https://registry.npmjs.org';
+const pnpmLinks = { sourceUrl: 'https://github.com/pnpm/pnpm', homepage: 'https://pnpm.io' };
 const pnpmSource: Record<string, Source> = {
   pnpm: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
 };
@@ -113,6 +114,7 @@ describe('build', () => {
     expect(JSON.parse(await read('pnpm.json'))).toEqual({
       tool: 'pnpm',
       type: 'npm',
+      ...pnpmLinks,
       source: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
       updatedAt: '2026-10-08T12:00:00.000Z',
       versions: [{ version: '10.0.0' }, { version: '9.0.0' }],
@@ -135,8 +137,12 @@ describe('build', () => {
     const failed = await build({ dir, sources: pnpmSource, now });
 
     expect(failed).toEqual([]);
-    // the previous file gets the current type
-    expect(JSON.parse(await read('pnpm.json'))).toEqual({ ...previous, type: 'npm' });
+    // the previous file gets the current type and links
+    expect(JSON.parse(await read('pnpm.json'))).toEqual({
+      ...previous,
+      type: 'npm',
+      ...pnpmLinks,
+    });
     expect(ToolIndex.parse(JSON.parse(await read('index.json')))).toEqual({
       updatedAt: '2026-10-08T12:00:00.000Z',
       tools: [{ tool: 'pnpm', file: 'pnpm.json', versionCount: 1 }],
@@ -155,7 +161,66 @@ describe('build', () => {
 
     await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual([]);
 
-    expect(JSON.parse(await read('pnpm.json'))).toEqual({ ...previous, type: 'npm' });
+    expect(JSON.parse(await read('pnpm.json'))).toEqual({
+      ...previous,
+      type: 'npm',
+      ...pnpmLinks,
+    });
+  });
+
+  it('writes the links after the type', async () => {
+    nock(pages).get('/pnpm.json').reply(404);
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, { versions: { '10.0.0': {} } });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(Object.keys(JSON.parse(await read('pnpm.json')))).toEqual([
+      'tool',
+      'type',
+      'sourceUrl',
+      'homepage',
+      'source',
+      'updatedAt',
+      'versions',
+    ]);
+  });
+
+  it('leaves out an unset link of the republished previous file', async () => {
+    nock(pages)
+      .get('/java.json')
+      .reply(200, {
+        tool: 'java',
+        source: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+        updatedAt: '2026-10-07T03:00:00.000Z',
+        versions: [
+          {
+            version: '21.0.5+11.0.LTS',
+            files: [
+              {
+                name: 'a.tar.gz',
+                url: 'https://example.com/a.tar.gz',
+                checksum: `sha256:${'a'.repeat(64)}`,
+              },
+            ],
+          },
+        ],
+      });
+    nock('https://api.adoptium.net').get('/v3/info/available_releases').reply(500);
+
+    await build({
+      dir,
+      sources: {
+        java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+      },
+      now,
+    });
+
+    const java = JSON.parse(await read('java.json'));
+    expect(java).toMatchObject({ homepage: 'https://adoptium.net' });
+    expect(java).not.toHaveProperty('sourceUrl');
   });
 
   it('merges the fresh versions with the previous ones', async () => {
@@ -186,6 +251,7 @@ describe('build', () => {
         { version: '8.0.0' },
       ]),
       type: 'npm',
+      ...pnpmLinks,
       updatedAt: '2026-10-08T12:00:00.000Z',
     });
   });

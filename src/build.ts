@@ -12,7 +12,7 @@ import type {
   ToolVersion,
   ToolVersions,
 } from './schema.ts';
-import { toolFiles, toolSources } from './tools.ts';
+import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
@@ -62,14 +62,22 @@ function hasFiles(tool: string): boolean {
 }
 
 /**
- * Sets the `type` of a tool from `@containerbase/base`, and removes it when the
- * tool has none, so a previously published file gets the current one.
+ * Sets the `type` of a tool from `@containerbase/base` and its links from the
+ * mapping, and removes them when the tool has none, so a previously published
+ * file gets the current ones.
  * @param data - the tool versions
  */
-function withType(data: ToolVersions): ToolVersions {
-  const { tool, type: _type, ...rest } = data;
+function withMetadata(data: ToolVersions): ToolVersions {
+  const { tool, type: _type, sourceUrl: _sourceUrl, homepage: _homepage, ...rest } = data;
   const type = metadata[tool]?.type;
-  return type ? { tool, type, ...rest } : { tool, ...rest };
+  const { sourceUrl, homepage } = toolLinks[tool] ?? {};
+  return {
+    tool,
+    ...(type && { type }),
+    ...(sourceUrl && { sourceUrl }),
+    ...(homepage && { homepage }),
+    ...rest,
+  };
 }
 
 /**
@@ -195,7 +203,7 @@ export async function build({
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
     }
-    const file = await writeToolVersions(dir, withType(data));
+    const file = await writeToolVersions(dir, withMetadata(data));
     index.tools.push({ tool, file, versionCount: data.versions.length });
   }
 
