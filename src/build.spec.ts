@@ -95,9 +95,13 @@ describe('build', () => {
     expect(failed).toEqual(['npm', 'corepack']);
     expect((await readdir(dir)).sort()).toEqual([
       'index.json',
+      'index.json.sha512',
       'index.schema.json',
+      'index.schema.json.sha512',
       'pnpm.json',
+      'pnpm.json.sha512',
       'tool.schema.json',
+      'tool.schema.json.sha512',
     ]);
     expect(await read('pnpm.json')).toBe(
       `${codeBlock`
@@ -174,6 +178,22 @@ describe('build', () => {
         { version: '8.0.0' },
       ]),
       updatedAt: '2026-10-08T12:00:00.000Z',
+    });
+  });
+
+  it('keeps the previous checksums of a fresh version', async () => {
+    const checksums = { 'pnpm.tgz': 'sha512:abcdef12' };
+    nock(pages)
+      .get('/pnpm.json')
+      .reply(200, previousPnpm([{ version: '9.0.0', checksums }]));
+    nock(registry)
+      .get('/pnpm')
+      .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+      versions: [{ version: '10.0.0' }, { version: '9.0.0', checksums }],
     });
   });
 

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -93,6 +94,24 @@ describe('output', () => {
       }
     `}\n`,
     );
+  });
+
+  it('writes a sha512 file next to every json file', async () => {
+    await writeToolVersions(dir, {
+      tool: 'node',
+      source: { datasource: 'node-version', packageName: 'node' },
+      updatedAt,
+      versions: [{ version: '24.21.0' }],
+    });
+    await writeIndex(dir, { updatedAt, tools: [] });
+    await writeSchemas(dir);
+
+    for (const file of ['node.json', 'index.json', 'tool.schema.json', 'index.schema.json']) {
+      const digest = createHash('sha512')
+        .update(await readFile(join(dir, file)))
+        .digest('hex');
+      expect(await read(`${file}.sha512`)).toBe(`${digest}  ${file}\n`);
+    }
   });
 
   it('writes the json schemas', async () => {
