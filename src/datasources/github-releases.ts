@@ -1,7 +1,16 @@
-import { env, stdout } from 'node:process';
+import { env } from 'node:process';
 import { z } from 'zod';
+import {
+  type FileCandidate,
+  type FileTemplate,
+  type PreviousFiles,
+  checksumTasks,
+  parsePrebuildName,
+  runAll,
+  withFiles,
+} from '../files.ts';
 import { request } from '../http.ts';
-import type { Checksums, ToolVersion } from '../schema.ts';
+import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
   compareSemver,
   isSemver,
@@ -50,70 +59,29 @@ function githubHeaders(): Record<string, string> {
   };
 }
 
-/** A checksum file to download for a release file. */
-interface SidecarDownload {
-  /** the release file the checksum belongs to */
-  file: string;
-  /** where the checksum file is downloaded from */
-  url: string;
-  /** the checksums of the version it belongs to */
-  checksums: Checksums;
-}
-
-/** How many checksum files are downloaded at once. */
-const concurrency = 8;
-
 /**
- * Finds the release files which have a `<file>.sha512` sibling and no checksum
- * yet.
+ * Finds the release files which have a `<file>.sha512` sibling. The arch and
+ * distro are read from the file name.
  * @param assets - the files of a release
- * @param checksums - the known checksums of the version, filled by the downloads
  */
-function sidecarDownloads(assets: GithubAsset[], checksums: Checksums): SidecarDownload[] {
+function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
   const urls = new Map(
     assets.map(({ name, browser_download_url }) => [name, browser_download_url]),
   );
-  return assets.flatMap(({ name }) => {
-    const url = urls.get(`${name}.sha512`);
-    return url && !(name in checksums) ? [{ file: name, url, checksums }] : [];
+  return assets.flatMap(({ name, browser_download_url }) => {
+    const checksumUrl = urls.get(`${name}.sha512`);
+    return checksumUrl
+      ? [
+          {
+            name,
+            url: browser_download_url,
+            checksumUrl,
+            algorithm: 'sha512' as const,
+            ...parsePrebuildName(name),
+          },
+        ]
+      : [];
   });
-}
-
-/**
- * Downloads a checksum file and stores its digest. A failed download only
- * prints a warning, the next build tries again.
- * @param packageName - the repository, used in the warning
- * @param download - the checksum file to download
- */
-async function downloadChecksum(
-  packageName: string,
-  { file, url, checksums }: SidecarDownload,
-): Promise<void> {
-  try {
-    const res = await request(url);
-    const digest = (await res.text()).trim().split(/\s+/)[0]?.toLowerCase();
-    if (!digest || !/^[0-9a-f]+$/.test(digest)) {
-      throw new Error('no valid sha512 digest');
-    }
-    checksums[file] = `sha512:${digest}`;
-  } catch (err) {
-    stdout.write(`::warning::${packageName}: no checksum for ${file}: ${String(err)}\n`);
-  }
-}
-
-/**
- * Runs the downloads with a fixed number of workers.
- * @param packageName - the repository, used in warnings
- * @param downloads - the checksum files to download
- */
-async function downloadChecksums(packageName: string, downloads: SidecarDownload[]): Promise<void> {
-  const queue = [...downloads];
-  const worker = async (): Promise<void> => {
-    for (let next = queue.shift(); next; next = queue.shift()) {
-      await downloadChecksum(packageName, next);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
 }
 
 /**
@@ -123,20 +91,25 @@ async function downloadChecksums(packageName: string, downloads: SidecarDownload
  * its version has a prerelease part.
  * GitHub lists the newest releases first, so paging stops after the first page
  * with an already known version.
- * The checksum of a release file comes from its `<file>.sha512` sibling. Known
- * checksums are reused per file, only the missing ones are downloaded.
+ * The files are the assets with a `<file>.sha512` sibling, or the ones the
+ * template lists. Known files are reused by name, only the missing ones are
+ * downloaded.
  * @param packageName - the repository, like `helm/helm`
  * @param known - the versions which are already known
- * @param previous - the already known checksums by version
+ * @param previous - the already known files by version
+ * @param template - lists the files of a version, instead of the assets
+ * @param fetchFiles - whether to fetch the files at all
  */
 export async function fetchGithubReleases(
   packageName: string,
   known: ReadonlySet<string>,
-  previous: ReadonlyMap<string, Checksums> = new Map(),
+  previous: PreviousFiles = new Map(),
+  template?: FileTemplate,
+  fetchFiles = true,
 ): Promise<ToolVersion[]> {
   const headers = githubHeaders();
-  const versions: ToolVersion[] = [];
-  const downloads: SidecarDownload[] = [];
+  const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
+  const tasks: (() => Promise<void>)[] = [];
   let url: string | undefined = `https://api.github.com/repos/${packageName}/releases?per_page=100`;
   while (url) {
     const res = await request(url, headers);
@@ -150,18 +123,18 @@ export async function fetchGithubReleases(
       const entry = toolVersion(version, {
         prerelease: release.prerelease || isSemverPrerelease(version),
       });
-      const checksums: Checksums = { ...previous.get(version) };
-      entry.checksums = checksums;
-      downloads.push(...sidecarDownloads(release.assets, checksums));
-      versions.push(entry);
+      const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
+      if (fetchFiles) {
+        const candidates = template ? template(version) : assetCandidates(release.assets);
+        tasks.push(...checksumTasks(packageName, candidates, files));
+      }
+      versions.push({ entry, files });
     }
     url = foundKnown ? undefined : nextPage(res.headers.get('link'));
   }
-  await downloadChecksums(packageName, downloads);
-  for (const entry of versions) {
-    if (entry.checksums && !Object.keys(entry.checksums).length) {
-      delete entry.checksums;
-    }
-  }
-  return sortVersions(versions, compareSemver);
+  await runAll(tasks);
+  return sortVersions(
+    versions.map(({ entry, files }) => withFiles(entry, files)),
+    compareSemver,
+  );
 }

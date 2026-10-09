@@ -1,12 +1,14 @@
 import { mkdir } from 'node:fs/promises';
 import { stdout } from 'node:process';
-import { tools } from '@containerbase/base';
+import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type { Source, ToolIndex, ToolVersion, ToolVersions } from './schema.ts';
-import { toolSources } from './tools.ts';
+import { toolFiles, toolSources } from './tools.ts';
 import { sortVersions } from './versions.ts';
+
+const metadata: Record<string, ToolMetadata> = tools;
 
 /** The options of a build. */
 export interface BuildOptions {
@@ -43,24 +45,60 @@ async function loadPrevious(
 }
 
 /**
+ * Whether a tool has files. Tools installed by a package manager (`npm`, `pip`
+ * or `gem`) have none, the package manager installs and verifies them together
+ * with their dependencies.
+ * @param tool - the tool name
+ */
+function hasFiles(tool: string): boolean {
+  return !metadata[tool]?.type;
+}
+
+/**
+ * Sets the `type` of a tool from `@containerbase/base`, and removes it when the
+ * tool has none, so a previously published file gets the current one.
+ * @param data - the tool versions
+ */
+function withType(data: ToolVersions): ToolVersions {
+  const { tool, type: _type, ...rest } = data;
+  const type = metadata[tool]?.type;
+  return type ? { tool, type, ...rest } : { tool, ...rest };
+}
+
+/**
+ * Removes the files of all versions.
+ * @param data - the tool versions
+ */
+function withoutFiles(data: ToolVersions): ToolVersions {
+  return {
+    ...data,
+    versions: data.versions.map(({ files: _files, ...version }) => version),
+  };
+}
+
+/**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
- * checksums are kept for fresh versions without any.
+ * files are kept for fresh versions without any.
+ * @param tool - the tool name
  * @param source - the source of the tool
  * @param previous - the previously published versions
  * @throws when the fetch fails or there are no versions at all
  */
-async function fetchVersions(source: Source, previous: ToolVersion[]): Promise<ToolVersion[]> {
+async function fetchVersions(
+  tool: string,
+  source: Source,
+  previous: ToolVersion[],
+): Promise<ToolVersion[]> {
   const { fetch, compare } = datasources[source.datasource];
   const known = new Set(previous.map(({ version }) => version));
-  const checksums = new Map(
-    previous.flatMap(({ version, checksums }) =>
-      checksums ? [[version, checksums] as const] : [],
-    ),
+  const files = new Map(
+    previous.flatMap(({ version, files }) => (files ? [[version, files] as const] : [])),
   );
-  const fresh = (await fetch(source.packageName, known, checksums)).map((entry) => {
-    const kept = checksums.get(entry.version);
-    return entry.checksums || !kept ? entry : { ...entry, checksums: kept };
+  const fetched = await fetch(source.packageName, known, files, toolFiles[tool], hasFiles(tool));
+  const fresh = fetched.map((entry) => {
+    const kept = files.get(entry.version);
+    return entry.files || !kept ? entry : { ...entry, files: kept };
   });
   const versions = sortVersions([...fresh, ...previous], compare);
   if (!versions.length) {
@@ -95,14 +133,15 @@ export async function build({
   const failed: string[] = [];
 
   for (const [tool, source] of Object.entries(sources)) {
-    const previous = await loadPrevious(tool, source, full);
+    const loaded = await loadPrevious(tool, source, full);
+    const previous = loaded && !hasFiles(tool) ? withoutFiles(loaded) : loaded;
     let data: ToolVersions;
     try {
       data = {
         tool,
         source,
         updatedAt,
-        versions: await fetchVersions(source, previous?.versions ?? []),
+        versions: await fetchVersions(tool, source, previous?.versions ?? []),
       };
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {
@@ -116,7 +155,7 @@ export async function build({
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
     }
-    const file = await writeToolVersions(dir, data);
+    const file = await writeToolVersions(dir, withType(data));
     index.tools.push({ tool, file, versionCount: data.versions.length });
   }
 
