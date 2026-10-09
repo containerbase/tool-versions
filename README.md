@@ -63,18 +63,13 @@ A missing, unreadable or invalid previous file counts as no previous file, as do
 
 ## Development
 
-Node.js, pnpm and jactionlint are pinned in [`mise.toml`](./mise.toml), so [`mise`](https://mise.jdx.dev) installs them and the dependencies with `mise install`.
-Without mise, install the dependencies with `pnpm install`.
-
 ```bash
 mise install
+pnpm install
 pnpm lint
 pnpm test
 jactionlint
 ```
-
-- `pnpm lint-fix` fixes the formatting and the fixable lint findings.
-- `jactionlint` checks the GitHub workflows.
 
 `pnpm build` fetches all tools and writes the files to `dist/`, `pnpm build --full` skips the previous files.
 
