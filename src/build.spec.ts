@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stdout } from 'node:process';
 import { tools } from '@containerbase/base';
-import { codeBlock } from 'common-tags';
 import nock from 'nock';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build } from './build.ts';
@@ -108,27 +107,13 @@ describe('build', () => {
       'tool.schema.json',
       'tool.schema.json.sha512',
     ]);
-    expect(await read('pnpm.json')).toBe(
-      `${codeBlock`
-        {
-          "tool": "pnpm",
-          "type": "npm",
-          "source": {
-            "datasource": "npm",
-            "packageName": "pnpm"
-          },
-          "updatedAt": "2026-10-08T12:00:00.000Z",
-          "versions": [
-            {
-              "version": "10.0.0"
-            },
-            {
-              "version": "9.0.0"
-            }
-          ]
-        }
-      `}\n`,
-    );
+    expect(JSON.parse(await read('pnpm.json'))).toEqual({
+      tool: 'pnpm',
+      type: 'npm',
+      source: { datasource: 'npm', packageName: 'pnpm' },
+      updatedAt: '2026-10-08T12:00:00.000Z',
+      versions: [{ version: '10.0.0' }, { version: '9.0.0' }],
+    });
     expect(ToolIndex.parse(JSON.parse(await read('index.json')))).toEqual({
       updatedAt: '2026-10-08T12:00:00.000Z',
       tools: [{ tool: 'pnpm', file: 'pnpm.json', versionCount: 2 }],

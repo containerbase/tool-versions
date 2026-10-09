@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { codeBlock } from 'common-tags';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 
@@ -39,27 +38,9 @@ describe('output', () => {
     });
 
     expect(file).toBe('node.json');
+    // compact, with a trailing newline
     expect(await read(file)).toBe(
-      `${codeBlock`
-      {
-        "tool": "node",
-        "source": {
-          "datasource": "node-version",
-          "packageName": "node"
-        },
-        "updatedAt": "2026-10-08T12:00:00.000Z",
-        "versions": [
-          {
-            "version": "25.0.0-rc.1",
-            "prerelease": true
-          },
-          {
-            "version": "24.21.0",
-            "lts": true
-          }
-        ]
-      }
-    `}\n`,
+      '{"tool":"node","source":{"datasource":"node-version","packageName":"node"},"updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.0-rc.1","prerelease":true},{"version":"24.21.0","lts":true}]}\n',
     );
   });
 
@@ -81,18 +62,7 @@ describe('output', () => {
     });
 
     expect(await read('index.json')).toBe(
-      `${codeBlock`
-      {
-        "updatedAt": "2026-10-08T12:00:00.000Z",
-        "tools": [
-          {
-            "tool": "node",
-            "file": "node.json",
-            "versionCount": 2
-          }
-        ]
-      }
-    `}\n`,
+      '{"updatedAt":"2026-10-08T12:00:00.000Z","tools":[{"tool":"node","file":"node.json","versionCount":2}]}\n',
     );
   });
 

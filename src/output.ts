@@ -5,13 +5,13 @@ import { z } from 'zod';
 import { ToolIndex, ToolVersions } from './schema.ts';
 
 /**
- * Writes a value as formatted json, and a `<file>.sha512` file next to it with
+ * Writes a value as compact json, and a `<file>.sha512` file next to it with
  * the digest of the written bytes, like `sha512sum` prints it.
  * @param file - the file to write
  * @param value - the value to write
  */
 async function writeJson(file: string, value: unknown): Promise<void> {
-  const content = `${JSON.stringify(value, null, 2)}\n`;
+  const content = `${JSON.stringify(value)}\n`;
   await writeFile(file, content);
   const digest = createHash('sha512').update(content).digest('hex');
   await writeFile(`${file}.sha512`, `${digest}  ${basename(file)}\n`);
