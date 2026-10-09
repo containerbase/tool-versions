@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+        uses: containerbase/internal-tools/setup@e16d53d6bd770a44251028540390e0eff801aef5 # v5.0.55
         with:
           save-cache: true
 
@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+        uses: containerbase/internal-tools/setup@e16d53d6bd770a44251028540390e0eff801aef5 # v5.0.55
 
       - name: lint
         run: |
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@d7fbd383dbf6cddf7e6bb2d787342a7f1cb92620 # v5.0.54
+        uses: containerbase/internal-tools/setup@e16d53d6bd770a44251028540390e0eff801aef5 # v5.0.55
 
       - name: test
         run: pnpm test
