@@ -13,8 +13,11 @@ import {
 
 const baseUrl = 'https://api.adoptium.net/v3/info';
 
-/** The largest page size the adoptium api accepts. */
+/** The largest page size the adoptium release versions api accepts. */
 const pageSize = 50;
+
+/** The page size of the assets api, which clamps larger ones to 20. */
+const assetPageSize = 20;
 
 /** The adoptium image type of the supported package names. */
 const imageTypes: Record<string, string> = {
@@ -100,7 +103,7 @@ async function fetchAssetPage(
 ): Promise<AssetReleases> {
   try {
     return await getJson(
-      `https://api.adoptium.net/v3/assets/feature_releases/${major}/ga?architecture=${adoptium}&heap_size=normal&image_type=${imageType}&os=linux&page=${page}&page_size=${pageSize}&project=jdk&sort_order=DESC&vendor=eclipse`,
+      `https://api.adoptium.net/v3/assets/feature_releases/${major}/ga?architecture=${adoptium}&heap_size=normal&image_type=${imageType}&os=linux&page=${page}&page_size=${assetPageSize}&project=jdk&sort_order=DESC&vendor=eclipse`,
       AssetReleases,
     );
   } catch (err) {
@@ -182,6 +185,21 @@ export async function fetchJavaVersions(
   const ltsMajors = new Set(available_lts_releases);
 
   const versions = new Map<string, ToolVersion & PendingFiles>();
+  /**
+   * Adds a version with its flags and its previous files.
+   * @param semver - the version
+   * @param major - its feature release
+   */
+  const add = (semver: string, major: number): void => {
+    versions.set(semver, {
+      ...toolVersion(semver, {
+        prerelease: isSemverPrerelease(semver),
+        lts: ltsMajors.has(major),
+      }),
+      files: [...(previous.get(semver) ?? [])],
+      major,
+    });
+  };
   for (let page = 0; ; page++) {
     const releases = await fetchPage(imageType, page);
     let foundKnown = false;
@@ -190,17 +208,16 @@ export async function fetchJavaVersions(
         continue;
       }
       foundKnown ||= known.has(semver);
-      versions.set(semver, {
-        ...toolVersion(semver, {
-          prerelease: isSemverPrerelease(semver),
-          lts: ltsMajors.has(major),
-        }),
-        files: [...(previous.get(semver) ?? [])],
-        major,
-      });
+      add(semver, major);
     }
     if (foundKnown || releases.length < pageSize) {
       break;
+    }
+  }
+  // the paging stops early, so the older published versions still need files
+  for (const semver of known) {
+    if (!versions.has(semver) && isSemver(semver)) {
+      add(semver, Number(semver.split('.')[0]));
     }
   }
 

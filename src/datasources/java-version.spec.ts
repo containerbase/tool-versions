@@ -46,7 +46,7 @@ function assetQuery(architecture: string, page: number): Record<string, string> 
     image_type: 'jdk',
     os: 'linux',
     page: `${page}`,
-    page_size: '50',
+    page_size: '20',
     project: 'jdk',
     sort_order: 'DESC',
     vendor: 'eclipse',
@@ -105,7 +105,7 @@ describe('datasources/java-version', () => {
     function mockVersions(versions: string[]): void {
       nock(baseUrl)
         .get('/v3/info/available_releases')
-        .reply(200, { available_lts_releases: [21] })
+        .reply(200, { available_lts_releases: [17, 21] })
         .get('/v3/info/release_versions')
         .query(pageQuery('jdk', 0))
         .reply(200, { versions: versions.map((semver) => ({ major: 21, semver })) });
@@ -190,6 +190,54 @@ describe('datasources/java-version', () => {
       ).resolves.toEqual([{ version, lts: true, files: files() }]);
     });
 
+    it('reads the files of known versions which are not on the first page', async () => {
+      const older = '17.0.12+7.0.LTS';
+      mockVersions([version]);
+      const scope = nock(baseUrl)
+        .get('/v3/assets/feature_releases/17/ga')
+        .query(assetQuery('x64', 0))
+        .reply(200, [asset(older, 'x64', sha1)])
+        .get('/v3/assets/feature_releases/17/ga')
+        .query(assetQuery('aarch64', 0))
+        .reply(200, [asset(older, 'aarch64', sha2)]);
+
+      const result = await fetchJavaVersions(
+        'java-jdk',
+        new Set([version, older]),
+        new Map([[version, files()]]),
+      );
+
+      expect(result.map((entry) => entry.version)).toEqual([version, older]);
+      expect(result[1]).toMatchObject({ lts: true });
+      expect(result[1]?.files?.map((file) => file.arch)).toEqual(['arm64', 'amd64']);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    it('makes no request for known versions which have all files', async () => {
+      const output: string[] = [];
+      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+        output.push(String(chunk));
+        return true;
+      });
+      const older = '17.0.12+7.0.LTS';
+      mockVersions([version]);
+
+      await expect(
+        fetchJavaVersions(
+          'java-jdk',
+          new Set([version, older]),
+          new Map([
+            [version, files()],
+            [older, files()],
+          ]),
+        ),
+      ).resolves.toEqual([
+        { version, lts: true, files: files() },
+        { version: older, lts: true, files: files() },
+      ]);
+      expect(output).toEqual([]);
+    });
+
     it('warns and skips the files when the assets fail', async () => {
       const output: string[] = [];
       vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
@@ -207,7 +255,7 @@ describe('datasources/java-version', () => {
 
       await expect(fetchJavaVersions('java-jdk', none)).resolves.toEqual([{ version, lts: true }]);
       expect(output).toEqual([
-        `::warning::java: no files for feature 21 (amd64): HttpError: GET ${baseUrl}/v3/assets/feature_releases/21/ga?architecture=x64&heap_size=normal&image_type=jdk&os=linux&page=0&page_size=50&project=jdk&sort_order=DESC&vendor=eclipse failed with status 500\n`,
+        `::warning::java: no files for feature 21 (amd64): HttpError: GET ${baseUrl}/v3/assets/feature_releases/21/ga?architecture=x64&heap_size=normal&image_type=jdk&os=linux&page=0&page_size=20&project=jdk&sort_order=DESC&vendor=eclipse failed with status 500\n`,
       ]);
     });
   });
