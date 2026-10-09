@@ -98,12 +98,14 @@ function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
  * @param known - the versions which are already known
  * @param previous - the already known files by version
  * @param template - lists the files of a version, instead of the assets
+ * @param fetchFiles - whether to fetch the files at all
  */
 export async function fetchGithubReleases(
   packageName: string,
   known: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
   template?: FileTemplate,
+  fetchFiles = true,
 ): Promise<ToolVersion[]> {
   const headers = githubHeaders();
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
@@ -121,9 +123,11 @@ export async function fetchGithubReleases(
       const entry = toolVersion(version, {
         prerelease: release.prerelease || isSemverPrerelease(version),
       });
-      const files = [...(previous.get(version) ?? [])];
-      const candidates = template ? template(version) : assetCandidates(release.assets);
-      tasks.push(...checksumTasks(packageName, candidates, files));
+      const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
+      if (fetchFiles) {
+        const candidates = template ? template(version) : assetCandidates(release.assets);
+        tasks.push(...checksumTasks(packageName, candidates, files));
+      }
       versions.push({ entry, files });
     }
     url = foundKnown ? undefined : nextPage(res.headers.get('link'));

@@ -12,13 +12,15 @@ import { fetchPypiVersions } from './pypi.ts';
  * Fetches the versions of a package, newest first. Paged sources may stop
  * early once they reach a known version. The previously published files are
  * reused by name instead of fetching them again. A template lists the files of
- * a version where the source doesn't.
+ * a version where the source doesn't. No files are fetched when `fetchFiles`
+ * is `false`.
  */
 export type Fetcher = (
   packageName: string,
   known: ReadonlySet<string>,
   previous?: PreviousFiles,
   template?: FileTemplate,
+  fetchFiles?: boolean,
 ) => Promise<ToolVersion[]>;
 
 /** A datasource: how its versions are fetched and compared. */

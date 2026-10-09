@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { type PreviousFiles, checksum, fetchText, runAll, withFiles } from '../files.ts';
+import {
+  type FileTemplate,
+  type PreviousFiles,
+  checksum,
+  fetchText,
+  runAll,
+  withFiles,
+} from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
@@ -64,11 +71,15 @@ async function fetchNodeFiles(version: string, files: ToolFile[]): Promise<void>
  * @param _packageName - unused, nodejs.org only has node
  * @param _known - unused, nodejs.org lists all releases at once
  * @param previous - the already known files by version
+ * @param _template - unused, the files are always the linux archives
+ * @param fetchFiles - whether to fetch the files at all
  */
 export async function fetchNodeVersions(
   _packageName: string,
   _known?: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
+  _template?: FileTemplate,
+  fetchFiles = true,
 ): Promise<ToolVersion[]> {
   const releases = await getJson('https://nodejs.org/dist/index.json', NodeReleases);
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
@@ -81,15 +92,17 @@ export async function fetchNodeVersions(
       prerelease: isSemverPrerelease(version),
       lts: typeof release.lts === 'string',
     });
-    versions.push({ entry, files: [...(previous.get(version) ?? [])] });
+    versions.push({ entry, files: fetchFiles ? [...(previous.get(version) ?? [])] : [] });
   }
-  await runAll(
-    versions.map(
-      ({ entry, files }) =>
-        () =>
-          fetchNodeFiles(entry.version, files),
-    ),
-  );
+  if (fetchFiles) {
+    await runAll(
+      versions.map(
+        ({ entry, files }) =>
+          () =>
+            fetchNodeFiles(entry.version, files),
+      ),
+    );
+  }
   return sortVersions(
     versions.map(({ entry, files }) => withFiles(entry, files)),
     compareSemver,

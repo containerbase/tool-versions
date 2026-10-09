@@ -18,12 +18,17 @@ const pnpmSource: Record<string, Source> = { pnpm: { datasource: 'npm', packageN
 /**
  * A previously published file of pnpm.
  * @param versions - its versions
- * @param packageName - its npm package
+ * @param packageName - its package
+ * @param datasource - its datasource
  */
-function previousPnpm(versions: ToolVersions['versions'], packageName = 'pnpm'): ToolVersions {
+function previousPnpm(
+  versions: ToolVersions['versions'],
+  packageName = 'pnpm',
+  datasource: Source['datasource'] = 'npm',
+): ToolVersions {
   return {
     tool: 'pnpm',
-    source: { datasource: 'npm', packageName },
+    source: { datasource, packageName },
     updatedAt: '2026-10-07T03:00:00.000Z',
     versions,
   };
@@ -184,21 +189,29 @@ describe('build', () => {
   it('keeps the previous files of a fresh version', async () => {
     const files = [
       {
-        name: 'pnpm-9.0.0.tgz',
-        url: 'https://registry.npmjs.org/pnpm/-/pnpm-9.0.0.tgz',
-        checksum: `sha512:${'a'.repeat(128)}`,
+        name: 'node-v9.0.0-linux-x64.tar.xz',
+        url: 'https://nodejs.org/dist/v9.0.0/node-v9.0.0-linux-x64.tar.xz',
+        checksum: `sha256:${'a'.repeat(64)}`,
       },
     ];
+    // a tool without an installer type, whose source returns no files
     nock(pages)
-      .get('/pnpm.json')
-      .reply(200, previousPnpm([{ version: '9.0.0', files }]));
+      .get('/node.json')
+      .reply(200, {
+        ...previousPnpm([{ version: '9.0.0', files }], 'node'),
+        tool: 'node',
+      });
     nock(registry)
-      .get('/pnpm')
+      .get('/node')
       .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } });
 
-    await build({ dir, sources: pnpmSource, now });
+    await build({
+      dir,
+      sources: { node: { datasource: 'npm', packageName: 'node' } },
+      now,
+    });
 
-    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+    expect(JSON.parse(await read('node.json'))).toMatchObject({
       versions: [{ version: '10.0.0' }, { version: '9.0.0', files }],
     });
   });
@@ -237,6 +250,55 @@ describe('build', () => {
         },
       ],
     });
+  });
+
+  it('publishes no files for a tool with an installer type', async () => {
+    const sha = 'f'.repeat(128);
+    const dl = 'https://github.com/pnpm/pnpm/releases/download/v10.0.0';
+    nock(pages)
+      .get('/pnpm.json')
+      .reply(
+        200,
+        previousPnpm(
+          [
+            {
+              version: '9.0.0',
+              files: [
+                { name: 'a.tgz', url: 'https://example.com/a.tgz', checksum: `sha512:${sha}` },
+              ],
+            },
+          ],
+          'pnpm/pnpm',
+          'github-releases',
+        ),
+      );
+    nock('https://api.github.com')
+      .get('/repos/pnpm/pnpm/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        {
+          tag_name: 'v10.0.0',
+          draft: false,
+          prerelease: false,
+          assets: [
+            { name: 'pnpm.tgz', browser_download_url: `${dl}/pnpm.tgz` },
+            { name: 'pnpm.tgz.sha512', browser_download_url: `${dl}/pnpm.tgz.sha512` },
+          ],
+        },
+      ]);
+    // no request to the sidecar is mocked, so it would fail and print a warning
+
+    await build({
+      dir,
+      sources: { pnpm: { datasource: 'github-releases', packageName: 'pnpm/pnpm' } },
+      now,
+    });
+
+    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+      versions: [{ version: '10.0.0' }, { version: '9.0.0' }],
+    });
+    expect(await read('pnpm.json')).not.toContain('files');
+    expect(output.filter((line) => line.startsWith('::warning'))).toEqual([]);
   });
 
   it('ignores a previous file of another source', async () => {

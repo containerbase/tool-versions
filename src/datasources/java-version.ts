@@ -1,6 +1,6 @@
 import { stdout } from 'node:process';
 import { z } from 'zod';
-import { type PreviousFiles, checksum, runAll, withFiles } from '../files.ts';
+import { type FileTemplate, type PreviousFiles, checksum, runAll, withFiles } from '../files.ts';
 import { HttpError, getJson } from '../http.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
@@ -166,12 +166,16 @@ async function fetchFeatureFiles(
  * @param packageName - `java-jdk` or `java-jre`
  * @param known - the versions which are already known
  * @param previous - the already known files by version
+ * @param _template - unused, the files come from the adoptium assets
+ * @param fetchFiles - whether to fetch the files at all
  * @throws for an unknown package name
  */
 export async function fetchJavaVersions(
   packageName: string,
   known: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
+  _template?: FileTemplate,
+  fetchFiles = true,
 ): Promise<ToolVersion[]> {
   const imageType = imageTypes[packageName];
   if (!imageType) {
@@ -196,7 +200,7 @@ export async function fetchJavaVersions(
         prerelease: isSemverPrerelease(semver),
         lts: ltsMajors.has(major),
       }),
-      files: [...(previous.get(semver) ?? [])],
+      files: fetchFiles ? [...(previous.get(semver) ?? [])] : [],
       major,
     });
   };
@@ -222,7 +226,7 @@ export async function fetchJavaVersions(
   }
 
   const tasks = new Map<string, () => Promise<void>>();
-  for (const architecture of architectures) {
+  for (const architecture of fetchFiles ? architectures : []) {
     const missing = new Map<number, Map<string, ToolFile[]>>();
     for (const { version, files, major } of versions.values()) {
       if (!files.some((file) => file.arch === architecture.arch)) {

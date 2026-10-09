@@ -88,7 +88,8 @@ A `java` version has one file per architecture:
 
 To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
-Tools installed through npm, pip or gem have no files: the package manager installs and verifies them together with their dependencies.
+Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.
+They are the tools with the `type` `npm`, `pip` or `gem` in `@containerbase/base`.
 It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.
 A new kind of source needs a fetcher in [`src/datasources`](./src/datasources).
 Add its maintained release lines to [`renovate.Dockerfile`](./renovate.Dockerfile) too.

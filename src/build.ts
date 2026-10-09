@@ -1,12 +1,14 @@
 import { mkdir } from 'node:fs/promises';
 import { stdout } from 'node:process';
-import { tools } from '@containerbase/base';
+import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
 import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type { Source, ToolIndex, ToolVersion, ToolVersions } from './schema.ts';
 import { toolFiles, toolSources } from './tools.ts';
 import { sortVersions } from './versions.ts';
+
+const metadata: Record<string, ToolMetadata> = tools;
 
 /** The options of a build. */
 export interface BuildOptions {
@@ -43,6 +45,27 @@ async function loadPrevious(
 }
 
 /**
+ * Whether a tool has files. Tools installed by a package manager (`npm`, `pip`
+ * or `gem`) have none, the package manager installs and verifies them together
+ * with their dependencies.
+ * @param tool - the tool name
+ */
+function hasFiles(tool: string): boolean {
+  return !metadata[tool]?.type;
+}
+
+/**
+ * Removes the files of all versions.
+ * @param data - the tool versions
+ */
+function withoutFiles(data: ToolVersions): ToolVersions {
+  return {
+    ...data,
+    versions: data.versions.map(({ files: _files, ...version }) => version),
+  };
+}
+
+/**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
  * files are kept for fresh versions without any.
@@ -61,7 +84,8 @@ async function fetchVersions(
   const files = new Map(
     previous.flatMap(({ version, files }) => (files ? [[version, files] as const] : [])),
   );
-  const fresh = (await fetch(source.packageName, known, files, toolFiles[tool])).map((entry) => {
+  const fetched = await fetch(source.packageName, known, files, toolFiles[tool], hasFiles(tool));
+  const fresh = fetched.map((entry) => {
     const kept = files.get(entry.version);
     return entry.files || !kept ? entry : { ...entry, files: kept };
   });
@@ -98,7 +122,8 @@ export async function build({
   const failed: string[] = [];
 
   for (const [tool, source] of Object.entries(sources)) {
-    const previous = await loadPrevious(tool, source, full);
+    const loaded = await loadPrevious(tool, source, full);
+    const previous = loaded && !hasFiles(tool) ? withoutFiles(loaded) : loaded;
     let data: ToolVersions;
     try {
       data = {
