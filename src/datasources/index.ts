@@ -1,5 +1,5 @@
 import { compare as comparePep440 } from '@renovatebot/pep440';
-import type { DatasourceName, ToolVersion } from '../schema.ts';
+import type { Checksums, DatasourceName, ToolVersion } from '../schema.ts';
 import { compareSemver } from '../versions.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
@@ -9,9 +9,14 @@ import { fetchPypiVersions } from './pypi.ts';
 
 /**
  * Fetches the versions of a package, newest first. Paged sources may stop
- * early once they reach a known version.
+ * early once they reach a known version. Sources with checksums reuse the
+ * previously published ones instead of downloading them again.
  */
-export type Fetcher = (packageName: string, known: ReadonlySet<string>) => Promise<ToolVersion[]>;
+export type Fetcher = (
+  packageName: string,
+  known: ReadonlySet<string>,
+  checksums?: ReadonlyMap<string, Checksums>,
+) => Promise<ToolVersion[]>;
 
 /** A datasource: how its versions are fetched and compared. */
 export interface Datasource {

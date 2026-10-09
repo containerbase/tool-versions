@@ -44,7 +44,8 @@ async function loadPrevious(
 
 /**
  * Fetches the versions of a tool and merges them with the previous ones. The
- * fresh flags win, and versions which disappeared upstream are kept.
+ * fresh flags win, and versions which disappeared upstream are kept. Previous
+ * checksums are kept for fresh versions without any.
  * @param source - the source of the tool
  * @param previous - the previously published versions
  * @throws when the fetch fails or there are no versions at all
@@ -52,7 +53,15 @@ async function loadPrevious(
 async function fetchVersions(source: Source, previous: ToolVersion[]): Promise<ToolVersion[]> {
   const { fetch, compare } = datasources[source.datasource];
   const known = new Set(previous.map(({ version }) => version));
-  const fresh = await fetch(source.packageName, known);
+  const checksums = new Map(
+    previous.flatMap(({ version, checksums }) =>
+      checksums ? [[version, checksums] as const] : [],
+    ),
+  );
+  const fresh = (await fetch(source.packageName, known, checksums)).map((entry) => {
+    const kept = checksums.get(entry.version);
+    return entry.checksums || !kept ? entry : { ...entry, checksums: kept };
+  });
   const versions = sortVersions([...fresh, ...previous], compare);
   if (!versions.length) {
     throw new Error('No versions found');

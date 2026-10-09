@@ -177,6 +177,22 @@ describe('build', () => {
     });
   });
 
+  it('keeps the previous checksums of a fresh version', async () => {
+    const checksums = { 'pnpm.tgz': 'sha512:abcdef12' };
+    nock(pages)
+      .get('/pnpm.json')
+      .reply(200, previousPnpm([{ version: '9.0.0', checksums }]));
+    nock(registry)
+      .get('/pnpm')
+      .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+      versions: [{ version: '10.0.0' }, { version: '9.0.0', checksums }],
+    });
+  });
+
   it('ignores a previous file of another source', async () => {
     nock(pages)
       .get('/pnpm.json')
