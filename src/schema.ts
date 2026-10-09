@@ -39,12 +39,14 @@ export type ToolFile = z.infer<typeof ToolFile>;
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `files` only when some are known.
+ * `files` and `releaseTimestamp` only when known.
  */
 export const ToolVersion = z.object({
   version: z.string().min(1),
   prerelease: z.literal(true).optional(),
   lts: z.literal(true).optional(),
+  /** when the version was released, in UTC */
+  releaseTimestamp: z.iso.datetime().optional(),
   /** sorted by name */
   files: z.array(ToolFile).min(1).optional(),
 });

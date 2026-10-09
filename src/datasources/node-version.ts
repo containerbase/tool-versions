@@ -14,12 +14,15 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
+  toTimestamp,
   toolVersion,
 } from '../versions.ts';
 
 const NodeReleases = z.array(
   z.object({
     version: z.string(),
+    // the release date, like `2025-10-24`
+    date: z.string().optional(),
     // the lts codename, or `false`
     lts: z.union([z.string(), z.boolean()]),
   }),
@@ -91,6 +94,7 @@ export async function fetchNodeVersions(
     const entry = toolVersion(version, {
       prerelease: isSemverPrerelease(version),
       lts: typeof release.lts === 'string',
+      releaseTimestamp: toTimestamp(release.date),
     });
     versions.push({ entry, files: fetchFiles ? [...(previous.get(version) ?? [])] : [] });
   }

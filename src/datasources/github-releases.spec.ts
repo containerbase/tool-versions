@@ -113,6 +113,23 @@ describe('datasources/github-releases', () => {
     expect(scope.isDone()).toBe(true);
   });
 
+  it('reads the release timestamp from published_at', async () => {
+    nock(api)
+      .get('/repos/helm/helm/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        { ...release('v3.19.0'), published_at: '2025-09-11T18:15:42+02:00' },
+        { ...release('v3.18.0'), published_at: null },
+        release('v3.17.0'),
+      ]);
+
+    await expect(fetchGithubReleases('helm/helm', none)).resolves.toEqual([
+      { version: '3.19.0', releaseTimestamp: '2025-09-11T16:15:42.000Z' },
+      { version: '3.18.0' },
+      { version: '3.17.0' },
+    ]);
+  });
+
   it('authenticates with GITHUB_TOKEN', async () => {
     vi.stubEnv('GITHUB_TOKEN', 'some-token');
     const scope = nock(api, {

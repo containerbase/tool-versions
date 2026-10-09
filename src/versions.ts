@@ -1,23 +1,45 @@
 import semver from 'semver';
 import type { ToolVersion } from './schema.ts';
 
-/** The flags of a version, only the true ones end up in the output. */
+/**
+ * The flags and the release time of a version, only the true flags and a known
+ * release time end up in the output.
+ */
 export interface VersionFlags {
   prerelease?: boolean | undefined;
   lts?: boolean | undefined;
+  releaseTimestamp?: string | undefined;
 }
 
 /**
- * Creates a version entry which only carries the flags that are true.
+ * Creates a version entry which only carries the flags that are true and the
+ * release time when it is known.
  * @param version - the version as `install-tool` accepts it
- * @param flags - the prerelease and lts flags
+ * @param flags - the prerelease and lts flags and the release time
  */
-export function toolVersion(version: string, { prerelease, lts }: VersionFlags = {}): ToolVersion {
+export function toolVersion(
+  version: string,
+  { prerelease, lts, releaseTimestamp }: VersionFlags = {},
+): ToolVersion {
   return {
     version,
     ...(prerelease && { prerelease }),
     ...(lts && { lts }),
+    ...(releaseTimestamp && { releaseTimestamp }),
   };
+}
+
+/**
+ * Normalizes a date or time to the `toISOString()` format, in UTC.
+ * @param value - an ISO 8601 date or time, a date has no time and means midnight
+ * @returns the normalized time, or `undefined` when there is no valid one
+ */
+export function toTimestamp(value: string | null | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? undefined : new Date(time).toISOString();
 }
 
 /**

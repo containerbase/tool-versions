@@ -8,6 +8,7 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
+  toTimestamp,
   toolVersion,
 } from '../versions.ts';
 
@@ -70,6 +71,8 @@ const architectures = [
 const AssetReleases = z.array(
   z.object({
     version_data: z.object({ semver: z.string() }),
+    // when the release was published
+    timestamp: z.string().optional(),
     binaries: z.array(
       z.object({
         package: z.object({ name: z.string(), link: z.string(), checksum: z.string() }),
@@ -79,12 +82,15 @@ const AssetReleases = z.array(
 );
 type AssetReleases = z.infer<typeof AssetReleases>;
 
-/** A published version which still needs the file of an architecture. */
+/** A published version which may still need files or a release time. */
 interface PendingFiles {
   /** the files of the version, the download adds to it */
   files: ToolFile[];
   /** the feature release (major) of the version */
   major: number;
+  /** whether the release time is not known yet, the download sets it */
+  missingTimestamp: boolean;
+  releaseTimestamp?: string | undefined;
 }
 
 /**
@@ -116,20 +122,42 @@ async function fetchAssetPage(
 }
 
 /**
- * Reads the files of one feature release and architecture, newest first, until
- * the files of all the wanted versions are known. A failure only prints a
- * warning, the next build tries again.
+ * Whether a version still needs something from the assets of an architecture.
+ * @param pending - the version
+ * @param arch - the architecture of the assets
+ * @param withTimestamp - whether these assets provide the release times
+ */
+function isWanted(
+  pending: PendingFiles,
+  arch: (typeof architectures)[number]['arch'],
+  withTimestamp: boolean,
+): boolean {
+  return (
+    !pending.files.some((file) => file.arch === arch) ||
+    (withTimestamp && pending.missingTimestamp && !pending.releaseTimestamp)
+  );
+}
+
+/**
+ * Reads the files and release times of one feature release and architecture,
+ * newest first, until all the wanted versions have them. A failure only prints
+ * a warning, the next build tries again.
  * @param imageType - the adoptium image type, `jdk` or `jre`
  * @param major - the feature release
  * @param architecture - the architecture to read the files of
- * @param wanted - the versions which need a file, by version
+ * @param versions - the versions of the feature release, by version
+ * @param withTimestamp - whether to read the release times too
  */
 async function fetchFeatureFiles(
   imageType: string,
   major: number,
   architecture: (typeof architectures)[number],
-  wanted: Map<string, ToolFile[]>,
+  versions: Map<string, PendingFiles>,
+  withTimestamp: boolean,
 ): Promise<void> {
+  const wanted = new Map(
+    [...versions].filter(([, pending]) => isWanted(pending, architecture.arch, withTimestamp)),
+  );
   try {
     for (let page = 0; wanted.size; page++) {
       const releases = await fetchAssetPage(imageType, major, architecture.adoptium, page);
@@ -137,11 +165,27 @@ async function fetchFeatureFiles(
         break;
       }
       for (const release of releases) {
-        const files = wanted.get(release.version_data.semver);
+        const pending = wanted.get(release.version_data.semver);
         const pkg = release.binaries[0]?.package;
         const sum = checksum(pkg?.checksum, 'sha256');
-        if (files && pkg && sum) {
-          files.push({ name: pkg.name, url: pkg.link, checksum: sum, arch: architecture.arch });
+        if (!pending) {
+          continue;
+        }
+        if (pkg && sum && !pending.files.some((file) => file.arch === architecture.arch)) {
+          pending.files.push({
+            name: pkg.name,
+            url: pkg.link,
+            checksum: sum,
+            arch: architecture.arch,
+          });
+        }
+        if (withTimestamp && !pending.releaseTimestamp) {
+          const time = toTimestamp(release.timestamp);
+          if (time) {
+            pending.releaseTimestamp = time;
+          }
+        }
+        if (!isWanted(pending, architecture.arch, withTimestamp)) {
           wanted.delete(release.version_data.semver);
         }
       }
@@ -162,12 +206,15 @@ async function fetchFeatureFiles(
  * page with an already known version.
  * The files (x64 and aarch64) come from the assets of each feature release,
  * which is only requested when one of its versions lacks the file of an
- * architecture. Known files are reused by name.
+ * architecture or a release time (taken from the x64 assets). Known files are
+ * reused by name.
  * @param packageName - `java-jdk` or `java-jre`
  * @param known - the versions which are already known
  * @param previous - the already known files by version
  * @param _template - unused, the files come from the adoptium assets
  * @param fetchFiles - whether to fetch the files at all
+ * @param hasTimestamp - the versions which already have a release time, the
+ * assets are requested for the others
  * @throws for an unknown package name
  */
 export async function fetchJavaVersions(
@@ -176,6 +223,7 @@ export async function fetchJavaVersions(
   previous: PreviousFiles = new Map(),
   _template?: FileTemplate,
   fetchFiles = true,
+  hasTimestamp: ReadonlySet<string> = new Set(),
 ): Promise<ToolVersion[]> {
   const imageType = imageTypes[packageName];
   if (!imageType) {
@@ -202,6 +250,7 @@ export async function fetchJavaVersions(
       }),
       files: fetchFiles ? [...(previous.get(semver) ?? [])] : [],
       major,
+      missingTimestamp: !hasTimestamp.has(semver),
     });
   };
   for (let page = 0; ; page++) {
@@ -225,24 +274,30 @@ export async function fetchJavaVersions(
     }
   }
 
-  const tasks = new Map<string, () => Promise<void>>();
-  for (const architecture of fetchFiles ? architectures : []) {
-    const missing = new Map<number, Map<string, ToolFile[]>>();
-    for (const { version, files, major } of versions.values()) {
-      if (!files.some((file) => file.arch === architecture.arch)) {
-        missing.set(major, (missing.get(major) ?? new Map()).set(version, files));
+  // the release times come from the assets of the first architecture
+  const tasks: (() => Promise<void>)[] = [];
+  for (const [position, architecture] of (fetchFiles ? architectures : []).entries()) {
+    const withTimestamp = position === 0;
+    const features = new Map<number, Map<string, PendingFiles>>();
+    for (const [version, pending] of versions) {
+      if (isWanted(pending, architecture.arch, withTimestamp)) {
+        features.set(
+          pending.major,
+          (features.get(pending.major) ?? new Map()).set(version, pending),
+        );
       }
     }
-    for (const [major, wanted] of missing) {
-      tasks.set(`${major}-${architecture.arch}`, () =>
-        fetchFeatureFiles(imageType, major, architecture, wanted),
-      );
+    for (const [major, wanted] of features) {
+      tasks.push(() => fetchFeatureFiles(imageType, major, architecture, wanted, withTimestamp));
     }
   }
-  await runAll([...tasks.values()]);
+  await runAll(tasks);
 
   return sortVersions(
-    [...versions.values()].map(({ files, major: _major, ...entry }) => withFiles(entry, files)),
+    [...versions.values()].map(
+      ({ files, major: _major, missingTimestamp: _missing, releaseTimestamp, ...entry }) =>
+        withFiles({ ...entry, ...(releaseTimestamp && { releaseTimestamp }) }, files),
+    ),
     compareSemver,
   );
 }

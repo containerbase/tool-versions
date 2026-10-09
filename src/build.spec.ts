@@ -82,6 +82,7 @@ describe('build', () => {
       .reply(404);
     nock(registry)
       .get('/pnpm')
+      .times(2)
       .reply(200, { versions: { '10.0.0': {}, '9.0.0': {} } })
       .get('/npm')
       .reply(500)
@@ -170,6 +171,7 @@ describe('build', () => {
       );
     nock(registry)
       .get('/pnpm')
+      .times(2)
       .reply(200, { versions: { '9.0.0': {}, '10.0.0-rc.1': {}, '10.0.0': {} } });
 
     await build({ dir, sources: pnpmSource, now });
@@ -205,6 +207,7 @@ describe('build', () => {
       });
     nock(registry)
       .get('/node')
+      .times(2)
       .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } });
 
     await build({
@@ -310,6 +313,7 @@ describe('build', () => {
       });
     nock(registry)
       .get('/node')
+      .times(2)
       .reply(200, { versions: { '9.0.0': {} } });
 
     await build({
@@ -319,6 +323,36 @@ describe('build', () => {
     });
 
     expect(JSON.parse(await read('node.json'))).not.toHaveProperty('type');
+  });
+
+  it('keeps the previous release timestamps and adds the ones of new versions', async () => {
+    nock(pages)
+      .get('/pnpm.json')
+      .reply(
+        200,
+        previousPnpm([
+          { version: '10.0.0', releaseTimestamp: '2025-01-01T00:00:00.000Z' },
+          { version: '9.0.0', releaseTimestamp: '2024-01-01T00:00:00.000Z' },
+          { version: '8.0.0', releaseTimestamp: '2023-01-01T00:00:00.000Z' },
+        ]),
+      );
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, {
+        versions: { '10.0.0': {}, '9.0.0': {}, '8.0.0': {}, '11.0.0': {} },
+        time: { '9.0.0': '2024-02-02T00:00:00.000Z', '11.0.0': '2026-01-01T00:00:00.000Z' },
+      });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
+      { version: '11.0.0', releaseTimestamp: '2026-01-01T00:00:00.000Z' },
+      { version: '10.0.0', releaseTimestamp: '2025-01-01T00:00:00.000Z' },
+      // the full document is only read for new versions
+      { version: '9.0.0', releaseTimestamp: '2024-01-01T00:00:00.000Z' },
+      { version: '8.0.0', releaseTimestamp: '2023-01-01T00:00:00.000Z' },
+    ]);
   });
 
   it('publishes the files of tools with a file template', async () => {
@@ -434,6 +468,7 @@ describe('build', () => {
       .reply(200, previousPnpm([{ version: '8.0.0' }]));
     nock(registry)
       .get('/pnpm')
+      .times(2)
       .reply(200, { versions: { '10.0.0': {} } });
 
     await build({ dir, sources: pnpmSource, now, full: true });

@@ -17,6 +17,7 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
+  toTimestamp,
   toolVersion,
 } from '../versions.ts';
 
@@ -31,6 +32,7 @@ const GithubReleases = z.array(
     tag_name: z.string(),
     draft: z.boolean(),
     prerelease: z.boolean(),
+    published_at: z.string().nullish(),
     assets: z.array(GithubAsset).default([]),
   }),
 );
@@ -124,6 +126,7 @@ export async function fetchGithubReleases(
       foundKnown ||= known.has(version);
       const entry = toolVersion(version, {
         prerelease: release.prerelease || isSemverPrerelease(version),
+        releaseTimestamp: toTimestamp(release.published_at),
       });
       const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
       if (fetchFiles) {

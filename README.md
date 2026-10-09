@@ -18,9 +18,13 @@ A tool file looks like this:
   "source": { "datasource": "node-version", "packageName": "node", "versioning": "node" },
   "updatedAt": "2026-10-08T03:00:00.000Z",
   "versions": [
-    { "version": "25.0.0" },
-    { "version": "25.0.0-rc.1", "prerelease": true },
-    { "version": "24.21.0", "lts": true }
+    { "version": "25.0.0", "releaseTimestamp": "2026-10-01T00:00:00.000Z" },
+    {
+      "version": "25.0.0-rc.1",
+      "prerelease": true,
+      "releaseTimestamp": "2026-09-15T00:00:00.000Z"
+    },
+    { "version": "24.21.0", "lts": true, "releaseTimestamp": "2026-08-12T00:00:00.000Z" }
   ]
 }
 ```
@@ -73,6 +77,8 @@ A `java` version has one file per architecture:
   Only installable versions are listed: a version needs at least one file, except for tools installed by a package manager (they have a `type`).
 - `version` is in exactly the format `install-tool` accepts, e.g. `25.0.2+10.0.LTS` for `java`.
 - `prerelease` and `lts` are only present when they are `true`.
+- `releaseTimestamp` is when the version was released, in UTC as `YYYY-MM-DDTHH:mm:ss.sssZ`. Renovate uses it for `minimumReleaseAge` and the release age.
+  It is only present when the source tells it: `published_at` of the GitHub release, `date` of nodejs.org, the `time` of the npm package, the earliest upload of a release's files on pypi and the `timestamp` of the Adoptium release.
 - `files` lists the download files of the version, sorted by `name`. It is only present when files are known.
   - `url` is the direct https download url.
   - `checksum` is `sha256:<hex>` or `sha512:<hex>` in lowercase.
@@ -105,6 +111,9 @@ Each build starts from the published files:
 
 - **Incremental:** the versions of the previous file are merged with the fresh ones, so a version that disappears upstream stays listed.
   Where a version is in both, the fresh flags win.
+  A version keeps the `releaseTimestamp` of the previous file unless the source gives a fresh one.
+  `java` only requests the Adoptium assets for the release time of a version which has none yet, so the first build fills them in once.
+  The `npm` source only reads the full package document, as the abbreviated one has no release times, when a version has no `releaseTimestamp` yet.
   Paged sources (`github-releases`, `java-version`) list the newest versions first and stop paging after the first page with a known version.
   The files of the previous file are reused by `name` and never fetched again; only files which are missing get their checksum fetched, so files uploaded after an earlier build are filled in later.
   The first build after the `files` were introduced fetches them for every version.

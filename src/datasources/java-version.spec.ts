@@ -26,6 +26,10 @@ function pageQuery(imageType: string, page: number): Record<string, string> {
   };
 }
 
+/** The publish time of the adoptium releases, and as it is published. */
+const released = '2024-10-15T09:00:00Z';
+const releasedIso = '2024-10-15T09:00:00.000Z';
+
 /** Answers the asset requests of all features with 404. */
 function noAssets(): void {
   nock(baseUrl)
@@ -65,11 +69,13 @@ function asset(
   checksum: string,
 ): {
   version_data: { semver: string };
+  timestamp: string;
   binaries: { architecture: string; package: { name: string; link: string; checksum: string } }[];
 } {
   const name = `OpenJDK21U-jdk_${arch}_linux_hotspot_${semver.replace('+', '_').replace(/\.0\.LTS$/, '')}.tar.gz`;
   return {
     version_data: { semver },
+    timestamp: released,
     binaries: [
       {
         architecture: arch,
@@ -146,7 +152,13 @@ describe('datasources/java-version', () => {
 
       const [newest, older] = await fetchJavaVersions('java-jdk', none);
 
-      expect(newest).toEqual({ version, lts: true, files: files() });
+      expect(newest).toEqual({
+        version,
+        lts: true,
+        releaseTimestamp: releasedIso,
+        files: files(),
+      });
+      expect(older).toMatchObject({ releaseTimestamp: releasedIso });
       expect(older?.files).toHaveLength(1);
       expect(older?.files?.[0]).toMatchObject({ arch: 'amd64', checksum: `sha256:${sha1}` });
       expect(scope.isDone()).toBe(true);
@@ -163,7 +175,7 @@ describe('datasources/java-version', () => {
         .reply(200, [asset(version, 'aarch64', sha2)]);
 
       await expect(fetchJavaVersions('java-jdk', none)).resolves.toEqual([
-        { version, lts: true, files: files() },
+        { version, lts: true, releaseTimestamp: releasedIso, files: files() },
       ]);
       expect(scope.isDone()).toBe(true);
     });
@@ -177,16 +189,43 @@ describe('datasources/java-version', () => {
         .reply(200, [asset(version, 'aarch64', sha2)]);
 
       await expect(
-        fetchJavaVersions('java-jdk', new Set([version]), new Map([[version, [x64]]])),
+        fetchJavaVersions(
+          'java-jdk',
+          new Set([version]),
+          new Map([[version, [x64]]]),
+          undefined,
+          true,
+          new Set([version]),
+        ),
       ).resolves.toEqual([{ version, lts: true, files: [aarch64, x64] }]);
       expect(scope.isDone()).toBe(true);
     });
 
-    it('makes no request when all files are known', async () => {
+    it('requests the x64 assets for a missing release time only', async () => {
       mockVersions([version]);
+      const scope = nock(baseUrl)
+        .get('/v3/assets/feature_releases/21/ga')
+        .query(assetQuery('x64', 0))
+        .reply(200, [asset(version, 'x64', sha1)]);
 
       await expect(
         fetchJavaVersions('java-jdk', new Set([version]), new Map([[version, files()]])),
+      ).resolves.toEqual([{ version, lts: true, releaseTimestamp: releasedIso, files: files() }]);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    it('makes no request when all files and release times are known', async () => {
+      mockVersions([version]);
+
+      await expect(
+        fetchJavaVersions(
+          'java-jdk',
+          new Set([version]),
+          new Map([[version, files()]]),
+          undefined,
+          true,
+          new Set([version]),
+        ),
       ).resolves.toEqual([{ version, lts: true, files: files() }]);
     });
 
@@ -205,10 +244,13 @@ describe('datasources/java-version', () => {
         'java-jdk',
         new Set([version, older]),
         new Map([[version, files()]]),
+        undefined,
+        true,
+        new Set([version]),
       );
 
       expect(result.map((entry) => entry.version)).toEqual([version, older]);
-      expect(result[1]).toMatchObject({ lts: true });
+      expect(result[1]).toMatchObject({ lts: true, releaseTimestamp: releasedIso });
       expect(result[1]?.files?.map((file) => file.arch)).toEqual(['arm64', 'amd64']);
       expect(scope.isDone()).toBe(true);
     });
@@ -230,6 +272,9 @@ describe('datasources/java-version', () => {
             [version, files()],
             [older, files()],
           ]),
+          undefined,
+          true,
+          new Set([version, older]),
         ),
       ).resolves.toEqual([
         { version, lts: true, files: files() },
