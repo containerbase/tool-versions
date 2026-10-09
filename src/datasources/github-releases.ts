@@ -77,7 +77,7 @@ function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
           {
             name,
             url: browser_download_url,
-            checksumUrl,
+            checksumUrls: [checksumUrl],
             algorithm: 'sha512' as const,
             ...parsed,
           },

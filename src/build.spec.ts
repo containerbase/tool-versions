@@ -311,7 +311,10 @@ describe('build', () => {
       .get('/helm-v3.19.0-linux-amd64.tar.gz.sha256sum')
       .reply(200, `${sha}  helm-v3.19.0-linux-amd64.tar.gz\n`)
       .get('/helm-v3.19.0-linux-arm64.tar.gz.sha256sum')
-      .reply(404);
+      .reply(404)
+      // older releases only have the bare digest
+      .get('/helm-v3.19.0-linux-arm64.tar.gz.sha256')
+      .reply(200, sha.toUpperCase());
 
     await build({
       dir,
@@ -329,6 +332,12 @@ describe('build', () => {
               url: 'https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz',
               checksum: `sha256:${sha}`,
               arch: 'amd64',
+            },
+            {
+              name: 'helm-v3.19.0-linux-arm64.tar.gz',
+              url: 'https://get.helm.sh/helm-v3.19.0-linux-arm64.tar.gz',
+              checksum: `sha256:${sha}`,
+              arch: 'arm64',
             },
           ],
         },

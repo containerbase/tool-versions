@@ -80,14 +80,14 @@ A `java` version has one file per architecture:
 
 ## Tools
 
-| Tool     | Datasource        | Package                                | Files                                                                              |
-| -------- | ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
-| `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`  |
-| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                   |
-| `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt` |
-| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                               |
-| `poetry` | `pypi`            | `poetry`                               | none                                                                               |
-| `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                           |
+| Tool     | Datasource        | Package                                | Files                                                                                                            |
+| -------- | ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `helm`   | `github-releases` | `helm/helm`                            | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`, older releases from `.sha256` |
+| `java`   | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | the Adoptium linux packages, sha256 from the Adoptium assets api                                                 |
+| `node`   | `node-version`    | `node` (nodejs.org)                    | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt`                               |
+| `pnpm`   | `npm`             | `pnpm`                                 | none                                                                                                             |
+| `poetry` | `pypi`            | `poetry`                               | none                                                                                                             |
+| `python` | `github-releases` | `containerbase/python-prebuild`        | the release assets with a `.sha512` file, sha512 from it                                                         |
 
 To add a tool, map it in [`src/tools.ts`](./src/tools.ts).
 A tool whose release assets aren't the files to install lists them in `toolFiles` there.
