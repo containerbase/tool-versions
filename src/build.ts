@@ -55,6 +55,17 @@ function hasFiles(tool: string): boolean {
 }
 
 /**
+ * Sets the `type` of a tool from `@containerbase/base`, and removes it when the
+ * tool has none, so a previously published file gets the current one.
+ * @param data - the tool versions
+ */
+function withType(data: ToolVersions): ToolVersions {
+  const { tool, type: _type, ...rest } = data;
+  const type = metadata[tool]?.type;
+  return type ? { tool, type, ...rest } : { tool, ...rest };
+}
+
+/**
  * Removes the files of all versions.
  * @param data - the tool versions
  */
@@ -144,7 +155,7 @@ export async function build({
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
     }
-    const file = await writeToolVersions(dir, data);
+    const file = await writeToolVersions(dir, withType(data));
     index.tools.push({ tool, file, versionCount: data.versions.length });
   }
 

@@ -112,6 +112,7 @@ describe('build', () => {
       `${codeBlock`
         {
           "tool": "pnpm",
+          "type": "npm",
           "source": {
             "datasource": "npm",
             "packageName": "pnpm"
@@ -146,7 +147,8 @@ describe('build', () => {
     const failed = await build({ dir, sources: pnpmSource, now });
 
     expect(failed).toEqual([]);
-    expect(JSON.parse(await read('pnpm.json'))).toEqual(previous);
+    // the previous file gets the current type
+    expect(JSON.parse(await read('pnpm.json'))).toEqual({ ...previous, type: 'npm' });
     expect(ToolIndex.parse(JSON.parse(await read('index.json')))).toEqual({
       updatedAt: '2026-10-08T12:00:00.000Z',
       tools: [{ tool: 'pnpm', file: 'pnpm.json', versionCount: 1 }],
@@ -182,6 +184,7 @@ describe('build', () => {
         // gone upstream, but kept
         { version: '8.0.0' },
       ]),
+      type: 'npm',
       updatedAt: '2026-10-08T12:00:00.000Z',
     });
   });
@@ -214,6 +217,28 @@ describe('build', () => {
     expect(JSON.parse(await read('node.json'))).toMatchObject({
       versions: [{ version: '10.0.0' }, { version: '9.0.0', files }],
     });
+  });
+
+  it('omits the type of a tool without one', async () => {
+    // a stale type in the previous file is dropped
+    nock(pages)
+      .get('/node.json')
+      .reply(200, {
+        ...previousPnpm([{ version: '9.0.0' }], 'node'),
+        tool: 'node',
+        type: 'npm',
+      });
+    nock(registry)
+      .get('/node')
+      .reply(200, { versions: { '9.0.0': {} } });
+
+    await build({
+      dir,
+      sources: { node: { datasource: 'npm', packageName: 'node' } },
+      now,
+    });
+
+    expect(JSON.parse(await read('node.json'))).not.toHaveProperty('type');
   });
 
   it('publishes the files of tools with a file template', async () => {

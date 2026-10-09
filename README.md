@@ -66,6 +66,8 @@ A `java` version has one file per architecture:
 }
 ```
 
+- `type` is the package manager installing the tool, `gem`, `npm` or `pip`, as in [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), e.g. `"type": "npm"` for `pnpm`.
+  It is omitted for other tools.
 - `versions` is sorted newest first and includes prereleases.
 - `version` is in exactly the format `install-tool` accepts, e.g. `25.0.2+10.0.LTS` for `java`.
 - `prerelease` and `lts` are only present when they are `true`.

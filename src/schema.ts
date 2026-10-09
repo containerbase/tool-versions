@@ -48,6 +48,8 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 /** The content of a `<tool>.json` file. */
 export const ToolVersions = z.object({
   tool: z.string(),
+  /** the package manager installing the tool, omitted for other tools */
+  type: z.enum(['gem', 'npm', 'pip']).optional(),
   source: Source,
   updatedAt: z.iso.datetime(),
   /** newest first */
