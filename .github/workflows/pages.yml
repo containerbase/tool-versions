@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@e16d53d6bd770a44251028540390e0eff801aef5 # v5.0.55
+        uses: containerbase/internal-tools/setup@ee76afeb5280d841ce0731c3e29d0b808876c200 # v5.0.56
 
       # a failing tool falls back to its published file with a warning, the
       # build only fails when a tool has neither fresh nor published versions
