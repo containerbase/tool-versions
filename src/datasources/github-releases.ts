@@ -11,15 +11,9 @@ import {
   withFiles,
 } from '../files.ts';
 import { request } from '../http.ts';
-import type { ToolFile, ToolVersion } from '../schema.ts';
-import {
-  compareSemver,
-  isSemver,
-  isSemverPrerelease,
-  sortVersions,
-  toTimestamp,
-  toolVersion,
-} from '../versions.ts';
+import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
+import { versionings } from '../versioning.ts';
+import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
 
 const GithubAsset = z.object({
   name: z.string(),
@@ -103,6 +97,9 @@ function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
  * @param previous - the already known files by version
  * @param template - lists the files of a version, instead of the assets
  * @param fetchFiles - whether to fetch the files at all
+ * @param _hasTimestamp - unused, the release time is part of the release list
+ * @param versioning - which tags are valid versions, which are prereleases and
+ * how they are sorted, `semver` by default
  */
 export async function fetchGithubReleases(
   packageName: string,
@@ -110,7 +107,10 @@ export async function fetchGithubReleases(
   previous: PreviousFiles = new Map(),
   template?: FileTemplate,
   fetchFiles = true,
+  _hasTimestamp?: ReadonlySet<string>,
+  versioning: VersioningName = 'semver',
 ): Promise<ToolVersion[]> {
+  const { isValid, isPrerelease, compare } = versionings[versioning];
   const headers = githubHeaders();
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
   const tasks: (() => Promise<void>)[] = [];
@@ -120,12 +120,12 @@ export async function fetchGithubReleases(
     let foundKnown = false;
     for (const release of GithubReleases.parse(await res.json())) {
       const version = release.tag_name.replace(/^v/, '');
-      if (release.draft || !isSemver(version)) {
+      if (release.draft || !isValid(version)) {
         continue;
       }
       foundKnown ||= known.has(version);
       const entry = toolVersion(version, {
-        prerelease: release.prerelease || isSemverPrerelease(version),
+        prerelease: release.prerelease || isPrerelease(version),
         releaseTimestamp: toTimestamp(release.published_at),
       });
       const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
@@ -140,6 +140,6 @@ export async function fetchGithubReleases(
   await runAll(tasks);
   return sortVersions(
     versions.map(({ entry, files }) => withFiles(entry, files)),
-    compareSemver,
+    compare,
   );
 }

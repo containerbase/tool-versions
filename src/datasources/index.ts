@@ -1,7 +1,5 @@
-import { compare as comparePep440 } from '@renovatebot/pep440';
 import type { FileTemplate, PreviousFiles } from '../files.ts';
-import type { DatasourceName, ToolVersion } from '../schema.ts';
-import { compareRuby, compareSemver } from '../versions.ts';
+import type { DatasourceName, ToolVersion, VersioningName } from '../schema.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
@@ -15,7 +13,8 @@ import { fetchRubygemsVersions } from './rubygems.ts';
  * reused by name instead of fetching them again. A template lists the files of
  * a version where the source doesn't. No files are fetched when `fetchFiles`
  * is `false`. Sources which need a request for the release time of a version
- * skip it for the versions in `hasTimestamp`, which already have one.
+ * skip it for the versions in `hasTimestamp`, which already have one. Sources
+ * which list arbitrary tags validate and sort them with the `versioning`.
  */
 export type Fetcher = (
   packageName: string,
@@ -24,21 +23,15 @@ export type Fetcher = (
   template?: FileTemplate,
   fetchFiles?: boolean,
   hasTimestamp?: ReadonlySet<string>,
+  versioning?: VersioningName,
 ) => Promise<ToolVersion[]>;
 
-/** A datasource: how its versions are fetched and compared. */
-export interface Datasource {
-  fetch: Fetcher;
-  /** compares two versions, negative when the first is older */
-  compare: (a: string, b: string) => number;
-}
-
-/** Each datasource. */
-export const datasources: Record<DatasourceName, Datasource> = {
-  'github-releases': { fetch: fetchGithubReleases, compare: compareSemver },
-  'java-version': { fetch: fetchJavaVersions, compare: compareSemver },
-  'node-version': { fetch: fetchNodeVersions, compare: compareSemver },
-  npm: { fetch: fetchNpmVersions, compare: compareSemver },
-  pypi: { fetch: fetchPypiVersions, compare: comparePep440 },
-  rubygems: { fetch: fetchRubygemsVersions, compare: compareRuby },
+/** The fetcher of each datasource. */
+export const datasources: Record<DatasourceName, Fetcher> = {
+  'github-releases': fetchGithubReleases,
+  'java-version': fetchJavaVersions,
+  'node-version': fetchNodeVersions,
+  npm: fetchNpmVersions,
+  pypi: fetchPypiVersions,
+  rubygems: fetchRubygemsVersions,
 };

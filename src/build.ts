@@ -13,6 +13,7 @@ import type {
   ToolVersions,
 } from './schema.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
+import { versionings } from './versioning.ts';
 import { sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
@@ -120,7 +121,8 @@ async function fetchVersions(
   source: Source,
   previous: ToolVersion[],
 ): Promise<ToolVersion[]> {
-  const { fetch, compare } = datasources[source.datasource];
+  const fetch = datasources[source.datasource];
+  const { compare } = versionings[source.versioning];
   const known = new Set(previous.map(({ version }) => version));
   const files = new Map(
     previous.flatMap(({ version, files }) => (files ? [[version, files] as const] : [])),
@@ -137,6 +139,7 @@ async function fetchVersions(
     toolFiles[tool],
     hasFiles(tool),
     new Set(timestamps.keys()),
+    source.versioning,
   );
   const fresh = fetched.map((entry) => {
     const keptFiles = files.get(entry.version);

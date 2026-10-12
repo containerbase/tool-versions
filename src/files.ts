@@ -95,7 +95,7 @@ export function parseChecksumFile(text: string, algorithm: Algorithm): string | 
  * @returns the arch and distro, empty when the name doesn't follow the scheme
  */
 export function parsePrebuildName(name: string): Pick<ToolFile, 'arch' | 'distro'> {
-  const match = /^[^-]+-\d[^-]*(?:-(?<distro>[^-]+))?-(?<arch>x86_64|aarch64)\.[^-]+$/.exec(name);
+  const match = /^[^-]+-\d.*?(?:-(?<distro>[a-z]+))?-(?<arch>x86_64|aarch64)\.[^-]+$/.exec(name);
   if (!match?.groups) {
     return {};
   }
