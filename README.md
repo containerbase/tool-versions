@@ -42,7 +42,7 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 - `source`: the datasource, package and [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) of the versions.
 - `type`: the package manager installing the tool (`dotnet`, `gem`, `npm` or `pip`, from [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base)). These tools have no files, the package manager installs and verifies them.
 - `sourceUrl`, `homepage`: links for Renovate's changelogs.
-- `versions`: newest first, including prereleases, only installable ones (with at least one file, unless the tool has a `type`). `version` is the exact `install-tool` version.
+- `versions`: newest first, including prereleases, only installable ones (with an `amd64` file or a file for any architecture, unless the tool has a `type`; `arm64` files are added when they exist). `version` is the exact `install-tool` version.
 - `prerelease`, `lts`: only present when `true`.
 - `releaseTimestamp`: the release time in UTC, for Renovate's `minimumReleaseAge`.
 - `files`: sorted by name, each with the https `url`, `checksum` (`sha256:` or `sha512:` lowercase hex), and `arch` (`amd64`/`arm64`) and `distro` where they apply.

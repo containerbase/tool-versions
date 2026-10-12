@@ -6,7 +6,7 @@ import { tools } from '@containerbase/base';
 import nock from 'nock';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build } from './build.ts';
-import { type Source, ToolIndex, type ToolVersions } from './schema.ts';
+import { type Source, type ToolFile, ToolIndex, type ToolVersions } from './schema.ts';
 import { toolSources } from './tools.ts';
 
 const now = new Date('2026-10-08T12:00:00.000Z');
@@ -365,6 +365,42 @@ describe('build', () => {
       expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
         { tool: 'node', file: 'node.json', versionCount: 1 },
         { tool: 'pnpm', file: 'pnpm.json', versionCount: 2 },
+      ]);
+    });
+
+    it('leaves out versions without an amd64 file', async () => {
+      const archFile = (arch: 'amd64' | 'arm64'): ToolFile => ({
+        name: `${arch}.tar.xz`,
+        url: `https://example.com/${arch}.tar.xz`,
+        checksum: sum,
+        arch,
+      });
+      const arm = archFile('arm64');
+      const amd = archFile('amd64');
+      nock(pages)
+        .get('/node.json')
+        .reply(200, {
+          ...previousPnpm(
+            [
+              { version: '3.0.0', files: [arm] },
+              { version: '2.0.0', files: [amd, arm] },
+              { version: '1.0.0', files: file('any.tar.xz') },
+            ],
+            'node',
+          ),
+          tool: 'node',
+        });
+      nock(registry).get('/node').reply(404);
+
+      await build({
+        dir,
+        sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
+        now,
+      });
+
+      expect(JSON.parse(await read('node.json')).versions).toEqual([
+        { version: '2.0.0', files: [amd, arm] },
+        { version: '1.0.0', files: file('any.tar.xz') },
       ]);
     });
   });
