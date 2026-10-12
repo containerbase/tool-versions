@@ -80,7 +80,7 @@ describe('previous', () => {
 
   it('returns undefined when the download fails', async () => {
     vi.stubEnv('TOOL_VERSIONS_URL', 'https://fork.example.com');
-    nock('https://fork.example.com').get('/helm.json').replyWithError('connection reset');
+    nock('https://fork.example.com').get('/helm.json').times(3).replyWithError('connection reset');
 
     await expect(fetchPrevious('helm')).resolves.toBeUndefined();
   });

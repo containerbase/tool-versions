@@ -86,6 +86,7 @@ describe('build', () => {
       .times(2)
       .reply(200, { versions: { '10.0.0': {}, '9.0.0': {} } })
       .get('/npm')
+      .times(3)
       .reply(500)
       .get('/corepack')
       .reply(200, { versions: {} });
@@ -132,7 +133,7 @@ describe('build', () => {
   it('writes the previous file when the fetch fails', async () => {
     const previous = previousPnpm([{ version: '9.0.0', lts: true }]);
     nock(pages).get('/pnpm.json').reply(200, previous);
-    nock(registry).get('/pnpm').reply(500);
+    nock(registry).get('/pnpm').times(3).reply(500);
 
     const failed = await build({ dir, sources: pnpmSource, now });
 
@@ -157,7 +158,7 @@ describe('build', () => {
     nock(pages)
       .get('/pnpm.json')
       .reply(200, { ...previous, source: { datasource: 'npm', packageName: 'pnpm' } });
-    nock(registry).get('/pnpm').reply(500);
+    nock(registry).get('/pnpm').times(3).reply(500);
 
     await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual([]);
 
@@ -208,7 +209,7 @@ describe('build', () => {
           },
         ],
       });
-    nock('https://api.adoptium.net').get('/v3/info/available_releases').reply(500);
+    nock('https://api.adoptium.net').get('/v3/info/available_releases').times(3).reply(500);
 
     await build({
       dir,
@@ -314,7 +315,7 @@ describe('build', () => {
           ),
           tool: 'node',
         });
-      nock(registry).get('/node').reply(500);
+      nock(registry).get('/node').times(3).reply(500);
 
       await build({
         dir,
@@ -343,7 +344,7 @@ describe('build', () => {
         })
         .get('/pnpm.json')
         .reply(200, previousPnpm([{ version: '2.0.0' }, { version: '1.0.0' }]));
-      nock(registry).get('/node').reply(500).get('/pnpm').reply(500);
+      nock(registry).get('/node').times(3).reply(500).get('/pnpm').times(3).reply(500);
 
       await build({
         dir,
@@ -523,7 +524,7 @@ describe('build', () => {
     nock(pages)
       .get('/pnpm.json')
       .reply(200, previousPnpm([{ version: '1.0.0' }], 'other'));
-    nock(registry).get('/pnpm').reply(500);
+    nock(registry).get('/pnpm').times(3).reply(500);
 
     await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual(['pnpm']);
   });
