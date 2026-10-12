@@ -4,6 +4,7 @@ import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
 import { fetchNpmVersions } from './npm.ts';
+import { fetchNugetVersions } from './nuget.ts';
 import { fetchPypiVersions } from './pypi.ts';
 import { fetchRubygemsVersions } from './rubygems.ts';
 
@@ -32,6 +33,7 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'java-version': fetchJavaVersions,
   'node-version': fetchNodeVersions,
   npm: fetchNpmVersions,
+  nuget: fetchNugetVersions,
   pypi: fetchPypiVersions,
   rubygems: fetchRubygemsVersions,
 };

@@ -7,6 +7,7 @@ export const DatasourceName = z.enum([
   'java-version',
   'node-version',
   'npm',
+  'nuget',
   'pypi',
   'rubygems',
 ]);
@@ -18,6 +19,7 @@ export const VersioningName = z.enum([
   'maven',
   'node',
   'npm',
+  'nuget',
   'pep440',
   'python',
   'ruby',
