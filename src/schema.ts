@@ -4,6 +4,8 @@ import { z } from 'zod';
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
   'github-releases',
+  'gradle-version',
+  'hashicorp-releases',
   'java-version',
   'node-version',
   'npm',
@@ -16,6 +18,7 @@ export type DatasourceName = z.infer<typeof DatasourceName>;
 /** The Renovate versioning to compare and match the versions of a tool with. */
 export const VersioningName = z.enum([
   'docker',
+  'gradle',
   'maven',
   'node',
   'npm',

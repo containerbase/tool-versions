@@ -64,6 +64,8 @@ The containerbase prebuilds (`composer`, `erlang`, `flutter`, `golang`, `maven`,
 
 The GitHub release tools (`apko`, `apm`, `buf`, `buildx`, `bun`, `deno`, `devbox`, `docker-compose`, `elixir`, `flux`, `gh`, `git-lfs`, `gleam`, `helmfile`, `kustomize`, `mise`, `nub`, `pixi`, `powershell`, `sbt`, `sops`, `tofu`, `vendir`, `vp`) take their versions from the releases of the upstream repository, and their linux `amd64` and `arm64` files from the release assets. The checksum comes from a checksum asset of the release, either a file per asset or a list for all of them, which is downloaded once per release (see `toolFiles` in [`src/tools.ts`](./src/tools.ts)). The tags of `bun` (`bun-v`) and `kustomize` (`kustomize/v`) have a prefix, and the other tags of the `kustomize` repository are skipped. A version without any file with a checksum isn't published.
 
+`kubectl`, `terraform` and `gradle` are downloaded from other hosts. `kubectl` takes its versions from the releases of `kubernetes/kubernetes` and the binaries and `.sha256` files from dl.k8s.io. `terraform` reads releases.hashicorp.com: the `index.json` lists the versions and the linux zips, the `SHA256SUMS` of a release the checksums. `gradle` reads `services.gradle.org/versions/all` (without snapshots, nightlies and broken releases) and the `.sha256` of each `gradle-<version>-bin.zip`.
+
 The package manager tools (`bundler`, `checkov`, `cocoapods`, `conan`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `paket`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `renovate`, `uv`, `yarn`, `yarn-slim`) come from npm, pypi, rubygems or nuget without files; the deprecated `bower` and `lerna` aren't published. `yarn` is published as the union of the `yarn` package (1.x) and `@yarnpkg/cli-dist` (2 and later), its `source.packageName` is `@yarnpkg/cli-dist`; `yarn-slim` only has the 1.x versions of `yarn`. `paket` has no release times, nuget.org only lists them page by page.
 
 ## Updates
@@ -71,7 +73,7 @@ The package manager tools (`bundler`, `checkov`, `cocoapods`, `conan`, `copier`,
 - **Incremental:** each build starts from the published files. Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Full refresh:** run the `pages` workflow with the `full` input.
-- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for golang, php, python and ruby), and the automerged update publishes a release right away. Add new lines when they are released.
+- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for golang, kubectl, php, python and ruby), and the automerged update publishes a release once it is 2 hours old, when all its files are uploaded. Add new lines when they are released.
 
 ## Development
 
