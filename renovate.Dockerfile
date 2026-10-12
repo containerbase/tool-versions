@@ -13,16 +13,16 @@ FROM scratch
 ENV BUNDLER_VERSION=2.7.2
 
 # renovate: datasource=rubygems depName=bundler versioning=ruby
-ENV BUNDLER_VERSION=4.0.3
+ENV BUNDLER_VERSION=4.0.22
 
 # renovate: datasource=pypi depName=checkov
-ENV CHECKOV_VERSION=3.2.0
+ENV CHECKOV_VERSION=3.3.28
 
 # renovate: datasource=pypi depName=copier
-ENV COPIER_VERSION=9.10.0
+ENV COPIER_VERSION=9.18.2
 
 # renovate: datasource=npm depName=corepack
-ENV COREPACK_VERSION=0.34.0
+ENV COREPACK_VERSION=0.36.0
 
 # renovate: datasource=pypi depName=hashin
 ENV HASHIN_VERSION=1.0.5
@@ -61,19 +61,22 @@ ENV NODE_VERSION=24.21.0
 ENV NODE_VERSION=26.11.1
 
 # renovate: datasource=npm depName=npm
-ENV NPM_VERSION=10.9.4
+ENV NPM_VERSION=10.9.9
 
 # renovate: datasource=npm depName=npm
-ENV NPM_VERSION=11.6.2
+ENV NPM_VERSION=11.21.0
+
+# renovate: datasource=npm depName=npm
+ENV NPM_VERSION=12.2.0
 
 # renovate: datasource=pypi depName=pdm
-ENV PDM_VERSION=2.26.0
+ENV PDM_VERSION=2.29.2
 
 # renovate: datasource=pypi depName=pip-tools
-ENV PIP_TOOLS_VERSION=7.5.0
+ENV PIP_TOOLS_VERSION=7.6.2
 
 # renovate: datasource=pypi depName=pipenv
-ENV PIPENV_VERSION=2026.0.3
+ENV PIPENV_VERSION=2026.9.1
 
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=10.34.6
@@ -103,4 +106,4 @@ ENV PYTHON_VERSION=3.13.16
 ENV PYTHON_VERSION=3.14.8
 
 # renovate: datasource=pypi depName=uv
-ENV UV_VERSION=0.9.0
+ENV UV_VERSION=0.13.0

@@ -1,3 +1,4 @@
+import { eq as rubyEq, gt as rubyGt, valid as rubyValid } from '@renovatebot/ruby-semver';
 import semver from 'semver';
 import type { ToolVersion } from './schema.ts';
 
@@ -62,52 +63,25 @@ export function sortVersions(
 }
 
 /**
- * Checks if a version is a valid ruby gem version: dot separated numbers and
- * letters, starting with a number, like `2.5.6` or `2.6.0.rc1`.
+ * Checks if a version is a valid ruby gem version, like `2.5.6` or `2.6.0.rc1`,
+ * with the library Renovate's `ruby` versioning uses.
  * @param version - the version to check
  */
 export function isRubyVersion(version: string): boolean {
-  return /^\d+(\.[0-9a-z]+)*$/i.test(version);
+  return rubyValid(version) !== null;
 }
 
 /**
- * Splits a ruby gem version into its segments, numbers as numbers and the
- * letter parts as strings: `2.6.0.rc1` is `[2, 6, 0, 'rc', 1]`.
- * @param version - a valid ruby version
- */
-function rubySegments(version: string): (number | string)[] {
-  return version
-    .split(/\.|(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)/i)
-    .map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment.toLowerCase()));
-}
-
-/**
- * Compares two ruby gem versions like `Gem::Version`, which Renovate's `ruby`
- * versioning follows for gems. Semver can't be used, as gems have any number of
- * segments (`2.3.26.1`) and prereleases are letter segments (`2.6.0.rc1`,
- * `1.0.pre`). Segments are compared one by one, missing ones count as `0`, and
- * a letter segment is older than any number, so `1.0.0.rc1` is older than `1.0.0`.
+ * Compares two ruby gem versions like `Gem::Version`, with the library
+ * Renovate's `ruby` versioning uses, so `1.0.0.rc1` is older than `1.0.0`.
  * @param a - the first version
  * @param b - the second version
  */
 export function compareRuby(a: string, b: string): number {
-  const left = rubySegments(a);
-  const right = rubySegments(b);
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    const x = left[i] ?? 0;
-    const y = right[i] ?? 0;
-    if (x === y) {
-      continue;
-    }
-    if (typeof x === 'number' && typeof y === 'number') {
-      return x - y;
-    }
-    if (typeof x === 'string' && typeof y === 'string') {
-      return x < y ? -1 : 1;
-    }
-    return typeof x === 'string' ? -1 : 1;
+  if (rubyEq(a, b)) {
+    return 0;
   }
-  return 0;
+  return rubyGt(a, b) ? 1 : -1;
 }
 
 /**

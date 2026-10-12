@@ -115,7 +115,7 @@ A tool whose release assets aren't the files to install lists them in `toolFiles
 The `python` prebuilds of the distros `bionic` and `focal` are skipped, containerbase no longer supports them.
 Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.
 They are the tools with the `type` `npm`, `pip` or `gem` in `@containerbase/base`, except the deprecated ones (`bower`, `lerna`), which aren't published.
-The `rubygems` versions are sorted with a small `Gem::Version` comparator, as semver can't order gem versions like `2.3.26.1` or `2.6.0.rc1`.
+The `rubygems` versions are sorted with [`@renovatebot/ruby-semver`](https://www.npmjs.com/package/@renovatebot/ruby-semver), the library Renovate's `ruby` versioning uses, as semver can't order gem versions like `2.3.26.1` or `2.6.0.rc1`.
 It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.
 A new kind of source needs a fetcher in [`src/datasources`](./src/datasources).
 Add its maintained release lines to [`renovate.Dockerfile`](./renovate.Dockerfile) too.

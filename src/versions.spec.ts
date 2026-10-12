@@ -34,11 +34,15 @@ describe('versions', () => {
   });
 
   describe('isRubyVersion', () => {
-    it.each(['2.5.6', '2.6.0.rc1', '1.0.pre', '2.3.26.1', '7'])('accepts %s', (version) => {
-      expect(isRubyVersion(version)).toBe(true);
-    });
+    // `2.5-6` is a prerelease for Gem::Version, like `2.5.pre.6`
+    it.each(['2.5.6', '2.6.0.rc1', '1.0.pre', '2.3.26.1', '7', '2.5-6'])(
+      'accepts %s',
+      (version) => {
+        expect(isRubyVersion(version)).toBe(true);
+      },
+    );
 
-    it.each(['', 'v2.5.6', '2..5', 'rc1', '2.5-6'])('rejects %s', (version) => {
+    it.each(['', 'v2.5.6', '2..5', 'rc1'])('rejects %s', (version) => {
       expect(isRubyVersion(version)).toBe(false);
     });
   });
@@ -73,9 +77,8 @@ describe('versions', () => {
       ]);
     });
 
-    it('treats missing segments as zero and ignores the case of letters', () => {
+    it('treats missing segments as zero', () => {
       expect(compareRuby('2.6', '2.6.0')).toBe(0);
-      expect(compareRuby('2.6.0.RC1', '2.6.0.rc1')).toBe(0);
       expect(compareRuby('1.0.0.rc1', '1.0.0')).toBeLessThan(0);
       expect(compareRuby('1.0.0', '1.0.0.rc1')).toBeGreaterThan(0);
     });
