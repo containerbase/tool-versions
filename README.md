@@ -1,167 +1,83 @@
 # containerbase tool versions
 
-Lists the versions containerbase's `install-tool` can install, one file per tool, published on GitHub Pages.
-A scheduled workflow fetches them daily from the same upstream sources the containerbase CLI uses, so the generated files are never committed.
+The versions containerbase's `install-tool` can install, one JSON file per tool on GitHub Pages, with the download url and checksum of each file.
+A workflow builds them nightly from the upstream sources the containerbase CLI uses.
 
 ## Files
 
-- `https://containerbase.github.io/tool-versions/<tool>.json`: the versions of one tool, e.g. [`node.json`](https://containerbase.github.io/tool-versions/node.json)
-- `https://containerbase.github.io/tool-versions/index.json`: every published tool with its file name and version count
-- `https://containerbase.github.io/tool-versions/tool.schema.json` and `index.schema.json`: the JSON schemas of those files
-- `<file>.sha512` next to each of these files, e.g. `node.json.sha512`: its SHA-512 digest as `<hex>  <file name>`, the format `sha512sum` prints, so a download can be verified
-
-A tool file looks like this:
+- [`<tool>.json`](https://containerbase.github.io/tool-versions/node.json): the versions of one tool
+- [`index.json`](https://containerbase.github.io/tool-versions/index.json): all tools with their file and version count
+- `tool.schema.json`, `index.schema.json`: the JSON schemas
+- `<file>.sha512` next to each file, in `sha512sum` format
 
 ```json
 {
-  "tool": "node",
-  "sourceUrl": "https://github.com/nodejs/node",
-  "homepage": "https://nodejs.org",
-  "source": { "datasource": "node-version", "packageName": "node", "versioning": "node" },
+  "tool": "python",
+  "sourceUrl": "https://github.com/python/cpython",
+  "homepage": "https://www.python.org",
+  "source": {
+    "datasource": "github-releases",
+    "packageName": "containerbase/python-prebuild",
+    "versioning": "python"
+  },
   "updatedAt": "2026-10-08T03:00:00.000Z",
   "versions": [
-    { "version": "25.0.0", "releaseTimestamp": "2026-10-01T00:00:00.000Z" },
     {
-      "version": "25.0.0-rc.1",
-      "prerelease": true,
-      "releaseTimestamp": "2026-09-15T00:00:00.000Z"
-    },
-    { "version": "24.21.0", "lts": true, "releaseTimestamp": "2026-08-12T00:00:00.000Z" }
-  ]
-}
-```
-
-A version lists the files it can be installed from, with the download url and the checksum.
-A `python` version has one file per distro and architecture:
-
-```json
-{
-  "version": "3.14.8",
-  "files": [
-    {
-      "name": "python-3.14.8-jammy-x86_64.tar.xz",
-      "url": "https://github.com/containerbase/python-prebuild/releases/download/3.14.8/python-3.14.8-jammy-x86_64.tar.xz",
-      "checksum": "sha512:ab12…",
-      "arch": "amd64",
-      "distro": "jammy"
+      "version": "3.14.8",
+      "releaseTimestamp": "2026-10-02T01:30:20.000Z",
+      "files": [
+        {
+          "name": "python-3.14.8-jammy-x86_64.tar.xz",
+          "url": "https://github.com/containerbase/python-prebuild/releases/download/3.14.8/python-3.14.8-jammy-x86_64.tar.xz",
+          "checksum": "sha512:6976…",
+          "arch": "amd64",
+          "distro": "jammy"
+        }
+      ]
     }
   ]
 }
 ```
 
-A `java` version has one file per architecture:
+- `source`: the datasource, package and [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) of the versions.
+- `type`: the package manager installing the tool (`gem`, `npm` or `pip`, from [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base)). These tools have no files, the package manager installs and verifies them.
+- `sourceUrl`, `homepage`: links for Renovate's changelogs.
+- `versions`: newest first, including prereleases, only installable ones (with at least one file, unless the tool has a `type`). `version` is the exact `install-tool` version.
+- `prerelease`, `lts`: only present when `true`.
+- `releaseTimestamp`: the release time in UTC, for Renovate's `minimumReleaseAge`.
+- `files`: sorted by name, each with the https `url`, `checksum` (`sha256:` or `sha512:` lowercase hex), and `arch` (`amd64`/`arm64`) and `distro` where they apply.
 
-```json
-{
-  "version": "21.0.5+11.0.LTS",
-  "lts": true,
-  "files": [
-    {
-      "name": "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.5_11.tar.gz",
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.5_11.tar.gz",
-      "checksum": "sha256:cd34…",
-      "arch": "arm64"
-    },
-    {
-      "name": "OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz",
-      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz",
-      "checksum": "sha256:ef56…",
-      "arch": "amd64"
-    }
-  ]
-}
-```
-
-- `source` is where the versions come from: the `datasource` and `packageName`, and the [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) to compare and match them with, e.g. `node`, `npm`, `pep440`, `python`, `ruby` or `semver`.
-- `type` is the package manager installing the tool, `gem`, `npm` or `pip`, as in [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), e.g. `"type": "npm"` for `pnpm`.
-  It is omitted for other tools.
-- `sourceUrl` and `homepage` are https urls of the source code and the homepage of the tool, used by Renovate for changelogs and links. Each is omitted when unset, like the `sourceUrl` of `java`.
-- `versions` is sorted newest first and includes prereleases.
-  Only installable versions are listed: a version needs at least one file, except for tools installed by a package manager (they have a `type`).
-- `version` is in exactly the format `install-tool` accepts, e.g. `25.0.2+10.0.LTS` for `java`.
-- `prerelease` and `lts` are only present when they are `true`.
-- `releaseTimestamp` is when the version was released, in UTC as `YYYY-MM-DDTHH:mm:ss.sssZ`. Renovate uses it for `minimumReleaseAge` and the release age.
-  It is only present when the source tells it: `published_at` of the GitHub release, `date` of nodejs.org, the `time` of the npm package, the earliest upload of a release's files on pypi, the `created_at` of the gem version on rubygems and the `timestamp` of the Adoptium release.
-- `files` lists the download files of the version, sorted by `name`. It is only present when files are known.
-  - `url` is the direct https download url.
-  - `checksum` is `sha256:<hex>` or `sha512:<hex>` in lowercase.
-  - `arch` is `amd64` or `arm64`, as `install-tool` names them. It is left out for files which work on every architecture.
-  - `distro` is the distro of a distro specific file, like `jammy`. It is left out otherwise.
+Optional fields are omitted when unknown.
 
 ## Tools
 
-| Tool        | Datasource        | Package                                | Versioning | Files                                                                                                            |
-| ----------- | ----------------- | -------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| `bundler`   | `rubygems`        | `bundler`                              | `ruby`     | none                                                                                                             |
-| `checkov`   | `pypi`            | `checkov`                              | `pep440`   | none                                                                                                             |
-| `copier`    | `pypi`            | `copier`                               | `pep440`   | none                                                                                                             |
-| `corepack`  | `npm`             | `corepack`                             | `npm`      | none                                                                                                             |
-| `hashin`    | `pypi`            | `hashin`                               | `pep440`   | none                                                                                                             |
-| `helm`      | `github-releases` | `helm/helm`                            | `semver`   | `linux-amd64` and `linux-arm64` archives on get.helm.sh, sha256 from `.sha256sum`, older releases from `.sha256` |
-| `java`      | `java-version`    | `java-jdk` (Adoptium, x64/aarch64, GA) | `npm`      | the Adoptium linux packages, sha256 from the Adoptium assets api                                                 |
-| `kas`       | `pypi`            | `kas`                                  | `pep440`   | none                                                                                                             |
-| `node`      | `node-version`    | `node` (nodejs.org)                    | `node`     | the `linux-x64` and `linux-arm64` `.tar.xz` archives, sha256 from `SHASUMS256.txt`                               |
-| `npm`       | `npm`             | `npm`                                  | `npm`      | none                                                                                                             |
-| `pdm`       | `pypi`            | `pdm`                                  | `pep440`   | none                                                                                                             |
-| `pip-tools` | `pypi`            | `pip-tools`                            | `pep440`   | none                                                                                                             |
-| `pipenv`    | `pypi`            | `pipenv`                               | `pep440`   | none                                                                                                             |
-| `pnpm`      | `npm`             | `pnpm`                                 | `npm`      | none                                                                                                             |
-| `poetry`    | `pypi`            | `poetry`                               | `pep440`   | none                                                                                                             |
-| `python`    | `github-releases` | `containerbase/python-prebuild`        | `python`   | the release assets with a `.sha512` file, sha512 from it                                                         |
-| `uv`        | `pypi`            | `uv`                                   | `pep440`   | none                                                                                                             |
+The tools and their sources are mapped in [`src/tools.ts`](./src/tools.ts), each must exist in `@containerbase/base`.
 
-To add a tool, map it in [`src/tools.ts`](./src/tools.ts), with the versioning Renovate uses for it and its `sourceUrl` and `homepage` in `toolLinks`.
-A tool whose release assets aren't the files to install lists them in `toolFiles` there.
-The `python` prebuilds of the distros `bionic` and `focal` are skipped, containerbase no longer supports them.
-Tools installed through npm, pip or gem have no files, whatever their datasource: the package manager installs and verifies them together with their dependencies.
-They are the tools with the `type` `npm`, `pip` or `gem` in `@containerbase/base`, except the deprecated ones (`bower`, `lerna`), which aren't published.
-The `rubygems` versions are sorted with [`@renovatebot/ruby-semver`](https://www.npmjs.com/package/@renovatebot/ruby-semver), the library Renovate's `ruby` versioning uses, as semver can't order gem versions like `2.3.26.1` or `2.6.0.rc1`.
-It must exist in the `tools.json` of [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base), else the build fails.
-A new kind of source needs a fetcher in [`src/datasources`](./src/datasources).
-Add its maintained release lines to [`renovate.Dockerfile`](./renovate.Dockerfile) too.
+| Tool     | Versions                                        | Files                                                             |
+| -------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| `helm`   | GitHub releases `helm/helm`                     | get.helm.sh archives, sha256 from `.sha256sum` (older: `.sha256`) |
+| `java`   | Adoptium, JDK, GA                               | Adoptium linux packages, sha256 from the assets api               |
+| `node`   | nodejs.org                                      | `.tar.xz` archives, sha256 from `SHASUMS256.txt`                  |
+| `python` | GitHub releases `containerbase/python-prebuild` | prebuilds with a `.sha512` file, without `bionic` and `focal`     |
+
+The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `uv`) come from npm, pypi or rubygems without files; the deprecated `bower` and `lerna` aren't published.
 
 ## Updates
 
-Each build starts from the published files:
-
-- **Incremental:** the versions of the previous file are merged with the fresh ones, so a version that disappears upstream stays listed.
-  Where a version is in both, the fresh flags win.
-  A version keeps the `releaseTimestamp` of the previous file unless the source gives a fresh one.
-  `java` only requests the Adoptium assets for the release time of a version which has none yet, so the first build fills them in once.
-  The `npm` source only reads the full package document, as the abbreviated one has no release times, when a version has no `releaseTimestamp` yet.
-  Paged sources (`github-releases`, `java-version`) list the newest versions first and stop paging after the first page with a known version.
-  The files of the previous file are reused by `name` and never fetched again; only files which are missing get their checksum fetched, so files uploaded after an earlier build are filled in later.
-  The first build after the `files` were introduced fetches them for every version.
-  A version counts as known for paging whether or not it has files, so older versions on pages that are no longer fetched are only filled by a full refresh.
-  A file whose checksum is missing upstream (404) is left out silently; any other failed fetch skips the file with a warning, and the next build tries again.
-  A `java` version without a file for an architecture requests its feature release again on every build, as the file may be published later.
-- **Fallback:** when fetching a tool fails, its previous file is published again with its old `updatedAt`, so you can see it is stale, and the build logs a warning.
-  The build only fails for a tool that has neither fresh nor previous versions, and then nothing is deployed.
-- **Full refresh:** run the `pages` workflow manually with the `full` input to skip the previous files and fetch every version again.
-- **Release trigger:** [`renovate.Dockerfile`](./renovate.Dockerfile) lists the maintained release lines of each tool.
-  There is one line per major, and Renovate updates it on a minor or patch release; Python has one line per minor, updated on patch releases.
-  The automerged update on `main` publishes the new version right away.
-  New lines are picked up by the nightly run; add them to the file when they are released.
-
-A missing, unreadable or invalid previous file counts as no previous file, as does a file of another source.
-A previous file without a `versioning` still counts, the next build writes the current one.
+- **Incremental:** each build starts from the published files. Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
+- **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
+- **Full refresh:** run the `pages` workflow with the `full` input.
+- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for python), and the automerged update publishes a release right away. Add new lines when they are released.
 
 ## Development
 
-Node.js, pnpm and jactionlint are pinned in [`mise.toml`](./mise.toml), so [`mise`](https://mise.jdx.dev) installs them and the dependencies with `mise install`.
-Without mise, install the dependencies with `pnpm install`.
+`mise install` installs Node.js, pnpm, jactionlint and the dependencies (or `pnpm install` without [mise](https://mise.jdx.dev)).
 
 ```bash
-mise install
-pnpm lint
+pnpm lint         # pnpm lint-fix to fix
 pnpm test
-jactionlint
+jactionlint       # the GitHub workflows
+pnpm build        # writes dist/, --full skips the previous files
 ```
 
-- `pnpm lint-fix` fixes the formatting and the fixable lint findings.
-- `jactionlint` checks the GitHub workflows.
-
-`pnpm build` fetches all tools and writes the files to `dist/`, `pnpm build --full` skips the previous files.
-
-- `GITHUB_TOKEN` makes authenticated GitHub API requests, which avoids the rate limit.
-- `TOOL_VERSIONS_URL` sets where the previous files are downloaded from, by default `https://containerbase.github.io/tool-versions`.
+`GITHUB_TOKEN` avoids the GitHub rate limit, `TOOL_VERSIONS_URL` overrides where the previous files come from.
