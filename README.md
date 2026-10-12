@@ -40,7 +40,7 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 ```
 
 - `source`: the datasource, package and [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) of the versions.
-- `type`: the package manager installing the tool (`gem`, `npm` or `pip`, from [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base)). These tools have no files, the package manager installs and verifies them.
+- `type`: the package manager installing the tool (`dotnet`, `gem`, `npm` or `pip`, from [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base)). These tools have no files, the package manager installs and verifies them.
 - `sourceUrl`, `homepage`: links for Renovate's changelogs.
 - `versions`: newest first, including prereleases, only installable ones (with at least one file, unless the tool has a `type`). `version` is the exact `install-tool` version.
 - `prerelease`, `lts`: only present when `true`.
@@ -64,7 +64,7 @@ The containerbase prebuilds (`composer`, `erlang`, `flutter`, `golang`, `maven`,
 
 The GitHub release tools (`apko`, `apm`, `buf`, `buildx`, `bun`, `deno`, `devbox`, `docker-compose`, `elixir`, `flux`, `gh`, `git-lfs`, `gleam`, `helmfile`, `kustomize`, `mise`, `nub`, `pixi`, `powershell`, `sbt`, `sops`, `tofu`, `vendir`, `vp`) take their versions from the releases of the upstream repository, and their linux `amd64` and `arm64` files from the release assets. The checksum comes from a checksum asset of the release, either a file per asset or a list for all of them, which is downloaded once per release (see `toolFiles` in [`src/tools.ts`](./src/tools.ts)). The tags of `bun` (`bun-v`) and `kustomize` (`kustomize/v`) have a prefix, and the other tags of the `kustomize` repository are skipped. A version without any file with a checksum isn't published.
 
-The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `uv`) come from npm, pypi or rubygems without files; the deprecated `bower` and `lerna` aren't published.
+The package manager tools (`bundler`, `checkov`, `cocoapods`, `conan`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `paket`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `renovate`, `uv`, `yarn`, `yarn-slim`) come from npm, pypi, rubygems or nuget without files; the deprecated `bower` and `lerna` aren't published. `yarn` is published as the union of the `yarn` package (1.x) and `@yarnpkg/cli-dist` (2 and later), its `source.packageName` is `@yarnpkg/cli-dist`; `yarn-slim` only has the 1.x versions of `yarn`. `paket` has no release times, nuget.org only lists them page by page.
 
 ## Updates
 

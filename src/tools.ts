@@ -35,7 +35,9 @@ export const toolSources: Record<string, Source> = {
   bun: github('oven-sh/bun'),
   bundler: { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' },
   checkov: { datasource: 'pypi', packageName: 'checkov', versioning: 'pep440' },
+  cocoapods: { datasource: 'rubygems', packageName: 'cocoapods', versioning: 'ruby' },
   composer: prebuild('composer'),
+  conan: { datasource: 'pypi', packageName: 'conan', versioning: 'pep440' },
   copier: { datasource: 'pypi', packageName: 'copier', versioning: 'pep440' },
   corepack: { datasource: 'npm', packageName: 'corepack', versioning: 'npm' },
   deno: github('denoland/deno'),
@@ -62,6 +64,7 @@ export const toolSources: Record<string, Source> = {
   node: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
   npm: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
   nub: github('nubjs/nub'),
+  paket: { datasource: 'nuget', packageName: 'Paket', versioning: 'nuget' },
   pdm: { datasource: 'pypi', packageName: 'pdm', versioning: 'pep440' },
   php: prebuild('php'),
   'pip-tools': { datasource: 'pypi', packageName: 'pip-tools', versioning: 'pep440' },
@@ -71,6 +74,7 @@ export const toolSources: Record<string, Source> = {
   poetry: { datasource: 'pypi', packageName: 'poetry', versioning: 'pep440' },
   powershell: github('PowerShell/PowerShell'),
   python: prebuild('python', 'python'),
+  renovate: { datasource: 'npm', packageName: 'renovate', versioning: 'npm' },
   ruby: prebuild('ruby', 'ruby'),
   sbt: github('sbt/sbt'),
   skopeo: prebuild('skopeo'),
@@ -80,6 +84,9 @@ export const toolSources: Record<string, Source> = {
   vendir: github('vmware-tanzu/carvel-vendir'),
   vp: github('voidzero-dev/vite-plus'),
   wally: prebuild('wally'),
+  // 1.x is the `yarn` package, see the unions of the npm datasource
+  yarn: { datasource: 'npm', packageName: '@yarnpkg/cli-dist', versioning: 'npm' },
+  'yarn-slim': { datasource: 'npm', packageName: 'yarn', versioning: 'npm' },
 };
 
 /** The links of a tool, published for Renovate's changelogs and links. */
@@ -104,6 +111,11 @@ export const toolLinks: Record<string, ToolLinks> = {
     sourceUrl: 'https://github.com/bridgecrewio/checkov',
     homepage: 'https://www.checkov.io',
   },
+  cocoapods: {
+    sourceUrl: 'https://github.com/CocoaPods/CocoaPods',
+    homepage: 'https://cocoapods.org',
+  },
+  conan: { sourceUrl: 'https://github.com/conan-io/conan', homepage: 'https://conan.io' },
   composer: {
     sourceUrl: 'https://github.com/composer/composer',
     homepage: 'https://getcomposer.org',
@@ -155,6 +167,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   node: { sourceUrl: 'https://github.com/nodejs/node', homepage: 'https://nodejs.org' },
   npm: { sourceUrl: 'https://github.com/npm/cli', homepage: 'https://docs.npmjs.com/cli' },
   nub: { sourceUrl: 'https://github.com/nubjs/nub' },
+  paket: {
+    sourceUrl: 'https://github.com/fsprojects/Paket',
+    homepage: 'https://fsprojects.github.io/Paket',
+  },
   pdm: { sourceUrl: 'https://github.com/pdm-project/pdm', homepage: 'https://pdm-project.org' },
   php: { sourceUrl: 'https://github.com/php/php-src', homepage: 'https://www.php.net' },
   'pip-tools': {
@@ -170,6 +186,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   },
   powershell: { sourceUrl: 'https://github.com/PowerShell/PowerShell' },
   python: { sourceUrl: 'https://github.com/python/cpython', homepage: 'https://www.python.org' },
+  renovate: {
+    sourceUrl: 'https://github.com/renovatebot/renovate',
+    homepage: 'https://docs.renovatebot.com',
+  },
   ruby: { sourceUrl: 'https://github.com/ruby/ruby', homepage: 'https://www.ruby-lang.org' },
   sbt: { sourceUrl: 'https://github.com/sbt/sbt', homepage: 'https://www.scala-sbt.org' },
   skopeo: { sourceUrl: 'https://github.com/containers/skopeo' },
@@ -182,6 +202,8 @@ export const toolLinks: Record<string, ToolLinks> = {
   },
   vp: { sourceUrl: 'https://github.com/voidzero-dev/vite-plus' },
   wally: { sourceUrl: 'https://github.com/UpliftGames/wally', homepage: 'https://wally.run' },
+  yarn: { sourceUrl: 'https://github.com/yarnpkg/berry', homepage: 'https://yarnpkg.com' },
+  'yarn-slim': { sourceUrl: 'https://github.com/yarnpkg/berry', homepage: 'https://yarnpkg.com' },
 };
 
 /** The names of the architectures in the asset names of a tool. */

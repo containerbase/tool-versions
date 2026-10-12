@@ -8,10 +8,8 @@ const metadata: Record<string, ToolMetadata> = tools;
 describe('tools', () => {
   describe('toolSources', () => {
     it('maps every tool installed by a package manager, except deprecated ones', () => {
-      // typed in @containerbase/base 14.32.0, mapped in the next change
-      const unmapped = ['cocoapods', 'conan', 'paket', 'renovate', 'yarn', 'yarn-slim'];
       const typed = Object.entries(metadata)
-        .filter(([tool, { type, deprecated }]) => type && !deprecated && !unmapped.includes(tool))
+        .filter(([, { type, deprecated }]) => type && !deprecated)
         .map(([tool]) => tool);
 
       expect(typed.sort()).toEqual(
@@ -65,6 +63,7 @@ describe('tools', () => {
       ['npm', 'npm'],
       ['pypi', 'pip'],
       ['rubygems', 'gem'],
+      ['nuget', 'dotnet'],
     ])('maps the %s datasource to tools of type %s', (datasource, type) => {
       const types = Object.entries(toolSources)
         .filter(([, source]) => source.datasource === datasource)
@@ -73,12 +72,31 @@ describe('tools', () => {
       expect(new Set(types)).toEqual(new Set([type]));
     });
 
-    it('uses the tool name as package name of package manager tools', () => {
+    it('uses the tool name as package name of package manager tools, with exceptions', () => {
       const names = Object.entries(toolSources)
         .filter(([tool]) => metadata[tool]?.type)
         .map(([tool, source]) => [tool, source.packageName]);
 
-      expect(names.filter(([tool, name]) => tool !== name)).toEqual([]);
+      expect(Object.fromEntries(names.filter(([tool, name]) => tool !== name))).toEqual({
+        // 1.x is the `yarn` package, the later versions `@yarnpkg/cli-dist`
+        yarn: '@yarnpkg/cli-dist',
+        'yarn-slim': 'yarn',
+        paket: 'Paket',
+      });
+    });
+
+    it('maps the remaining package manager tools', () => {
+      expect({
+        cocoapods: toolSources['cocoapods'],
+        conan: toolSources['conan'],
+        renovate: toolSources['renovate'],
+        paket: toolSources['paket'],
+      }).toEqual({
+        cocoapods: { datasource: 'rubygems', packageName: 'cocoapods', versioning: 'ruby' },
+        conan: { datasource: 'pypi', packageName: 'conan', versioning: 'pep440' },
+        renovate: { datasource: 'npm', packageName: 'renovate', versioning: 'npm' },
+        paket: { datasource: 'nuget', packageName: 'Paket', versioning: 'nuget' },
+      });
     });
   });
 

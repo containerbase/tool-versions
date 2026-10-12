@@ -97,12 +97,45 @@ describe('datasources/npm', () => {
 
   it('encodes scoped package names', async () => {
     const scope = nock(registry)
-      .get('/@yarnpkg%2fcli-dist')
+      .get('/@scope%2ftool')
       .reply(200, { versions: { '4.0.0': {} } });
 
-    await expect(fetchVersions('@yarnpkg/cli-dist', ['4.0.0'])).resolves.toEqual([
-      { version: '4.0.0' },
+    await expect(fetchVersions('@scope/tool', ['4.0.0'])).resolves.toEqual([{ version: '4.0.0' }]);
+    expect(scope.isDone()).toBe(true);
+  });
+
+  it('merges yarn 1 from `yarn` with the later versions from `@yarnpkg/cli-dist`', async () => {
+    const scope = nock(registry)
+      .get('/@yarnpkg%2fcli-dist')
+      .reply(200, { versions: { '4.9.2': {}, '3.8.7': {}, '1.22.22': {}, '2.4.3': {} } })
+      .get('/yarn')
+      .reply(200, { versions: { '1.22.22': {}, '1.22.21': {}, '1.0.0-rc.1': {}, '2.0.0': {} } });
+
+    await expect(
+      fetchVersions('@yarnpkg/cli-dist', [
+        '4.9.2',
+        '3.8.7',
+        '2.4.3',
+        '1.22.22',
+        '1.22.21',
+        '1.0.0-rc.1',
+      ]),
+    ).resolves.toEqual([
+      { version: '4.9.2' },
+      { version: '3.8.7' },
+      { version: '2.4.3' },
+      { version: '1.22.22' },
+      { version: '1.22.21' },
+      { version: '1.0.0-rc.1', prerelease: true },
     ]);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('takes all versions of `yarn` for yarn-slim', async () => {
+    nock(registry)
+      .get('/yarn')
+      .reply(200, { versions: { '1.22.22': {} } });
+
+    await expect(fetchVersions('yarn', ['1.22.22'])).resolves.toEqual([{ version: '1.22.22' }]);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareDocker, compareMaven, versionings } from './versioning.ts';
+import { compareDocker, compareMaven, compareNuget, versionings } from './versioning.ts';
 
 describe('versioning', () => {
   describe('compareDocker', () => {
@@ -20,6 +20,43 @@ describe('versioning', () => {
 
     it('throws for an invalid version', () => {
       expect(() => compareDocker('1.2', 'x')).toThrow('Invalid docker version x');
+    });
+  });
+
+  describe('compareNuget', () => {
+    it('compares up to four numeric parts and prerelease identifiers', () => {
+      const sorted = [
+        '1.0.0',
+        '1.0.0-beta.10',
+        '1.0.0-beta.2',
+        '1.0.0-beta',
+        '1.0.0-alpha.1',
+        '1.0.0-1',
+        '1.0.0.1',
+        '1.0',
+        '0.9.9.9',
+        '1.0.0+build5',
+      ].sort(compareNuget);
+
+      expect(sorted).toEqual([
+        '0.9.9.9',
+        '1.0.0-1',
+        '1.0.0-alpha.1',
+        '1.0.0-beta',
+        '1.0.0-beta.2',
+        '1.0.0-beta.10',
+        // equal versions keep their order
+        '1.0.0',
+        '1.0',
+        '1.0.0+build5',
+        '1.0.0.1',
+      ]);
+    });
+
+    it('ignores build metadata and the case of identifiers, and throws for invalid versions', () => {
+      expect(compareNuget('1.0.0+a', '1.0.0+b')).toBe(0);
+      expect(compareNuget('1.0.0-BETA', '1.0.0-beta')).toBe(0);
+      expect(() => compareNuget('1.0.0', 'x')).toThrow('Invalid NuGet version x');
     });
   });
 
@@ -67,6 +104,9 @@ describe('versioning', () => {
       ['docker', '28.5.0.7', true, false],
       ['docker', '1.2-rc1', true, true],
       ['docker', 'v1.2', false, false],
+      ['nuget', '5.257.0.1', true, false],
+      ['nuget', '10.0.0-beta.2', true, true],
+      ['nuget', '1.2.3.4.5', false, false],
       ['maven', '3.9', true, false],
       ['maven', '4.0.0-rc-4', true, true],
       ['maven', 'latest', false, false],

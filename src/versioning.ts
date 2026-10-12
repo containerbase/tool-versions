@@ -64,6 +64,89 @@ export function compareDocker(a: string, b: string): number {
   return left.suffix < right.suffix ? -1 : 1;
 }
 
+/**
+ * Splits a NuGet version into its numeric parts (one to four), its prerelease
+ * identifiers and drops the build metadata: `1.2.3.4-beta.2+abc` is
+ * `[1, 2, 3, 4]` and `['beta', '2']`.
+ * @param version - the version
+ * @returns the parts, or `undefined` when it isn't a NuGet version
+ */
+function parseNuget(version: string): { numbers: number[]; pre: string[] } | undefined {
+  const match =
+    /^(?<numbers>\d+(?:\.\d+){0,3})(?:-(?<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z.-]+)?$/.exec(
+      version,
+    );
+  if (!match?.groups) {
+    return undefined;
+  }
+  return {
+    numbers: (match.groups['numbers'] ?? '').split('.').map(Number),
+    pre: match.groups['pre']?.split('.') ?? [],
+  };
+}
+
+/**
+ * Checks if a version is a valid NuGet version: up to four numeric parts, an
+ * optional prerelease label and optional build metadata.
+ * @param version - the version to check
+ */
+export function isNugetVersion(version: string): boolean {
+  return parseNuget(version) !== undefined;
+}
+
+/**
+ * Checks if a NuGet version has a prerelease label, like `1.0.0-beta.2`.
+ * @param version - a valid NuGet version
+ */
+export function isNugetPrerelease(version: string): boolean {
+  return (parseNuget(version)?.pre.length ?? 0) > 0;
+}
+
+/**
+ * Compares two NuGet versions: semver, but with up to four numeric parts
+ * (missing ones count as `0`). The `docker` compare doesn't fit, as it orders
+ * the prerelease labels as text, so `beta.10` would be older than `beta.2`.
+ * Prerelease identifiers are compared one by one, numbers numerically and
+ * before text, and a version is newer than its prereleases. Build metadata is
+ * ignored.
+ * @param a - the first version
+ * @param b - the second version
+ */
+export function compareNuget(a: string, b: string): number {
+  const left = parseNuget(a);
+  const right = parseNuget(b);
+  if (!left || !right) {
+    throw new Error(`Invalid NuGet version ${left ? b : a}`);
+  }
+  for (let i = 0; i < 4; i++) {
+    const diff = (left.numbers[i] ?? 0) - (right.numbers[i] ?? 0);
+    if (diff) {
+      return diff;
+    }
+  }
+  if (!left.pre.length || !right.pre.length) {
+    return left.pre.length ? -1 : right.pre.length ? 1 : 0;
+  }
+  for (let i = 0; i < Math.max(left.pre.length, right.pre.length); i++) {
+    const x = left.pre[i];
+    const y = right.pre[i];
+    if (x === undefined || y === undefined) {
+      return x === undefined ? -1 : 1;
+    }
+    const numeric = [/^\d+$/.test(x), /^\d+$/.test(y)];
+    if (numeric[0] && numeric[1]) {
+      if (Number(x) !== Number(y)) {
+        return Number(x) - Number(y);
+      }
+    } else if (numeric[0] || numeric[1]) {
+      return numeric[0] ? -1 : 1;
+    } else if (x.toLowerCase() !== y.toLowerCase()) {
+      return x.toLowerCase() < y.toLowerCase() ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
 /** The rank of the maven qualifiers, a release (no qualifier) is `release`. */
 const mavenRanks: Record<string, number> = {
   alpha: 1,
@@ -175,6 +258,7 @@ export const versionings: Record<VersioningName, Versioning> = {
   },
   node: semverVersioning,
   npm: semverVersioning,
+  nuget: { isValid: isNugetVersion, isPrerelease: isNugetPrerelease, compare: compareNuget },
   pep440: {
     isValid: (version) => explain(version) !== null,
     isPrerelease: (version) => explain(version)?.is_prerelease ?? false,
