@@ -1,7 +1,44 @@
+import { type ToolMetadata, tools } from '@containerbase/base';
 import { describe, expect, it } from 'vitest';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 
+const metadata: Record<string, ToolMetadata> = tools;
+
 describe('tools', () => {
+  describe('toolSources', () => {
+    it('maps every tool installed by a package manager, except deprecated ones', () => {
+      const typed = Object.entries(metadata)
+        .filter(([, { type, deprecated }]) => type && !deprecated)
+        .map(([tool]) => tool);
+
+      expect(typed.sort()).toEqual(
+        Object.keys(toolSources)
+          .filter((tool) => metadata[tool]?.type)
+          .sort(),
+      );
+    });
+
+    it.each([
+      ['npm', 'npm'],
+      ['pypi', 'pip'],
+      ['rubygems', 'gem'],
+    ])('maps the %s datasource to tools of type %s', (datasource, type) => {
+      const types = Object.entries(toolSources)
+        .filter(([, source]) => source.datasource === datasource)
+        .map(([tool]) => metadata[tool]?.type);
+
+      expect(new Set(types)).toEqual(new Set([type]));
+    });
+
+    it('uses the tool name as package name of package manager tools', () => {
+      const names = Object.entries(toolSources)
+        .filter(([tool]) => metadata[tool]?.type)
+        .map(([tool, source]) => [tool, source.packageName]);
+
+      expect(names.filter(([tool, name]) => tool !== name)).toEqual([]);
+    });
+  });
+
   describe('toolLinks', () => {
     it('maps every tool to https links', () => {
       expect(Object.keys(toolLinks).sort()).toEqual(Object.keys(toolSources).sort());

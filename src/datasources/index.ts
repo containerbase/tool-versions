@@ -1,12 +1,13 @@
 import { compare as comparePep440 } from '@renovatebot/pep440';
 import type { FileTemplate, PreviousFiles } from '../files.ts';
 import type { DatasourceName, ToolVersion } from '../schema.ts';
-import { compareSemver } from '../versions.ts';
+import { compareRuby, compareSemver } from '../versions.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
 import { fetchNpmVersions } from './npm.ts';
 import { fetchPypiVersions } from './pypi.ts';
+import { fetchRubygemsVersions } from './rubygems.ts';
 
 /**
  * Fetches the versions of a package, newest first. Paged sources may stop
@@ -39,4 +40,5 @@ export const datasources: Record<DatasourceName, Datasource> = {
   'node-version': { fetch: fetchNodeVersions, compare: compareSemver },
   npm: { fetch: fetchNpmVersions, compare: compareSemver },
   pypi: { fetch: fetchPypiVersions, compare: comparePep440 },
+  rubygems: { fetch: fetchRubygemsVersions, compare: compareRuby },
 };
