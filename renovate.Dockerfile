@@ -41,7 +41,7 @@ ENV COCOAPODS_VERSION=1.16.2
 ENV COMPOSER_VERSION=2.10.3
 
 # renovate: datasource=pypi depName=conan
-ENV CONAN_VERSION=2.20.0
+ENV CONAN_VERSION=2.20.1
 
 # renovate: datasource=pypi depName=copier
 ENV COPIER_VERSION=9.18.2
@@ -231,7 +231,7 @@ ENV PYTHON_VERSION=3.13.16
 ENV PYTHON_VERSION=3.14.8
 
 # renovate: datasource=npm depName=renovate
-ENV RENOVATE_VERSION=43.0.0
+ENV RENOVATE_VERSION=43.0.10
 
 # renovate: datasource=github-releases depName=ruby packageName=containerbase/ruby-prebuild versioning=ruby
 ENV RUBY_VERSION=3.3.12
@@ -276,4 +276,4 @@ ENV WALLY_VERSION=0.3.2
 ENV YARN_VERSION=1.22.22
 
 # renovate: datasource=npm depName=@yarnpkg/cli-dist
-ENV YARN_VERSION=4.10.3
+ENV YARN_VERSION=4.18.1
