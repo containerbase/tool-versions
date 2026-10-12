@@ -41,7 +41,7 @@ ENV COCOAPODS_VERSION=1.16.2
 ENV COMPOSER_VERSION=2.10.3
 
 # renovate: datasource=pypi depName=conan
-ENV CONAN_VERSION=2.20.0
+ENV CONAN_VERSION=2.20.1
 
 # renovate: datasource=pypi depName=copier
 ENV COPIER_VERSION=9.18.2
