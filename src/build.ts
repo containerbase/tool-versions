@@ -98,13 +98,17 @@ function cleanFiles(data: PreviousToolVersions): PreviousToolVersions {
 }
 
 /**
- * Leaves out the versions without files, as they can't be installed. Tools
- * installed by a package manager have no files and keep all versions.
+ * Leaves out the versions which can't be installed on `amd64`, where most
+ * users and the Mend hosted Renovate run: versions without an `amd64` file or
+ * a file for any architecture. Tools installed by a package manager have no
+ * files and keep all versions.
  * @param tool - the tool name
  * @param versions - the versions of the tool
  */
 function installable(tool: string, versions: ToolVersion[]): ToolVersion[] {
-  return hasFiles(tool) ? versions.filter(({ files }) => files?.length) : versions;
+  return hasFiles(tool)
+    ? versions.filter(({ files }) => files?.some(({ arch }) => !arch || arch === 'amd64'))
+    : versions;
 }
 
 /**
