@@ -1,6 +1,8 @@
 import type { PreviousFiles, ToolFiles } from '../files.ts';
 import type { DatasourceName, ToolVersion, VersioningName } from '../schema.ts';
 import { fetchGithubReleases } from './github-releases.ts';
+import { fetchGradleVersions } from './gradle-version.ts';
+import { fetchHashicorpReleases } from './hashicorp-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
 import { fetchNpmVersions } from './npm.ts';
@@ -30,6 +32,8 @@ export type Fetcher = (
 /** The fetcher of each datasource. */
 export const datasources: Record<DatasourceName, Fetcher> = {
   'github-releases': fetchGithubReleases,
+  'gradle-version': fetchGradleVersions,
+  'hashicorp-releases': fetchHashicorpReleases,
   'java-version': fetchJavaVersions,
   'node-version': fetchNodeVersions,
   npm: fetchNpmVersions,

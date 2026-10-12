@@ -244,6 +244,13 @@ const semverVersioning: Versioning = {
   compare: compareSemver,
 };
 
+/** The maven versioning, which gradle uses for its versions too. */
+const mavenVersioning: Versioning = {
+  isValid: (version) => /^\d/.test(version) && /^[0-9a-z.-]+$/i.test(version),
+  isPrerelease: isMavenPrerelease,
+  compare: compareMaven,
+};
+
 /** The versioning of each name. */
 export const versionings: Record<VersioningName, Versioning> = {
   docker: {
@@ -251,11 +258,10 @@ export const versionings: Record<VersioningName, Versioning> = {
     isPrerelease: (version) => Boolean(parseDocker(version)?.suffix),
     compare: compareDocker,
   },
-  maven: {
-    isValid: (version) => /^\d/.test(version) && /^[0-9a-z.-]+$/i.test(version),
-    isPrerelease: isMavenPrerelease,
-    compare: compareMaven,
-  },
+  // gradle versions are numbers with an optional `-rc-1` or `-milestone-1`
+  // qualifier, which the maven compare orders like gradle does
+  gradle: mavenVersioning,
+  maven: mavenVersioning,
   node: semverVersioning,
   npm: semverVersioning,
   nuget: { isValid: isNugetVersion, isPrerelease: isNugetPrerelease, compare: compareNuget },

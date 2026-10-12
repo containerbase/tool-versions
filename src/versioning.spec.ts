@@ -60,6 +60,16 @@ describe('versioning', () => {
     });
   });
 
+  describe('gradle versions', () => {
+    it('orders milestones before release candidates before the release', () => {
+      const { compare } = versionings.gradle;
+
+      expect(
+        ['8.10', '9.0-rc-2', '9.0', '9.0-milestone-1', '9.0-rc-1', '8.10.1', '8.9'].sort(compare),
+      ).toEqual(['8.9', '8.10', '8.10.1', '9.0-milestone-1', '9.0-rc-1', '9.0-rc-2', '9.0']);
+    });
+  });
+
   describe('compareMaven', () => {
     it('orders the qualifiers like Maven', () => {
       const sorted = [
@@ -107,6 +117,10 @@ describe('versioning', () => {
       ['nuget', '5.257.0.1', true, false],
       ['nuget', '10.0.0-beta.2', true, true],
       ['nuget', '1.2.3.4.5', false, false],
+      ['gradle', '8.10', true, false],
+      ['gradle', '9.0-rc-1', true, true],
+      ['gradle', '8.11-milestone-1', true, true],
+      ['gradle', 'abc!', false, false],
       ['maven', '3.9', true, false],
       ['maven', '4.0.0-rc-4', true, true],
       ['maven', 'latest', false, false],

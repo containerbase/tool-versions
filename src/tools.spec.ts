@@ -221,6 +221,46 @@ describe('tools', () => {
       expect(toolSources['powershell']?.packageName).toBe('PowerShell/PowerShell');
     });
 
+    it('maps kubectl, terraform and gradle to their sources', () => {
+      expect({
+        kubectl: toolSources['kubectl'],
+        terraform: toolSources['terraform'],
+        gradle: toolSources['gradle'],
+      }).toEqual({
+        kubectl: {
+          datasource: 'github-releases',
+          packageName: 'kubernetes/kubernetes',
+          versioning: 'semver',
+        },
+        terraform: {
+          datasource: 'hashicorp-releases',
+          packageName: 'terraform',
+          versioning: 'semver',
+        },
+        gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
+      });
+    });
+
+    it('lists the kubectl binaries of dl.k8s.io with their sha256 files', () => {
+      const kubectl = toolFiles['kubectl'];
+      expect(typeof kubectl === 'function' ? kubectl('1.37.1') : undefined).toEqual([
+        {
+          name: 'kubectl-v1.37.1-amd64',
+          url: 'https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl',
+          checksumUrls: ['https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl.sha256'],
+          algorithm: 'sha256',
+          arch: 'amd64',
+        },
+        {
+          name: 'kubectl-v1.37.1-arm64',
+          url: 'https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl',
+          checksumUrls: ['https://dl.k8s.io/release/v1.37.1/bin/linux/arm64/kubectl.sha256'],
+          algorithm: 'sha256',
+          arch: 'arm64',
+        },
+      ]);
+    });
+
     it('lists the helm archives with the sha256 file next to the download', () => {
       const helm = toolFiles['helm'];
       expect(typeof helm === 'function' ? helm('3.19.0') : undefined).toEqual([

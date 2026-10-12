@@ -2,7 +2,7 @@
 # renovate rebuild trigger
 # Each update is pushed to main, which runs the pages workflow and publishes
 # the new versions without waiting for the nightly run. There is one line per
-# major (per minor for golang, php, python and ruby). New lines are picked up
+# major (per minor for golang, kubectl, php, python and ruby). New lines are picked up
 # by the nightly run, add them here when they are released.
 #-------------------------
 
@@ -91,6 +91,12 @@ ENV GOLANG_VERSION=1.26.9
 # renovate: datasource=github-releases depName=golang packageName=containerbase/golang-prebuild
 ENV GOLANG_VERSION=1.27.2
 
+# renovate: datasource=gradle-version depName=gradle versioning=gradle
+ENV GRADLE_VERSION=8.14.3
+
+# renovate: datasource=gradle-version depName=gradle versioning=gradle
+ENV GRADLE_VERSION=9.8.1
+
 # renovate: datasource=pypi depName=hashin
 ENV HASHIN_VERSION=1.0.5
 
@@ -120,6 +126,15 @@ ENV JAVA_VERSION=25.0.4+101.0.LTS
 
 # renovate: datasource=pypi depName=kas
 ENV KAS_VERSION=5.5
+
+# renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
+ENV KUBECTL_VERSION=1.35.0
+
+# renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
+ENV KUBECTL_VERSION=1.36.0
+
+# renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
+ENV KUBECTL_VERSION=1.37.1
 
 # the `kustomize/v` tag prefix is stripped by the containerbase preset
 # renovate: datasource=github-releases depName=kustomize packageName=kubernetes-sigs/kustomize
@@ -238,6 +253,9 @@ ENV SKOPEO_VERSION=1.24.1
 
 # renovate: datasource=github-releases depName=sops packageName=getsops/sops
 ENV SOPS_VERSION=3.13.3
+
+# renovate: datasource=docker depName=terraform packageName=hashicorp/terraform versioning=docker
+ENV TERRAFORM_VERSION=1.16.5
 
 # renovate: datasource=github-releases depName=tofu packageName=opentofu/opentofu
 ENV TOFU_VERSION=1.13.1

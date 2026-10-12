@@ -51,11 +51,13 @@ export const toolSources: Record<string, Source> = {
   'git-lfs': github('git-lfs/git-lfs'),
   gleam: github('gleam-lang/gleam'),
   golang: prebuild('golang'),
+  gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
   hashin: { datasource: 'pypi', packageName: 'hashin', versioning: 'pep440' },
   helm: github('helm/helm'),
   helmfile: github('helmfile/helmfile'),
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   kas: { datasource: 'pypi', packageName: 'kas', versioning: 'pep440' },
+  kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
   maven: prebuild('maven', 'maven'),
   mise: github('jdx/mise'),
@@ -79,6 +81,7 @@ export const toolSources: Record<string, Source> = {
   sbt: github('sbt/sbt'),
   skopeo: prebuild('skopeo'),
   sops: github('getsops/sops'),
+  terraform: { datasource: 'hashicorp-releases', packageName: 'terraform', versioning: 'semver' },
   tofu: github('opentofu/opentofu'),
   uv: { datasource: 'pypi', packageName: 'uv', versioning: 'pep440' },
   vendir: github('vmware-tanzu/carvel-vendir'),
@@ -148,11 +151,16 @@ export const toolLinks: Record<string, ToolLinks> = {
   'git-lfs': { sourceUrl: 'https://github.com/git-lfs/git-lfs', homepage: 'https://git-lfs.com' },
   gleam: { sourceUrl: 'https://github.com/gleam-lang/gleam', homepage: 'https://gleam.run' },
   golang: { sourceUrl: 'https://github.com/golang/go', homepage: 'https://go.dev' },
+  gradle: { sourceUrl: 'https://github.com/gradle/gradle', homepage: 'https://gradle.org' },
   hashin: { sourceUrl: 'https://github.com/peterbe/hashin' },
   helm: { sourceUrl: 'https://github.com/helm/helm', homepage: 'https://helm.sh' },
   helmfile: { sourceUrl: 'https://github.com/helmfile/helmfile' },
   java: { homepage: 'https://adoptium.net' },
   kas: { sourceUrl: 'https://github.com/siemens/kas', homepage: 'https://kas.readthedocs.io' },
+  kubectl: {
+    sourceUrl: 'https://github.com/kubernetes/kubernetes',
+    homepage: 'https://kubernetes.io/docs/reference/kubectl',
+  },
   kustomize: {
     sourceUrl: 'https://github.com/kubernetes-sigs/kustomize',
     homepage: 'https://kustomize.io',
@@ -194,6 +202,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   sbt: { sourceUrl: 'https://github.com/sbt/sbt', homepage: 'https://www.scala-sbt.org' },
   skopeo: { sourceUrl: 'https://github.com/containers/skopeo' },
   sops: { sourceUrl: 'https://github.com/getsops/sops', homepage: 'https://getsops.io' },
+  terraform: {
+    sourceUrl: 'https://github.com/hashicorp/terraform',
+    homepage: 'https://www.terraform.io',
+  },
   tofu: { sourceUrl: 'https://github.com/opentofu/opentofu', homepage: 'https://opentofu.org' },
   uv: { sourceUrl: 'https://github.com/astral-sh/uv', homepage: 'https://docs.astral.sh/uv' },
   vendir: {
@@ -362,5 +374,13 @@ export const toolFiles: Record<string, ToolFiles> = {
       // older releases only have a `.sha256` file with the bare digest
       const checksumUrls = [`${url}.sha256sum`, `${url}.sha256`];
       return { name, url, checksumUrls, algorithm: 'sha256', arch };
+    }),
+  kubectl: (version) =>
+    (['amd64', 'arm64'] as const).map((arch) => {
+      // the file name is the one of the containerbase download, the binary is
+      // called `kubectl` for both architectures
+      const name = `kubectl-v${version}-${arch}`;
+      const url = `https://dl.k8s.io/release/v${version}/bin/linux/${arch}/kubectl`;
+      return { name, url, checksumUrls: [`${url}.sha256`], algorithm: 'sha256', arch };
     }),
 };
