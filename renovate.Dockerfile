@@ -128,7 +128,7 @@ ENV JAVA_VERSION=25.0.4+101.0.LTS
 ENV KAS_VERSION=5.5
 
 # renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
-ENV KUBECTL_VERSION=1.35.0
+ENV KUBECTL_VERSION=1.35.9
 
 # renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
 ENV KUBECTL_VERSION=1.36.0
