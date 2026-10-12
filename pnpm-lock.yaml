@@ -167,8 +167,8 @@ importers:
   .:
     dependencies:
       '@containerbase/base':
-        specifier: 14.32.0
-        version: 14.32.0(zod@4.6.5)
+        specifier: 14.32.1
+        version: 14.32.1(zod@4.6.5)
       '@renovatebot/pep440':
         specifier: 5.0.1
         version: 5.0.1
@@ -227,8 +227,8 @@ importers:
 
 packages:
 
-  '@containerbase/base@14.32.0':
-    resolution: {integrity: sha512-zJ8y8R2eMwWwzUqxVfvsvRKw8j9dQ3EsxIv/tXq9m7k8mRIM2TkY0fy+c3TIxFnga4VVoGU6hblAd1cQsNubow==}
+  '@containerbase/base@14.32.1':
+    resolution: {integrity: sha512-v0anQD2Jk0nv5yf8YTFVpJGARJ9I1XveaudOIxd8B/QEcAX7zL5upR5vzU3SQp/6NQKEY13/WLweEFQ11SXq3g==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -1217,7 +1217,7 @@ packages:
 
 snapshots:
 
-  '@containerbase/base@14.32.0(zod@4.6.5)':
+  '@containerbase/base@14.32.1(zod@4.6.5)':
     optionalDependencies:
       zod: 4.6.5
 
