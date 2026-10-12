@@ -16,6 +16,11 @@ describe('files', () => {
       ['python-3.14.8-x86_64.tar.xz', { arch: 'amd64' }],
       ['python-3.14.8-aarch64.tar.xz', { arch: 'arm64' }],
       ['python-3.14.8.tar.xz', {}],
+      ['composer-2.8.12.tar.xz', {}],
+      ['maven-4.0.0-rc-4.tar.xz', {}],
+      ['erlang-28.5.0.7-jammy-x86_64.tar.xz', { arch: 'amd64', distro: 'jammy' }],
+      ['php-8.5.0-rc.1-jammy-aarch64.tar.xz', { arch: 'arm64', distro: 'jammy' }],
+      ['golang-1.25.0-x86_64.tar.xz', { arch: 'amd64' }],
       ['readme.txt', {}],
     ])('parses %s', (name, expected) => {
       expect(parsePrebuildName(name)).toEqual(expected);

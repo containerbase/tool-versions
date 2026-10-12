@@ -18,6 +18,46 @@ describe('tools', () => {
       );
     });
 
+    it('maps the containerbase prebuild tools with their versioning', () => {
+      const prebuilds = Object.fromEntries(
+        Object.entries(toolSources)
+          .filter(([, { packageName }]) => packageName.startsWith('containerbase/'))
+          .map(([tool, { datasource, packageName, versioning }]) => [
+            tool,
+            [datasource, packageName, versioning],
+          ]),
+      );
+
+      const prebuild = (tool: string, versioning = 'semver'): string[] => [
+        'github-releases',
+        `containerbase/${tool}-prebuild`,
+        versioning,
+      ];
+      expect(prebuilds).toEqual({
+        composer: prebuild('composer'),
+        erlang: prebuild('erlang', 'docker'),
+        flutter: prebuild('flutter'),
+        golang: prebuild('golang'),
+        maven: prebuild('maven', 'maven'),
+        mono: prebuild('mono'),
+        nix: prebuild('nix'),
+        php: prebuild('php'),
+        python: prebuild('python', 'python'),
+        ruby: prebuild('ruby', 'ruby'),
+        skopeo: prebuild('skopeo'),
+        wally: prebuild('wally'),
+      });
+    });
+
+    it('has no installer type for the prebuild tools, so they have files', () => {
+      const typed = Object.entries(toolSources)
+        .filter(([, { packageName }]) => packageName.startsWith('containerbase/'))
+        .filter(([tool]) => metadata[tool]?.type)
+        .map(([tool]) => tool);
+
+      expect(typed).toEqual([]);
+    });
+
     it.each([
       ['npm', 'npm'],
       ['pypi', 'pip'],

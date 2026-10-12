@@ -130,6 +130,79 @@ describe('datasources/github-releases', () => {
     ]);
   });
 
+  it('validates and sorts the tags with the versioning', async () => {
+    nock(api)
+      .get('/repos/containerbase/erlang-prebuild/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        release('28.5.0.7'),
+        release('28.5.0.10'),
+        release('28.5.0'),
+        release('29.0-rc1'),
+        release('27.3.4.9'),
+        release('foo'),
+      ]);
+
+    await expect(
+      fetchGithubReleases(
+        'containerbase/erlang-prebuild',
+        none,
+        new Map(),
+        undefined,
+        true,
+        undefined,
+        'docker',
+      ),
+    ).resolves.toEqual([
+      { version: '29.0-rc1', prerelease: true },
+      { version: '28.5.0.10' },
+      { version: '28.5.0.7' },
+      { version: '28.5.0' },
+      { version: '27.3.4.9' },
+    ]);
+  });
+
+  it('publishes assets without arch and distro as they are', async () => {
+    nock(api)
+      .get('/repos/containerbase/composer-prebuild/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        {
+          ...release('2.8.12'),
+          assets: [
+            {
+              name: 'composer-2.8.12.tar.xz',
+              browser_download_url:
+                'https://github.com/containerbase/composer-prebuild/releases/download/2.8.12/composer-2.8.12.tar.xz',
+            },
+            {
+              name: 'composer-2.8.12.tar.xz.sha512',
+              browser_download_url:
+                'https://github.com/containerbase/composer-prebuild/releases/download/2.8.12/composer-2.8.12.tar.xz.sha512',
+            },
+          ],
+        },
+      ]);
+    nock('https://github.com')
+      .get(
+        '/containerbase/composer-prebuild/releases/download/2.8.12/composer-2.8.12.tar.xz.sha512',
+      )
+      .reply(200, sum1);
+
+    await expect(fetchGithubReleases('containerbase/composer-prebuild', none)).resolves.toEqual([
+      {
+        version: '2.8.12',
+        files: [
+          {
+            name: 'composer-2.8.12.tar.xz',
+            url: 'https://github.com/containerbase/composer-prebuild/releases/download/2.8.12/composer-2.8.12.tar.xz',
+            checksum: `sha512:${sum1}`,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('authenticates with GITHUB_TOKEN', async () => {
     vi.stubEnv('GITHUB_TOKEN', 'some-token');
     const scope = nock(api, {

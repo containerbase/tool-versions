@@ -60,6 +60,8 @@ The tools and their sources are mapped in [`src/tools.ts`](./src/tools.ts), each
 | `node`   | nodejs.org                                      | `.tar.xz` archives, sha256 from `SHASUMS256.txt`                  |
 | `python` | GitHub releases `containerbase/python-prebuild` | prebuilds with a `.sha512` file, without `bionic` and `focal`     |
 
+The containerbase prebuilds (`composer`, `erlang`, `flutter`, `golang`, `maven`, `mono`, `nix`, `php`, `ruby`, `skopeo`, `wally`, besides `python`) come from the releases of `containerbase/<tool>-prebuild` like `python`. Their versions are sorted with the Renovate versioning of the tool (`docker` for the four-part `erlang` versions, `maven`, `ruby`, else `semver`). Some prebuilds have no `arch` (`composer`, `maven`) and the `jammy` ones have a `distro`.
+
 The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `uv`) come from npm, pypi or rubygems without files; the deprecated `bower` and `lerna` aren't published.
 
 ## Updates
@@ -67,7 +69,7 @@ The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`,
 - **Incremental:** each build starts from the published files. Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Full refresh:** run the `pages` workflow with the `full` input.
-- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for python), and the automerged update publishes a release right away. Add new lines when they are released.
+- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for python, golang and ruby), and the automerged update publishes a release right away. Add new lines when they are released.
 
 ## Development
 
