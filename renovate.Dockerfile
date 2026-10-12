@@ -35,7 +35,7 @@ ENV BUNDLER_VERSION=4.0.22
 ENV CHECKOV_VERSION=3.3.28
 
 # renovate: datasource=rubygems depName=cocoapods versioning=ruby
-ENV COCOAPODS_VERSION=1.16.2
+ENV COCOAPODS_VERSION=1.17.0
 
 # renovate: datasource=github-releases depName=composer packageName=containerbase/composer-prebuild
 ENV COMPOSER_VERSION=2.10.3
