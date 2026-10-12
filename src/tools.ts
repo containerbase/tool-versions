@@ -85,7 +85,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   java: { homepage: 'https://adoptium.net' },
   kas: { sourceUrl: 'https://github.com/siemens/kas', homepage: 'https://kas.readthedocs.io' },
   maven: { sourceUrl: 'https://github.com/apache/maven', homepage: 'https://maven.apache.org' },
-  mono: { sourceUrl: 'https://github.com/mono/mono', homepage: 'https://www.mono-project.com' },
+  mono: {
+    sourceUrl: 'https://gitlab.winehq.org/mono/mono',
+    homepage: 'https://www.mono-project.com',
+  },
   nix: { sourceUrl: 'https://github.com/NixOS/nix', homepage: 'https://nixos.org' },
   node: { sourceUrl: 'https://github.com/nodejs/node', homepage: 'https://nodejs.org' },
   npm: { sourceUrl: 'https://github.com/npm/cli', homepage: 'https://docs.npmjs.com/cli' },

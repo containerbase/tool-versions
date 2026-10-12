@@ -69,7 +69,7 @@ The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`,
 - **Incremental:** each build starts from the published files. Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Full refresh:** run the `pages` workflow with the `full` input.
-- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for python, golang and ruby), and the automerged update publishes a release right away. Add new lines when they are released.
+- **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for golang, php, python and ruby), and the automerged update publishes a release right away. Add new lines when they are released.
 
 ## Development
 
