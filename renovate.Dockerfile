@@ -10,16 +10,20 @@
 FROM scratch
 
 # renovate: datasource=github-releases depName=apko packageName=chainguard-dev/apko
-ENV APKO_VERSION=1.2.0
+ENV APKO_VERSION=1.4.11
 
 # renovate: datasource=github-releases depName=apm packageName=microsoft/apm
-ENV APM_VERSION=0.1.0
+ENV APM_VERSION=0.33.0
 
 # renovate: datasource=github-releases depName=buf packageName=bufbuild/buf
-ENV BUF_VERSION=1.60.0
+ENV BUF_VERSION=1.73.0
 
 # renovate: datasource=github-releases depName=buildx packageName=docker/buildx
-ENV BUILDX_VERSION=0.30.0
+ENV BUILDX_VERSION=0.38.0
+
+# the github tags have a `bun-v` prefix, the npm versions are the same
+# renovate: datasource=npm depName=bun
+ENV BUN_VERSION=1.4.3
 
 # renovate: datasource=rubygems depName=bundler versioning=ruby
 ENV BUNDLER_VERSION=2.7.2
@@ -40,16 +44,16 @@ ENV COPIER_VERSION=9.18.2
 ENV COREPACK_VERSION=0.36.0
 
 # renovate: datasource=github-releases depName=deno packageName=denoland/deno
-ENV DENO_VERSION=2.5.0
+ENV DENO_VERSION=2.9.7
 
 # renovate: datasource=github-releases depName=devbox packageName=jetify-com/devbox
-ENV DEVBOX_VERSION=0.16.0
+ENV DEVBOX_VERSION=0.18.4
 
 # renovate: datasource=github-releases depName=docker-compose packageName=docker/compose
-ENV DOCKER_COMPOSE_VERSION=2.40.0
+ENV DOCKER_COMPOSE_VERSION=5.6.0
 
 # renovate: datasource=github-releases depName=elixir packageName=elixir-lang/elixir
-ENV ELIXIR_VERSION=1.18.4
+ENV ELIXIR_VERSION=1.20.4
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
 ENV ERLANG_VERSION=27.3.4.18
@@ -64,16 +68,16 @@ ENV ERLANG_VERSION=29.1.1.0
 ENV FLUTTER_VERSION=3.47.7
 
 # renovate: datasource=github-releases depName=flux packageName=fluxcd/flux2
-ENV FLUX_VERSION=2.7.0
+ENV FLUX_VERSION=2.9.6
 
 # renovate: datasource=github-releases depName=gh packageName=cli/cli
-ENV GH_VERSION=2.80.0
+ENV GH_VERSION=2.102.0
 
 # renovate: datasource=github-releases depName=git-lfs packageName=git-lfs/git-lfs
-ENV GIT_LFS_VERSION=3.7.0
+ENV GIT_LFS_VERSION=3.8.0
 
 # renovate: datasource=github-releases depName=gleam packageName=gleam-lang/gleam
-ENV GLEAM_VERSION=1.13.0
+ENV GLEAM_VERSION=1.19.2
 
 # renovate: datasource=github-releases depName=golang packageName=containerbase/golang-prebuild
 ENV GOLANG_VERSION=1.26.9
@@ -91,7 +95,7 @@ ENV HELM_VERSION=3.22.0
 ENV HELM_VERSION=4.3.0
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
-ENV HELMFILE_VERSION=1.2.0
+ENV HELMFILE_VERSION=1.8.1
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=8.0.504+1
@@ -111,11 +115,15 @@ ENV JAVA_VERSION=25.0.4+101.0.LTS
 # renovate: datasource=pypi depName=kas
 ENV KAS_VERSION=5.5
 
+# the `kustomize/v` tag prefix is stripped by the containerbase preset
+# renovate: datasource=github-releases depName=kustomize packageName=kubernetes-sigs/kustomize
+ENV KUSTOMIZE_VERSION=5.8.3
+
 # renovate: datasource=github-releases depName=maven packageName=containerbase/maven-prebuild versioning=maven
 ENV MAVEN_VERSION=3.10.0
 
 # renovate: datasource=github-releases depName=mise packageName=jdx/mise
-ENV MISE_VERSION=2026.10.1
+ENV MISE_VERSION=2026.10.8
 
 # renovate: datasource=github-releases depName=mono packageName=containerbase/mono-prebuild
 ENV MONO_VERSION=6.14.1
@@ -142,7 +150,7 @@ ENV NPM_VERSION=11.21.0
 ENV NPM_VERSION=12.2.0
 
 # renovate: datasource=github-releases depName=nub packageName=nubjs/nub
-ENV NUB_VERSION=0.1.0
+ENV NUB_VERSION=0.9.6
 
 # renovate: datasource=pypi depName=pdm
 ENV PDM_VERSION=2.29.2
@@ -166,7 +174,7 @@ ENV PIP_TOOLS_VERSION=7.6.2
 ENV PIPENV_VERSION=2026.9.1
 
 # renovate: datasource=github-releases depName=pixi packageName=prefix-dev/pixi
-ENV PIXI_VERSION=0.55.0
+ENV PIXI_VERSION=0.81.0
 
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=10.34.6
@@ -181,7 +189,7 @@ ENV PNPM_VERSION=12.11.0
 ENV POETRY_VERSION=2.5.1
 
 # renovate: datasource=github-releases depName=powershell packageName=PowerShell/PowerShell
-ENV POWERSHELL_VERSION=7.5.0
+ENV POWERSHELL_VERSION=7.6.6
 
 # renovate: datasource=github-releases depName=python packageName=containerbase/python-prebuild
 ENV PYTHON_VERSION=3.10.22
@@ -208,25 +216,28 @@ ENV RUBY_VERSION=3.4.11
 ENV RUBY_VERSION=4.0.7
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
-ENV SBT_VERSION=1.11.0
+ENV SBT_VERSION=1.13.0
+
+# renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
+ENV SBT_VERSION=2.0.10
 
 # renovate: datasource=github-releases depName=skopeo packageName=containerbase/skopeo-prebuild
 ENV SKOPEO_VERSION=1.24.1
 
 # renovate: datasource=github-releases depName=sops packageName=getsops/sops
-ENV SOPS_VERSION=3.11.0
+ENV SOPS_VERSION=3.13.3
 
 # renovate: datasource=github-releases depName=tofu packageName=opentofu/opentofu
-ENV TOFU_VERSION=1.10.0
+ENV TOFU_VERSION=1.13.1
 
 # renovate: datasource=pypi depName=uv
 ENV UV_VERSION=0.13.0
 
 # renovate: datasource=github-releases depName=vendir packageName=vmware-tanzu/carvel-vendir
-ENV VENDIR_VERSION=0.44.0
+ENV VENDIR_VERSION=0.46.2
 
 # renovate: datasource=github-releases depName=vp packageName=voidzero-dev/vite-plus
-ENV VP_VERSION=0.3.1
+ENV VP_VERSION=1.1.0
 
 # renovate: datasource=github-releases depName=wally packageName=containerbase/wally-prebuild
 ENV WALLY_VERSION=0.3.2
