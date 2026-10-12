@@ -1,4 +1,4 @@
-import type { FileTemplate, PreviousFiles } from '../files.ts';
+import type { PreviousFiles, ToolFiles } from '../files.ts';
 import type { DatasourceName, ToolVersion, VersioningName } from '../schema.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchJavaVersions } from './java-version.ts';
@@ -20,7 +20,7 @@ export type Fetcher = (
   packageName: string,
   known: ReadonlySet<string>,
   previous?: PreviousFiles,
-  template?: FileTemplate,
+  template?: ToolFiles,
   fetchFiles?: boolean,
   hasTimestamp?: ReadonlySet<string>,
   versioning?: VersioningName,

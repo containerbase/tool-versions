@@ -2,8 +2,9 @@ import { env } from 'node:process';
 import { z } from 'zod';
 import {
   type FileCandidate,
-  type FileTemplate,
   type PreviousFiles,
+  type ToolFiles,
+  assetTasks,
   checksumTasks,
   isUnsupportedDistro,
   parsePrebuildName,
@@ -83,14 +84,41 @@ function assetCandidates(assets: GithubAsset[]): FileCandidate[] {
 }
 
 /**
+ * Creates the tasks which read the checksums of the files of a release: the
+ * files of an asset template, the ones a template function lists, or the
+ * assets with a `<file>.sha512` sibling.
+ * @param packageName - the repository, used in warnings
+ * @param template - how the files of a version are listed, if the tool has one
+ * @param version - the version of the release
+ * @param assets - the assets of the release
+ * @param files - the known files of the version, the downloads add to it
+ */
+function releaseTasks(
+  packageName: string,
+  template: ToolFiles | undefined,
+  version: string,
+  assets: GithubAsset[],
+  files: ToolFile[],
+): (() => Promise<void>)[] {
+  if (typeof template === 'object') {
+    const urls = new Map(
+      assets.map(({ name, browser_download_url }) => [name, browser_download_url]),
+    );
+    return assetTasks(packageName, template, version, urls, files);
+  }
+  const candidates = template ? template(version) : assetCandidates(assets);
+  return checksumTasks(packageName, candidates, files);
+}
+
+/**
  * Fetches the releases of a GitHub repository. The leading `v` of a tag is
- * dropped, as `install-tool` does. Drafts and tags which are no valid semver
- * version are skipped. A release is a prerelease when GitHub marks it as one or
+ * dropped, as `install-tool` does, or the prefix of an asset template. Drafts
+ * and tags which are no valid version are skipped. A release is a prerelease when GitHub marks it as one or
  * its version has a prerelease part.
  * GitHub lists the newest releases first, so paging stops after the first page
  * with an already known version.
  * The files are the assets with a `<file>.sha512` sibling, or the ones the
- * template lists. Known files are reused by name, only the missing ones are
+ * template lists, from the assets or elsewhere. Known files are reused by name, only the missing ones are
  * downloaded.
  * @param packageName - the repository, like `helm/helm`
  * @param known - the versions which are already known
@@ -105,7 +133,7 @@ export async function fetchGithubReleases(
   packageName: string,
   known: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
-  template?: FileTemplate,
+  template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
   versioning: VersioningName = 'semver',
@@ -119,7 +147,15 @@ export async function fetchGithubReleases(
     const res = await request(url, headers);
     let foundKnown = false;
     for (const release of GithubReleases.parse(await res.json())) {
-      const version = release.tag_name.replace(/^v/, '');
+      const prefix = typeof template === 'object' ? template.tagPrefix : undefined;
+      if (prefix !== undefined && !release.tag_name.startsWith(prefix)) {
+        // a tag of something else in the repository
+        continue;
+      }
+      const version =
+        prefix === undefined
+          ? release.tag_name.replace(/^v/, '')
+          : release.tag_name.slice(prefix.length);
       if (release.draft || !isValid(version)) {
         continue;
       }
@@ -130,8 +166,7 @@ export async function fetchGithubReleases(
       });
       const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
       if (fetchFiles) {
-        const candidates = template ? template(version) : assetCandidates(release.assets);
-        tasks.push(...checksumTasks(packageName, candidates, files));
+        tasks.push(...releaseTasks(packageName, template, version, release.assets, files));
       }
       versions.push({ entry, files });
     }

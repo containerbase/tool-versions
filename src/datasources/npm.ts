@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { FileTemplate, PreviousFiles } from '../files.ts';
+import type { PreviousFiles, ToolFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
 import {
@@ -36,7 +36,7 @@ export async function fetchNpmVersions(
   packageName: string,
   _known?: ReadonlySet<string>,
   _previous?: PreviousFiles,
-  _template?: FileTemplate,
+  _template?: ToolFiles,
   _fetchFiles?: boolean,
   hasTimestamp: ReadonlySet<string> = new Set(),
 ): Promise<ToolVersion[]> {

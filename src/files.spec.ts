@@ -3,6 +3,7 @@ import {
   checksum,
   isUnsupportedDistro,
   parseChecksumFile,
+  parseChecksumList,
   parsePrebuildName,
   runAll,
   withFiles,
@@ -47,6 +48,51 @@ describe('files', () => {
     it('rejects text without a digest', () => {
       expect(parseChecksumFile('', 'sha256')).toBeUndefined();
       expect(parseChecksumFile('<html>', 'sha256')).toBeUndefined();
+    });
+  });
+
+  describe('parseChecksumList', () => {
+    const a = 'a'.repeat(64);
+    const b = 'b'.repeat(64);
+    const c = 'c'.repeat(64);
+
+    it('reads the sha256sum formats', () => {
+      const text = [
+        `${a}  tool_linux_amd64.tar.gz`,
+        `${b.toUpperCase()} *tool_linux_arm64.tar.gz`,
+        `${c}  ./tool.tgz`,
+        '',
+        'not a checksum line',
+        `${'d'.repeat(10)}  too-short.tgz`,
+      ].join('\r\n');
+
+      expect(Object.fromEntries(parseChecksumList(text, 'sha256'))).toEqual({
+        'tool_linux_amd64.tar.gz': `sha256:${a}`,
+        'tool_linux_arm64.tar.gz': `sha256:${b}`,
+        'tool.tgz': `sha256:${c}`,
+      });
+    });
+
+    it('ignores the armor of a clearsigned list', () => {
+      const text = [
+        '-----BEGIN PGP SIGNED MESSAGE-----',
+        'Hash: SHA256',
+        '',
+        `${a}  ./git-lfs-linux-amd64-v3.7.0.tar.gz`,
+        '-----BEGIN PGP SIGNATURE-----',
+        '',
+        'iQIzBAEBCAAdFiEE',
+        '=abcd',
+        '-----END PGP SIGNATURE-----',
+      ].join('\n');
+
+      expect(Object.fromEntries(parseChecksumList(text, 'sha256'))).toEqual({
+        'git-lfs-linux-amd64-v3.7.0.tar.gz': `sha256:${a}`,
+      });
+    });
+
+    it('only accepts digests of the algorithm', () => {
+      expect(parseChecksumList(`${a}  file`, 'sha512').size).toBe(0);
     });
   });
 
