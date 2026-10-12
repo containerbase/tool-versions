@@ -129,6 +129,7 @@ describe('datasources/node-version', () => {
       .get('/dist/index.json')
       .reply(200, [{ version: 'v25.1.0', lts: false }])
       .get('/dist/v25.1.0/SHASUMS256.txt')
+      .times(3)
       .reply(500);
 
     await expect(fetchNodeVersions('node')).resolves.toEqual([{ version: '25.1.0' }]);
@@ -138,7 +139,7 @@ describe('datasources/node-version', () => {
   });
 
   it('fails on an error response', async () => {
-    nock(dist).get('/dist/index.json').reply(500);
+    nock(dist).get('/dist/index.json').times(3).reply(500);
 
     await expect(fetchNodeVersions('node')).rejects.toThrow(
       'GET https://nodejs.org/dist/index.json failed with status 500',

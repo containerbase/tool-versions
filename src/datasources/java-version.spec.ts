@@ -293,6 +293,7 @@ describe('datasources/java-version', () => {
       nock(baseUrl)
         .get('/v3/assets/feature_releases/21/ga')
         .query(assetQuery('x64', 0))
+        .times(3)
         .reply(500)
         .get('/v3/assets/feature_releases/21/ga')
         .query(assetQuery('aarch64', 0))

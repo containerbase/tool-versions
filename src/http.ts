@@ -1,3 +1,4 @@
+import { setTimeout } from 'node:timers/promises';
 import type { z } from 'zod';
 
 /** A response with an unsuccessful status code. */
@@ -15,8 +16,24 @@ export class HttpError extends Error {
   }
 }
 
+/** How often a request is sent before its error is thrown. */
+const attempts = 3;
+
 /**
- * Sends a GET request.
+ * Whether a failed request may succeed when sent again: network errors, rate
+ * limits and server errors.
+ * @param err - the error of the request
+ */
+function isRetryable(err: unknown): boolean {
+  if (err instanceof HttpError) {
+    return err.status === 429 || err.status >= 500;
+  }
+  return err instanceof TypeError;
+}
+
+/**
+ * Sends a GET request, retrying network errors, rate limits and server errors
+ * with a growing delay.
  * @param url - the url to request
  * @param headers - additional request headers
  * @throws {HttpError} on an unsuccessful status code
@@ -25,11 +42,20 @@ export async function request(
   url: string,
   headers: Record<string, string> = {},
 ): Promise<Response> {
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    throw new HttpError(url, res.status);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        throw new HttpError(url, res.status);
+      }
+      return res;
+    } catch (err) {
+      if (attempt >= attempts || !isRetryable(err)) {
+        throw err;
+      }
+      await setTimeout(attempt * 1000);
+    }
   }
-  return res;
 }
 
 /**

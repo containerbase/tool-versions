@@ -373,7 +373,7 @@ describe('datasources/github-releases', () => {
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
         .reply(200, [withAssets('3.14.8', ['a.tar.xz', 'a.tar.xz.sha512'])]);
-      nock(dl).get('/3.14.8/a.tar.xz.sha512').reply(500);
+      nock(dl).get('/3.14.8/a.tar.xz.sha512').times(3).reply(500);
 
       await expect(fetchGithubReleases(repo, none)).resolves.toEqual([{ version: '3.14.8' }]);
       expect(output).toEqual([
