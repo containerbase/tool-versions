@@ -1,3 +1,4 @@
+import { eq as rubyEq, gt as rubyGt, valid as rubyValid } from '@renovatebot/ruby-semver';
 import semver from 'semver';
 import type { ToolVersion } from './schema.ts';
 
@@ -59,6 +60,28 @@ export function sortVersions(
     }
   }
   return [...unique.values()].sort((a, b) => compare(b.version, a.version));
+}
+
+/**
+ * Checks if a version is a valid ruby gem version, like `2.5.6` or `2.6.0.rc1`,
+ * with the library Renovate's `ruby` versioning uses.
+ * @param version - the version to check
+ */
+export function isRubyVersion(version: string): boolean {
+  return rubyValid(version) !== null;
+}
+
+/**
+ * Compares two ruby gem versions like `Gem::Version`, with the library
+ * Renovate's `ruby` versioning uses, so `1.0.0.rc1` is older than `1.0.0`.
+ * @param a - the first version
+ * @param b - the second version
+ */
+export function compareRuby(a: string, b: string): number {
+  if (rubyEq(a, b)) {
+    return 0;
+  }
+  return rubyGt(a, b) ? 1 : -1;
 }
 
 /**

@@ -172,6 +172,9 @@ importers:
       '@renovatebot/pep440':
         specifier: 5.0.1
         version: 5.0.1
+      '@renovatebot/ruby-semver':
+        specifier: 5.0.0
+        version: 5.0.0
       semver:
         specifier: 7.8.5
         version: 7.8.5
@@ -539,6 +542,10 @@ packages:
 
   '@renovatebot/pep440@5.0.1':
     resolution: {integrity: sha512-KmMz+X68YvrS6aN6TJWtDiH8aCIL2Igcvceh17STHxMUN3KxXsC24COoOXjMOl/Gb+okBwwduMm8PY/WY/0Cpg==}
+    engines: {node: ^22.11.0 || >=24.10.0, pnpm: '>=10.0.0'}
+
+  '@renovatebot/ruby-semver@5.0.0':
+    resolution: {integrity: sha512-yQgeq4HVV9mh2AJHHlStd//7mD/96lWj8KWB5Szi5YDjPwpvk12Sj3H+Y4waNC3N2D4t5xqbwYYpTHB5KsrSVg==}
     engines: {node: ^22.11.0 || >=24.10.0, pnpm: '>=10.0.0'}
 
   '@rolldown/binding-android-arm-eabi@1.2.13':
@@ -1378,6 +1385,8 @@ snapshots:
   '@oxlint/plugins@1.86.0': {}
 
   '@renovatebot/pep440@5.0.1': {}
+
+  '@renovatebot/ruby-semver@5.0.0': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.13':
     optional: true

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { compareSemver, sortVersions, toTimestamp, toolVersion } from './versions.ts';
+import {
+  compareRuby,
+  compareSemver,
+  isRubyVersion,
+  sortVersions,
+  toTimestamp,
+  toolVersion,
+} from './versions.ts';
 
 describe('versions', () => {
   describe('toolVersion', () => {
@@ -23,6 +30,57 @@ describe('versions', () => {
         version: '1.0.0',
         releaseTimestamp: '2025-01-01T00:00:00.000Z',
       });
+    });
+  });
+
+  describe('isRubyVersion', () => {
+    // `2.5-6` is a prerelease for Gem::Version, like `2.5.pre.6`
+    it.each(['2.5.6', '2.6.0.rc1', '1.0.pre', '2.3.26.1', '7', '2.5-6'])(
+      'accepts %s',
+      (version) => {
+        expect(isRubyVersion(version)).toBe(true);
+      },
+    );
+
+    it.each(['', 'v2.5.6', '2..5', 'rc1'])('rejects %s', (version) => {
+      expect(isRubyVersion(version)).toBe(false);
+    });
+  });
+
+  describe('compareRuby', () => {
+    it('sorts like Gem::Version', () => {
+      const sorted = [
+        '2.10.0',
+        '2.5.9',
+        '2.5.10',
+        '2.6.0.rc2',
+        '2.6.0.rc1',
+        '2.6.0.pre',
+        '2.6.0',
+        '2.6.0.1',
+        '2.6',
+        '1.17.3',
+      ].sort(compareRuby);
+
+      // 2.6 equals 2.6.0, the sort is stable
+      expect(sorted).toEqual([
+        '1.17.3',
+        '2.5.9',
+        '2.5.10',
+        '2.6.0.pre',
+        '2.6.0.rc1',
+        '2.6.0.rc2',
+        '2.6.0',
+        '2.6',
+        '2.6.0.1',
+        '2.10.0',
+      ]);
+    });
+
+    it('treats missing segments as zero', () => {
+      expect(compareRuby('2.6', '2.6.0')).toBe(0);
+      expect(compareRuby('1.0.0.rc1', '1.0.0')).toBeLessThan(0);
+      expect(compareRuby('1.0.0', '1.0.0.rc1')).toBeGreaterThan(0);
     });
   });
 
