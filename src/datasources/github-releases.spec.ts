@@ -1,7 +1,7 @@
 import { stdout } from 'node:process';
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { FileTemplate } from '../files.ts';
+import type { AssetTemplate, FileTemplate } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
 
@@ -470,6 +470,239 @@ describe('datasources/github-releases', () => {
           ],
         },
       ]);
+    });
+  });
+
+  describe('asset templates', () => {
+    const host = 'https://github.com';
+    const download = '/some/tool/releases/download';
+    const dlUrl = (tag: string, name: string): string => `${host}${download}/${tag}/${name}`;
+    const hex = (char: string): string => char.repeat(64);
+
+    /**
+     * A release with assets.
+     * @param tag - the tag
+     * @param names - the asset names
+     */
+    function withNames(
+      tag: string,
+      names: string[],
+    ): ReturnType<typeof release> & {
+      assets: { name: string; browser_download_url: string }[];
+    } {
+      return {
+        ...release(tag),
+        assets: names.map((name) => ({ name, browser_download_url: dlUrl(tag, name) })),
+      };
+    }
+
+    /**
+     * Mocks the releases of the repository.
+     * @param releases - the releases
+     */
+    function mockReleases(releases: unknown[]): void {
+      nock(api).get('/repos/some/tool/releases').query({ per_page: '100' }).reply(200, releases);
+    }
+
+    /**
+     * Fetches the releases with a template.
+     * @param template - the asset template
+     */
+    async function fetchWith(template: AssetTemplate): ReturnType<typeof fetchGithubReleases> {
+      return await fetchGithubReleases('some/tool', none, new Map(), template);
+    }
+
+    const perArch: AssetTemplate['files'] = (v) => [
+      { arch: 'amd64', name: `tool_${v}_linux_amd64.tar.gz` },
+      { arch: 'arm64', name: `tool_${v}_linux_arm64.tar.gz` },
+    ];
+
+    it('reads the checksums from a list and downloads it once per release', async () => {
+      mockReleases([
+        withNames('v1.2.0', [
+          'tool_1.2.0_linux_amd64.tar.gz',
+          'tool_1.2.0_linux_arm64.tar.gz',
+          'checksums.txt',
+        ]),
+      ]);
+      const list = nock(host)
+        .get(`${download}/v1.2.0/checksums.txt`)
+        .once()
+        .reply(
+          200,
+          `${hex('a')}  tool_1.2.0_linux_amd64.tar.gz\n${hex('b')} *tool_1.2.0_linux_arm64.tar.gz\n`,
+        );
+
+      await expect(
+        fetchWith({ files: perArch, checksum: { list: () => 'checksums.txt' } }),
+      ).resolves.toEqual([
+        {
+          version: '1.2.0',
+          files: [
+            {
+              name: 'tool_1.2.0_linux_amd64.tar.gz',
+              url: dlUrl('v1.2.0', 'tool_1.2.0_linux_amd64.tar.gz'),
+              checksum: `sha256:${hex('a')}`,
+              arch: 'amd64',
+            },
+            {
+              name: 'tool_1.2.0_linux_arm64.tar.gz',
+              url: dlUrl('v1.2.0', 'tool_1.2.0_linux_arm64.tar.gz'),
+              checksum: `sha256:${hex('b')}`,
+              arch: 'arm64',
+            },
+          ],
+        },
+      ]);
+      expect(list.isDone()).toBe(true);
+    });
+
+    it('decodes a UTF-16LE checksum list with a byte order mark', async () => {
+      mockReleases([withNames('v7.4.0', ['tool_7.4.0_linux_amd64.tar.gz', 'hashes.sha256'])]);
+      const text = `${hex('c').toUpperCase()}  ./tool_7.4.0_linux_amd64.tar.gz\r\n`;
+      nock(host)
+        .get(`${download}/v7.4.0/hashes.sha256`)
+        .reply(200, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+
+      const [version] = await fetchWith({
+        files: perArch,
+        checksum: { list: () => 'hashes.sha256' },
+      });
+
+      expect(version?.files).toMatchObject([{ checksum: `sha256:${hex('c')}`, arch: 'amd64' }]);
+    });
+
+    it('reads the checksum of a clearsigned list', async () => {
+      mockReleases([withNames('v3.7.0', ['tool_3.7.0_linux_arm64.tar.gz', 'sha256sums.asc'])]);
+      nock(host)
+        .get(`${download}/v3.7.0/sha256sums.asc`)
+        .reply(
+          200,
+          [
+            '-----BEGIN PGP SIGNED MESSAGE-----',
+            'Hash: SHA256',
+            '',
+            `${hex('d')}  ./tool_3.7.0_linux_arm64.tar.gz`,
+            '-----BEGIN PGP SIGNATURE-----',
+            'iQIzBAEBCAAdFiEE',
+            '-----END PGP SIGNATURE-----',
+          ].join('\n'),
+        );
+
+      const [version] = await fetchWith({
+        files: perArch,
+        checksum: { list: () => 'sha256sums.asc' },
+      });
+
+      expect(version?.files).toMatchObject([{ checksum: `sha256:${hex('d')}`, arch: 'arm64' }]);
+    });
+
+    it('reads the checksum from the first sidecar asset which exists', async () => {
+      mockReleases([
+        withNames('v1.0.0', [
+          'tool-linux.tar.gz',
+          'tool-linux.tar.gz.sha256',
+          'tool-linux.tar.gz.sha512',
+        ]),
+      ]);
+      nock(host)
+        .get(`${download}/v1.0.0/tool-linux.tar.gz.sha256`)
+        .reply(200, `${hex('e')}  tool-linux.tar.gz\n`);
+
+      const versions = await fetchWith({
+        files: () => [{ name: 'tool-linux.tar.gz' }],
+        checksum: { sidecar: ['.sha256sum', '.sha256', '.sha512'] },
+      });
+
+      expect(versions).toEqual([
+        {
+          version: '1.0.0',
+          files: [
+            {
+              name: 'tool-linux.tar.gz',
+              url: dlUrl('v1.0.0', 'tool-linux.tar.gz'),
+              checksum: `sha256:${hex('e')}`,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('uses the algorithm of the template', async () => {
+      mockReleases([withNames('v1.0.0', ['tool.tgz', 'tool.tgz.sha512'])]);
+      nock(host).get(`${download}/v1.0.0/tool.tgz.sha512`).reply(200, 'f'.repeat(128));
+
+      const [version] = await fetchWith({
+        files: () => [{ name: 'tool.tgz' }],
+        checksum: { sidecar: ['.sha512'] },
+        algorithm: 'sha512',
+      });
+
+      expect(version?.files).toMatchObject([{ checksum: `sha512:${'f'.repeat(128)}` }]);
+    });
+
+    it('skips files without asset or checksum, silently', async () => {
+      const output: string[] = [];
+      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+        output.push(String(chunk));
+        return true;
+      });
+      mockReleases([
+        // no arm64 asset, and the list lacks the amd64 file
+        withNames('v1.2.0', ['tool_1.2.0_linux_amd64.tar.gz', 'checksums.txt']),
+        // the checksum list is missing (404)
+        withNames('v1.1.0', ['tool_1.1.0_linux_amd64.tar.gz', 'checksums.txt']),
+        // no checksum list asset
+        withNames('v1.0.0', ['tool_1.0.0_linux_amd64.tar.gz']),
+      ]);
+      nock(host)
+        .get(`${download}/v1.2.0/checksums.txt`)
+        .reply(200, `${hex('a')}  other.tar.gz\n`)
+        .get(`${download}/v1.1.0/checksums.txt`)
+        .reply(404);
+
+      await expect(
+        fetchWith({ files: perArch, checksum: { list: () => 'checksums.txt' } }),
+      ).resolves.toEqual([{ version: '1.2.0' }, { version: '1.1.0' }, { version: '1.0.0' }]);
+      expect(output).toEqual([]);
+    });
+
+    it('reuses the previous files and fetches no list when all files are known', async () => {
+      mockReleases([withNames('v1.2.0', ['tool_1.2.0_linux_amd64.tar.gz', 'checksums.txt'])]);
+      const known = {
+        name: 'tool_1.2.0_linux_amd64.tar.gz',
+        url: dlUrl('v1.2.0', 'tool_1.2.0_linux_amd64.tar.gz'),
+        checksum: `sha256:${hex('a')}`,
+        arch: 'amd64' as const,
+      };
+
+      await expect(
+        fetchGithubReleases('some/tool', new Set(['1.2.0']), new Map([['1.2.0', [known]]]), {
+          files: perArch,
+          checksum: { list: () => 'checksums.txt' },
+        }),
+      ).resolves.toEqual([{ version: '1.2.0', files: [known] }]);
+    });
+
+    it('only takes the tags with the prefix and strips it', async () => {
+      mockReleases([
+        withNames('kustomize/v5.4.1', ['tool_v5.4.1_linux_amd64.tar.gz', 'checksums.txt']),
+        withNames('api/v0.17.2', ['checksums.txt']),
+        withNames('kustomize/vfoo', []),
+        withNames('v9.9.9', []),
+      ]);
+      nock(host)
+        .get(`${download}/kustomize/v5.4.1/checksums.txt`)
+        .reply(200, `${hex('a')}  tool_v5.4.1_linux_amd64.tar.gz\n`);
+
+      const versions = await fetchWith({
+        tagPrefix: 'kustomize/v',
+        files: (v) => [{ arch: 'amd64', name: `tool_v${v}_linux_amd64.tar.gz` }],
+        checksum: { list: () => 'checksums.txt' },
+      });
+
+      expect(versions).toMatchObject([{ version: '5.4.1', files: [{ arch: 'amd64' }] }]);
+      expect(versions).toHaveLength(1);
     });
   });
 

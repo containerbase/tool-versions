@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
-  type FileTemplate,
   type PreviousFiles,
+  type ToolFiles,
   checksum,
   fetchText,
   runAll,
@@ -81,7 +81,7 @@ export async function fetchNodeVersions(
   _packageName: string,
   _known?: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
-  _template?: FileTemplate,
+  _template?: ToolFiles,
   fetchFiles = true,
 ): Promise<ToolVersion[]> {
   const releases = await getJson('https://nodejs.org/dist/index.json', NodeReleases);

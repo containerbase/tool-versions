@@ -62,6 +62,8 @@ The tools and their sources are mapped in [`src/tools.ts`](./src/tools.ts), each
 
 The containerbase prebuilds (`composer`, `erlang`, `flutter`, `golang`, `maven`, `mono`, `nix`, `php`, `ruby`, `skopeo`, `wally`, besides `python`) come from the releases of `containerbase/<tool>-prebuild` like `python`. Their versions are sorted with the Renovate versioning of the tool (`docker` for the four-part `erlang` versions, `maven`, `ruby`, else `semver`). Some prebuilds have no `arch` (`composer`, `maven`) and the `jammy` ones have a `distro`.
 
+The GitHub release tools (`apko`, `apm`, `buf`, `buildx`, `bun`, `deno`, `devbox`, `docker-compose`, `elixir`, `flux`, `gh`, `git-lfs`, `gleam`, `helmfile`, `kustomize`, `mise`, `nub`, `pixi`, `powershell`, `sbt`, `sops`, `tofu`, `vendir`, `vp`) take their versions from the releases of the upstream repository, and their linux `amd64` and `arm64` files from the release assets. The checksum comes from a checksum asset of the release, either a file per asset or a list for all of them, which is downloaded once per release (see `toolFiles` in [`src/tools.ts`](./src/tools.ts)). The tags of `bun` (`bun-v`) and `kustomize` (`kustomize/v`) have a prefix, and the other tags of the `kustomize` repository are skipped. A version without any file with a checksum isn't published.
+
 The package manager tools (`bundler`, `checkov`, `copier`, `corepack`, `hashin`, `kas`, `npm`, `pdm`, `pip-tools`, `pipenv`, `pnpm`, `poetry`, `uv`) come from npm, pypi or rubygems without files; the deprecated `bower` and `lerna` aren't published.
 
 ## Updates

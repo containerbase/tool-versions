@@ -1,6 +1,6 @@
 import { stdout } from 'node:process';
 import { z } from 'zod';
-import { type FileTemplate, type PreviousFiles, checksum, runAll, withFiles } from '../files.ts';
+import { type PreviousFiles, type ToolFiles, checksum, runAll, withFiles } from '../files.ts';
 import { HttpError, getJson } from '../http.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
@@ -221,7 +221,7 @@ export async function fetchJavaVersions(
   packageName: string,
   known: ReadonlySet<string>,
   previous: PreviousFiles = new Map(),
-  _template?: FileTemplate,
+  _template?: ToolFiles,
   fetchFiles = true,
   hasTimestamp: ReadonlySet<string> = new Set(),
 ): Promise<ToolVersion[]> {
