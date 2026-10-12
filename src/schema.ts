@@ -1,3 +1,4 @@
+import { ToolType } from '@containerbase/base/zod';
 import { z } from 'zod';
 
 /** The upstream sources versions are fetched from. */
@@ -66,7 +67,7 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 export const ToolVersions = z.object({
   tool: z.string(),
   /** the package manager installing the tool, omitted for other tools */
-  type: z.enum(['gem', 'npm', 'pip']).optional(),
+  type: ToolType.optional(),
   /** where the source code of the tool lives, omitted when unset */
   sourceUrl: z.url({ protocol: /^https$/ }).optional(),
   /** the homepage of the tool, omitted when unset */

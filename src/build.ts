@@ -53,9 +53,9 @@ async function loadPrevious(
 }
 
 /**
- * Whether a tool has files. Tools installed by a package manager (`npm`, `pip`
- * or `gem`) have none, the package manager installs and verifies them together
- * with their dependencies.
+ * Whether a tool has files. Tools installed by a package manager (a `type` in
+ * `@containerbase/base`) have none, the package manager installs and verifies
+ * them together with their dependencies.
  * @param tool - the tool name
  */
 function hasFiles(tool: string): boolean {
