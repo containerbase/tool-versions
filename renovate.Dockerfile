@@ -92,7 +92,7 @@ ENV GOLANG_VERSION=1.26.9
 ENV GOLANG_VERSION=1.27.2
 
 # renovate: datasource=gradle-version depName=gradle versioning=gradle
-ENV GRADLE_VERSION=8.14.3
+ENV GRADLE_VERSION=8.14.6
 
 # renovate: datasource=gradle-version depName=gradle versioning=gradle
 ENV GRADLE_VERSION=9.8.1
