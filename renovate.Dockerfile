@@ -46,7 +46,7 @@ ENV PNPM_VERSION=10.34.6
 ENV PNPM_VERSION=11.28.5
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=12.10.1
+ENV PNPM_VERSION=12.11.0
 
 # renovate: datasource=pypi depName=poetry
 ENV POETRY_VERSION=2.5.1
