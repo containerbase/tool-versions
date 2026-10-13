@@ -264,6 +264,44 @@ describe('tools', () => {
       });
     });
 
+    it('computes the checksums of the tools which publish none, and of old releases', () => {
+      const computed = Object.entries(toolFiles).flatMap(([tool, template]) =>
+        typeof template === 'object' && 'compute' in template.checksum ? [tool] : [],
+      );
+      const old = Object.entries(toolFiles).flatMap(([tool, template]) =>
+        typeof template === 'object' && template.computeMissing ? [tool] : [],
+      );
+
+      expect(computed.sort()).toEqual(['bazelisk', 'jb', 'protoc']);
+      expect(old.sort()).toEqual([
+        'buildx',
+        'docker-compose',
+        'elixir',
+        'powershell',
+        'sbt',
+        'vendir',
+      ]);
+    });
+
+    it('lists the bazelisk, jb and protoc assets with the arch names of the CLI', () => {
+      const names = (tool: string, version: string): string[] => {
+        const template = toolFiles[tool];
+        return typeof template === 'object' ? template.files(version).map(({ name }) => name) : [];
+      };
+
+      expect(names('bazelisk', '1.29.0')).toEqual(['bazelisk-linux-amd64', 'bazelisk-linux-arm64']);
+      expect(names('jb', '0.6.0')).toEqual(['jb-linux-amd64', 'jb-linux-arm64']);
+      expect(names('protoc', '25.1')).toEqual([
+        'protoc-25.1-linux-x86_64.zip',
+        'protoc-25.1-linux-aarch_64.zip',
+      ]);
+      expect(toolSources['protoc']).toEqual({
+        datasource: 'github-releases',
+        packageName: 'protocolbuffers/protobuf',
+        versioning: 'docker',
+      });
+    });
+
     it('maps android-sdk-cmdline-tools to the android sdk repository', () => {
       expect(toolSources['android-sdk-cmdline-tools']).toEqual({
         datasource: 'android-sdk',

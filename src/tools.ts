@@ -37,6 +37,7 @@ export const toolSources: Record<string, Source> = {
   apm: github('microsoft/apm'),
   buf: github('bufbuild/buf'),
   buildx: github('docker/buildx'),
+  bazelisk: github('bazelbuild/bazelisk'),
   bun: github('oven-sh/bun'),
   bundler: { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' },
   cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'docker' },
@@ -62,6 +63,8 @@ export const toolSources: Record<string, Source> = {
   gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
   hashin: { datasource: 'pypi', packageName: 'hashin', versioning: 'pep440' },
   helm: github('helm/helm'),
+  jb: github('jsonnet-bundler/jsonnet-bundler'),
+  protoc: github('protocolbuffers/protobuf', 'docker'),
   helmfile: github('helmfile/helmfile'),
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
@@ -117,6 +120,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   apko: { sourceUrl: 'https://github.com/chainguard-dev/apko' },
   apm: { sourceUrl: 'https://github.com/microsoft/apm' },
   buf: { sourceUrl: 'https://github.com/bufbuild/buf', homepage: 'https://buf.build' },
+  bazelisk: { sourceUrl: 'https://github.com/bazelbuild/bazelisk' },
   buildx: {
     sourceUrl: 'https://github.com/docker/buildx',
     homepage: 'https://docs.docker.com/build',
@@ -174,6 +178,11 @@ export const toolLinks: Record<string, ToolLinks> = {
   gradle: { sourceUrl: 'https://github.com/gradle/gradle', homepage: 'https://gradle.org' },
   hashin: { sourceUrl: 'https://github.com/peterbe/hashin' },
   helm: { sourceUrl: 'https://github.com/helm/helm', homepage: 'https://helm.sh' },
+  jb: { sourceUrl: 'https://github.com/jsonnet-bundler/jsonnet-bundler' },
+  protoc: {
+    sourceUrl: 'https://github.com/protocolbuffers/protobuf',
+    homepage: 'https://protobuf.dev',
+  },
   helmfile: { sourceUrl: 'https://github.com/helmfile/helmfile' },
   java: { homepage: 'https://adoptium.net' },
   'java-jdk': { homepage: 'https://adoptium.net' },
@@ -302,9 +311,16 @@ export const toolFiles: Record<string, ToolFiles> = {
     files: perArch(unameArch, (arch) => `buf-Linux-${arch}.tar.gz`),
     checksum: { list: () => 'sha256.txt' },
   },
+  bazelisk: {
+    files: perArch(goArch, (arch) => `bazelisk-linux-${arch}`),
+    // the releases have no checksums
+    checksum: { compute: true },
+  },
   buildx: {
     files: perArch(goArch, (arch, v) => `buildx-v${v}.linux-${arch}`),
     checksum: { list: () => 'checksums.txt' },
+    // releases before 0.7.0 have no checksums
+    computeMissing: true,
   },
   bun: {
     tagPrefix: 'bun-v',
@@ -327,8 +343,15 @@ export const toolFiles: Record<string, ToolFiles> = {
   'docker-compose': {
     files: perArch(unameArch, (arch) => `docker-compose-linux-${arch}`),
     checksum: { list: () => 'checksums.txt' },
+    // releases before 2.5.0 have no checksums
+    computeMissing: true,
   },
-  elixir: { files: elixirAsset, checksum: { sidecar: ['.sha256sum'] } },
+  elixir: {
+    files: elixirAsset,
+    checksum: { sidecar: ['.sha256sum'] },
+    // releases before 1.14 have no checksums
+    computeMissing: true,
+  },
   flux: {
     files: perArch(goArch, (arch, v) => `flux_${v}_linux_${arch}.tar.gz`),
     checksum: { list: (v) => `flux_${v}_checksums.txt` },
@@ -369,11 +392,31 @@ export const toolFiles: Record<string, ToolFiles> = {
     files: perArch(unameArch, (arch) => `pixi-${arch}-unknown-linux-musl.tar.gz`),
     checksum: { sidecar: ['.sha256'] },
   },
+  jb: {
+    files: perArch(goArch, (arch) => `jb-linux-${arch}`),
+    // the releases have no checksums
+    checksum: { compute: true },
+  },
   powershell: {
     files: perArch(jsArch, (arch, v) => `powershell-${v}-linux-${arch}.tar.gz`),
     checksum: { list: () => 'hashes.sha256' },
+    // releases before 7.2.0 have no checksums
+    computeMissing: true,
   },
-  sbt: { files: (v) => [{ name: `sbt-${v}.tgz` }], checksum: { sidecar: ['.sha256'] } },
+  protoc: {
+    files: perArch(
+      { amd64: 'x86_64', arm64: 'aarch_64' },
+      (arch, v) => `protoc-${v}-linux-${arch}.zip`,
+    ),
+    // the releases have no checksums
+    checksum: { compute: true },
+  },
+  sbt: {
+    files: (v) => [{ name: `sbt-${v}.tgz` }],
+    checksum: { sidecar: ['.sha256'] },
+    // releases before 1.3.5 have no checksums
+    computeMissing: true,
+  },
   sops: {
     files: perArch(goArch, (arch, v) => `sops-v${v}.linux.${arch}`),
     checksum: { list: (v) => `sops-v${v}.checksums.txt` },
@@ -385,6 +428,8 @@ export const toolFiles: Record<string, ToolFiles> = {
   vendir: {
     files: perArch(goArch, (arch) => `vendir-linux-${arch}`),
     checksum: { list: () => 'checksums.txt' },
+    // releases before 0.25.0 have no checksums
+    computeMissing: true,
   },
   vp: {
     files: perArch(unameArch, (arch) => `vp-${arch}-unknown-linux-gnu.tar.gz`),
