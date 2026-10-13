@@ -10,8 +10,9 @@
       "enabled": true
     },
     {
-      "description": "Trigger the rebuild once all files of a release are uploaded, so a new version isn't published with some of its files missing",
+      "description": "Trigger the rebuild once all assets of a GitHub release are uploaded, so a new version isn't published with some of its files missing; other datasources like docker have no release timestamps, so they can't wait",
       "matchFileNames": ["renovate.Dockerfile"],
+      "matchDatasources": ["github-releases"],
       "minimumReleaseAge": "2 hours"
     }
   ]

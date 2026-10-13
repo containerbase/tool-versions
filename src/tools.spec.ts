@@ -241,6 +241,74 @@ describe('tools', () => {
       });
     });
 
+    it('maps the second batch of tools to their sources', () => {
+      expect(
+        Object.fromEntries(
+          ['rust', 'dart', 'ghc', 'cabal', 'java', 'java-jdk', 'java-jre'].map((tool) => [
+            tool,
+            toolSources[tool],
+          ]),
+        ),
+      ).toEqual({
+        rust: {
+          datasource: 'github-releases',
+          packageName: 'rust-lang/rust',
+          versioning: 'semver',
+        },
+        dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
+        ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'docker' },
+        cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'docker' },
+        java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+        'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+        'java-jre': { datasource: 'java-version', packageName: 'java-jre', versioning: 'npm' },
+      });
+    });
+
+    it('lists the rust archives, gz before 1.19.0', () => {
+      const rust = toolFiles['rust'];
+      const files = (version: string): unknown[] | undefined =>
+        typeof rust === 'function'
+          ? rust(version).map(({ name, arch }) => [name, arch])
+          : undefined;
+
+      expect(files('1.80.0')).toEqual([
+        ['rust-1.80.0-x86_64-unknown-linux-gnu.tar.xz', 'amd64'],
+        ['rust-1.80.0-aarch64-unknown-linux-gnu.tar.xz', 'arm64'],
+      ]);
+      expect(files('1.18.0')).toEqual([
+        ['rust-1.18.0-x86_64-unknown-linux-gnu.tar.gz', 'amd64'],
+        ['rust-1.18.0-aarch64-unknown-linux-gnu.tar.gz', 'arm64'],
+      ]);
+      expect(typeof rust === 'function' ? rust('1.80.0')[0]?.checksumUrls : undefined).toEqual([
+        'https://static.rust-lang.org/dist/rust-1.80.0-x86_64-unknown-linux-gnu.tar.xz.sha256',
+      ]);
+    });
+
+    it('lists the dart sdk zips from version 2 on', () => {
+      const dart = toolFiles['dart'];
+      expect(typeof dart === 'function' ? dart('3.5.0') : undefined).toEqual([
+        {
+          name: 'dartsdk-linux-x64-release.zip',
+          url: 'https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-x64-release.zip',
+          checksumUrls: [
+            'https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-x64-release.zip.sha256sum',
+          ],
+          algorithm: 'sha256',
+          arch: 'amd64',
+        },
+        {
+          name: 'dartsdk-linux-arm64-release.zip',
+          url: 'https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-arm64-release.zip',
+          checksumUrls: [
+            'https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-arm64-release.zip.sha256sum',
+          ],
+          algorithm: 'sha256',
+          arch: 'arm64',
+        },
+      ]);
+      expect(typeof dart === 'function' ? dart('1.24.3') : undefined).toEqual([]);
+    });
+
     it('lists the kubectl binaries of dl.k8s.io with their sha256 files', () => {
       const kubectl = toolFiles['kubectl'];
       expect(typeof kubectl === 'function' ? kubectl('1.37.1') : undefined).toEqual([
