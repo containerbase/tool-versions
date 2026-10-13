@@ -25,12 +25,29 @@ export interface FileCandidate {
   checksumUrls: string[];
   /** the algorithm of the checksum file */
   algorithm: Algorithm;
+  /** compute the checksum by downloading the file, as there is no checksum file */
+  compute?: boolean;
   arch?: ToolFile['arch'];
   distro?: ToolFile['distro'];
 }
 
 /** Lists the files of a version, `version` is without a leading `v`. */
 export type FileTemplate = (version: string) => FileCandidate[];
+
+/** The templates whose files have their checksum computed. */
+const computing = new WeakSet<FileTemplate>();
+
+/**
+ * Marks a template whose files have no published checksum, so they are
+ * computed by downloading them, and a list of releases has to be read
+ * completely to find the files which still lack one.
+ * @param template - the template
+ * @returns the template
+ */
+export function computed(template: FileTemplate): FileTemplate {
+  computing.add(template);
+  return template;
+}
 
 /** The containerbase arch of a file. */
 export type Arch = NonNullable<ToolFile['arch']>;
@@ -90,9 +107,11 @@ export interface ReleaseAsset {
  * @param template - how the files are listed
  */
 export function mayCompute(template: ToolFiles | undefined): boolean {
+  if (typeof template === 'function') {
+    return computing.has(template);
+  }
   return (
-    typeof template === 'object' &&
-    (Boolean(template.computeMissing) || 'compute' in template.checksum)
+    template !== undefined && (Boolean(template.computeMissing) || 'compute' in template.checksum)
   );
 }
 
@@ -309,25 +328,30 @@ export function checksumTasks(
   candidates: FileCandidate[],
   files: ToolFile[],
 ): (() => Promise<void>)[] {
-  return candidates
-    .filter(({ name }) => !files.some((file) => file.name === name))
-    .map(({ name, url, checksumUrls, algorithm, arch, distro }) => async () => {
-      let checksumUrl = '';
-      let text: string | undefined;
-      for (checksumUrl of checksumUrls) {
-        text = await fetchText(checksumUrl, label);
-        if (text !== undefined) {
-          break;
+  const unknown = candidates.filter(({ name }) => !files.some((file) => file.name === name));
+  const toCompute = unknown.filter(({ compute }) => compute);
+  return [
+    ...computeChecksumTasks(label, toCompute, files),
+    ...unknown
+      .filter(({ compute }) => !compute)
+      .map(({ name, url, checksumUrls, algorithm, arch, distro }) => async () => {
+        let checksumUrl = '';
+        let text: string | undefined;
+        for (checksumUrl of checksumUrls) {
+          text = await fetchText(checksumUrl, label);
+          if (text !== undefined) {
+            break;
+          }
         }
-      }
-      if (text === undefined) {
-        return;
-      }
-      const sum = parseChecksumFile(text, algorithm);
-      if (!sum) {
-        stdout.write(`::warning::${label}: no valid ${algorithm} digest in ${checksumUrl}\n`);
-        return;
-      }
-      files.push({ name, url, checksum: sum, ...(arch && { arch }), ...(distro && { distro }) });
-    });
+        if (text === undefined) {
+          return;
+        }
+        const sum = parseChecksumFile(text, algorithm);
+        if (!sum) {
+          stdout.write(`::warning::${label}: no valid ${algorithm} digest in ${checksumUrl}\n`);
+          return;
+        }
+        files.push({ name, url, checksum: sum, ...(arch && { arch }), ...(distro && { distro }) });
+      }),
+  ];
 }

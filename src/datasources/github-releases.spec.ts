@@ -3,7 +3,7 @@ import { stdout } from 'node:process';
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetDownloadBudget } from '../download.ts';
-import type { AssetTemplate, FileTemplate } from '../files.ts';
+import { type AssetTemplate, type FileTemplate, computed } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
 
@@ -839,6 +839,54 @@ describe('datasources/github-releases', () => {
         );
 
         expect(versions.map(({ version }) => version)).toEqual(['2.0.0', '1.0.0']);
+      });
+
+      it('computes the files of a function template, reads all pages and skips a missing file', async () => {
+        const page2 = `${api}/repositories/1/releases?per_page=100&page=2`;
+        nock(api)
+          .get('/repos/some/tool/releases')
+          .query({ per_page: '100' })
+          .reply(200, [release('v2.0.0')], { link: `<${page2}>; rel="next"` })
+          .get('/repositories/1/releases')
+          .query({ per_page: '100', page: '2' })
+          .reply(200, [release('v1.0.0')]);
+        nock('https://files.example.com')
+          .get('/tool-2.0.0.tgz')
+          .reply(200, 'two', { 'content-length': '3' })
+          .get('/tool-1.0.0.tgz')
+          .reply(404);
+        const template: FileTemplate = computed((version) => [
+          {
+            name: `tool-${version}.tgz`,
+            url: `https://files.example.com/tool-${version}.tgz`,
+            checksumUrls: [],
+            algorithm: 'sha256',
+            compute: true,
+            arch: 'amd64',
+          },
+        ]);
+
+        const versions = await fetchGithubReleases(
+          'some/tool',
+          new Set(['2.0.0']),
+          new Map(),
+          template,
+        );
+
+        expect(versions).toEqual([
+          {
+            version: '2.0.0',
+            files: [
+              {
+                name: 'tool-2.0.0.tgz',
+                url: 'https://files.example.com/tool-2.0.0.tgz',
+                checksum: sha('two'),
+                arch: 'amd64',
+              },
+            ],
+          },
+          { version: '1.0.0' },
+        ]);
       });
 
       it('prints one line for the tool when the budget is used up', async () => {

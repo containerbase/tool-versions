@@ -1,5 +1,11 @@
 import semver from 'semver';
-import type { Arch, AssetFile, AssetTemplate, ToolFiles } from './files.ts';
+import {
+  type Arch,
+  type AssetFile,
+  type AssetTemplate,
+  type ToolFiles,
+  computed,
+} from './files.ts';
 import type { Source } from './schema.ts';
 
 /**
@@ -50,6 +56,7 @@ export const toolSources: Record<string, Source> = {
   dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
   deno: github('denoland/deno'),
   devbox: github('jetify-com/devbox'),
+  docker: github('moby/moby'),
   'docker-compose': github('docker/compose'),
   elixir: github('elixir-lang/elixir'),
   erlang: prebuild('erlang', 'docker'),
@@ -78,6 +85,7 @@ export const toolSources: Record<string, Source> = {
   nix: prebuild('nix'),
   node: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
   npm: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
+  nuget: { datasource: 'nuget-exe', packageName: 'nuget.exe', versioning: 'nuget' },
   nub: github('nubjs/nub'),
   paket: { datasource: 'nuget', packageName: 'Paket', versioning: 'nuget' },
   pdm: { datasource: 'pypi', packageName: 'pdm', versioning: 'pep440' },
@@ -93,6 +101,7 @@ export const toolSources: Record<string, Source> = {
   ruby: prebuild('ruby', 'ruby'),
   rust: github('rust-lang/rust'),
   sbt: github('sbt/sbt'),
+  scala: github('scala/scala'),
   skopeo: prebuild('skopeo'),
   sops: github('getsops/sops'),
   terraform: { datasource: 'hashicorp-releases', packageName: 'terraform', versioning: 'semver' },
@@ -158,6 +167,7 @@ export const toolLinks: Record<string, ToolLinks> = {
     sourceUrl: 'https://github.com/jetify-com/devbox',
     homepage: 'https://www.jetify.com/devbox',
   },
+  docker: { sourceUrl: 'https://github.com/moby/moby', homepage: 'https://www.docker.com' },
   'docker-compose': {
     sourceUrl: 'https://github.com/docker/compose',
     homepage: 'https://docs.docker.com/compose',
@@ -205,6 +215,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   nix: { sourceUrl: 'https://github.com/NixOS/nix', homepage: 'https://nixos.org' },
   node: { sourceUrl: 'https://github.com/nodejs/node', homepage: 'https://nodejs.org' },
   npm: { sourceUrl: 'https://github.com/npm/cli', homepage: 'https://docs.npmjs.com/cli' },
+  nuget: {
+    sourceUrl: 'https://github.com/NuGet/NuGet.Client',
+    homepage: 'https://learn.microsoft.com/nuget',
+  },
   nub: { sourceUrl: 'https://github.com/nubjs/nub' },
   paket: {
     sourceUrl: 'https://github.com/fsprojects/Paket',
@@ -232,6 +246,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   ruby: { sourceUrl: 'https://github.com/ruby/ruby', homepage: 'https://www.ruby-lang.org' },
   rust: { sourceUrl: 'https://github.com/rust-lang/rust', homepage: 'https://www.rust-lang.org' },
   sbt: { sourceUrl: 'https://github.com/sbt/sbt', homepage: 'https://www.scala-sbt.org' },
+  scala: { sourceUrl: 'https://github.com/scala/scala', homepage: 'https://www.scala-lang.org' },
   skopeo: { sourceUrl: 'https://github.com/containers/skopeo' },
   sops: { sourceUrl: 'https://github.com/getsops/sops', homepage: 'https://getsops.io' },
   terraform: {
@@ -392,6 +407,11 @@ export const toolFiles: Record<string, ToolFiles> = {
     files: perArch(unameArch, (arch) => `pixi-${arch}-unknown-linux-musl.tar.gz`),
     checksum: { sidecar: ['.sha256'] },
   },
+  scala: {
+    files: (v) => [{ name: `scala-${v}.tgz` }],
+    // neither GitHub nor lightbend publish checksums
+    checksum: { compute: true },
+  },
   jb: {
     files: perArch(goArch, (arch) => `jb-linux-${arch}`),
     // the releases have no checksums
@@ -467,6 +487,21 @@ export const toolFiles: Record<string, ToolFiles> = {
       return { name, url, checksumUrls: [`${url}.sha256`], algorithm: 'sha256', arch };
     });
   },
+  // the static builds have no checksums, they are computed
+  docker: computed((version) =>
+    (['amd64', 'arm64'] as const).map((arch) => {
+      const dir = arch === 'amd64' ? 'x86_64' : 'aarch64';
+      return {
+        // the file is `docker-<version>.tgz` in the folder of each architecture
+        name: `docker-${version}-${dir}.tgz`,
+        url: `https://download.docker.com/linux/static/stable/${dir}/docker-${version}.tgz`,
+        checksumUrls: [],
+        algorithm: 'sha256',
+        compute: true,
+        arch,
+      };
+    }),
+  ),
   kubectl: (version) =>
     (['amd64', 'arm64'] as const).map((arch) => {
       // the file name is the one of the containerbase download, the binary is

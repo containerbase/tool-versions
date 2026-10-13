@@ -169,9 +169,11 @@ async function fetchVersions(
  * Whether the files of a tool may have their checksum computed by downloading
  * them, which counts for its share of the download budget.
  * @param tool - the tool name
+ * @param source - the source of the tool
  */
-function computesChecksums(tool: string): boolean {
-  return mayCompute(toolFiles[tool]);
+function computesChecksums(tool: string, source: Source): boolean {
+  // the nuget.exe datasource computes the checksum of every release
+  return mayCompute(toolFiles[tool]) || source.datasource === 'nuget-exe';
 }
 
 /**
@@ -196,7 +198,9 @@ export async function build({
 
   // the budget of downloads for computed checksums is split between the tools
   // which may compute files
-  resetDownloadBudget(Object.keys(sources).filter((tool) => computesChecksums(tool)).length);
+  resetDownloadBudget(
+    Object.entries(sources).filter(([tool, source]) => computesChecksums(tool, source)).length,
+  );
   await mkdir(dir, { recursive: true });
   const updatedAt = now.toISOString();
   const index: ToolIndex = { updatedAt, tools: [] };
@@ -206,7 +210,7 @@ export async function build({
     const loaded = await loadPrevious(tool, source, full);
     const previous = loaded && cleanFiles(loaded);
     let data: ToolVersions;
-    startToolDownloads(computesChecksums(tool));
+    startToolDownloads(computesChecksums(tool, source));
     try {
       data = {
         tool,
