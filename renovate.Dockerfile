@@ -58,6 +58,15 @@ ENV COREPACK_VERSION=0.36.0
 # renovate: datasource=github-releases depName=deno packageName=denoland/deno
 ENV DENO_VERSION=2.9.7
 
+# renovate: datasource=dotnet-version depName=dotnet packageName=dotnet-sdk
+ENV DOTNET_VERSION=8.0.100
+
+# renovate: datasource=dotnet-version depName=dotnet packageName=dotnet-sdk
+ENV DOTNET_VERSION=9.0.100
+
+# renovate: datasource=dotnet-version depName=dotnet packageName=dotnet-sdk
+ENV DOTNET_VERSION=10.0.401
+
 # renovate: datasource=github-releases depName=docker packageName=moby/moby
 ENV DOCKER_VERSION=28.5.2
 

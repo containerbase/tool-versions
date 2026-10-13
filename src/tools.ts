@@ -57,6 +57,7 @@ export const toolSources: Record<string, Source> = {
   deno: github('denoland/deno'),
   devbox: github('jetify-com/devbox'),
   docker: github('moby/moby'),
+  dotnet: { datasource: 'dotnet-version', packageName: 'dotnet-sdk', versioning: 'semver' },
   'docker-compose': github('docker/compose'),
   elixir: github('elixir-lang/elixir'),
   erlang: prebuild('erlang', 'docker'),
@@ -168,6 +169,7 @@ export const toolLinks: Record<string, ToolLinks> = {
     homepage: 'https://www.jetify.com/devbox',
   },
   docker: { sourceUrl: 'https://github.com/moby/moby', homepage: 'https://www.docker.com' },
+  dotnet: { sourceUrl: 'https://github.com/dotnet/sdk', homepage: 'https://dotnet.microsoft.com' },
   'docker-compose': {
     sourceUrl: 'https://github.com/docker/compose',
     homepage: 'https://docs.docker.com/compose',

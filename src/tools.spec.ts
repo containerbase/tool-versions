@@ -315,6 +315,15 @@ describe('tools', () => {
       expect(toolSources['scala']?.packageName).toBe('scala/scala');
     });
 
+    it('maps dotnet to the sdk release metadata, which has the checksums', () => {
+      expect(toolSources['dotnet']).toEqual({
+        datasource: 'dotnet-version',
+        packageName: 'dotnet-sdk',
+        versioning: 'semver',
+      });
+      expect(toolFiles['dotnet']).toBeUndefined();
+    });
+
     it('lists the static docker builds of both architectures, computing their checksums', () => {
       const docker = toolFiles['docker'];
       const files = typeof docker === 'function' ? docker('28.5.2') : [];
