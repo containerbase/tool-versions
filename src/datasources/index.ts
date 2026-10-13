@@ -2,6 +2,7 @@ import type { PreviousFiles, ToolFiles } from '../files.ts';
 import type { DatasourceName, ToolVersion, VersioningName } from '../schema.ts';
 import { fetchAndroidSdkVersions } from './android-sdk.ts';
 import { fetchDartVersions } from './dart-version.ts';
+import { fetchDotnetVersions } from './dotnet-version.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 import { fetchGradleVersions } from './gradle-version.ts';
 import { fetchHashicorpReleases } from './hashicorp-releases.ts';
@@ -37,6 +38,7 @@ export type Fetcher = (
 export const datasources: Record<DatasourceName, Fetcher> = {
   'android-sdk': fetchAndroidSdkVersions,
   'dart-version': fetchDartVersions,
+  'dotnet-version': fetchDotnetVersions,
   'github-releases': fetchGithubReleases,
   'gradle-version': fetchGradleVersions,
   'hashicorp-releases': fetchHashicorpReleases,

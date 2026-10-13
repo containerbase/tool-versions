@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const DatasourceName = z.enum([
   'android-sdk',
   'dart-version',
+  'dotnet-version',
   'github-releases',
   'gradle-version',
   'hashicorp-releases',
