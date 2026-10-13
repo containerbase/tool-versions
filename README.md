@@ -5,10 +5,16 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 
 ## Files
 
-- [`<tool>.json`](https://containerbase.github.io/tool-versions/node.json): the versions of one tool
-- [`index.json`](https://containerbase.github.io/tool-versions/index.json): all tools with their file and version count
-- `tool.schema.json`, `index.schema.json`: the JSON schemas
-- `<file>.sha512` next to each file, in `sha512sum` format
+The files of a tool are split, as the full ones are too big to fetch for each use:
+
+- [`<tool>.json`](https://containerbase.github.io/tool-versions/node.json): the versions of one tool, without their `files`. Renovate's datasource and the containerbase CLI's version resolution read it.
+- `<tool>/<version>.json`: the `files` of one version, `{ tool, version, files }`, for every version which has files, so not for the package manager tools. The containerbase CLI reads it to install. The file name is the raw version, so `java/25.0.4+101.0.LTS.json` has a literal `+`: request it url encoded (`%2B`), GitHub Pages decodes the path. Versions which contain other characters than `[0-9A-Za-z.+_-]` are left out with a warning.
+- `<tool>.integrity.json`: the integrity of each `<tool>/<version>.json`, `{ tool, versions: { "<version>": "sha256-…" } }`, only for tools with files. The containerbase CLI reads it to verify a per-version file.
+- [`index.json`](https://containerbase.github.io/tool-versions/index.json): all tools with their `versionCount`, `slim` (`<tool>.json`) and, for tools with files, `versionFiles` (`<tool>.integrity.json`), each as `{ file, integrity }`, so clients don't hard-code the names.
+- `<tool>.full.json`: internal, the same as `<tool>.json` with the `files` of all versions. Only the next build reads it, as the previous state to start from, so it isn't in the index; clients read the files above instead.
+- `tool.schema.json` (for `<tool>.json` and `<tool>.full.json`), `version.schema.json` (for `<tool>/<version>.json`), `integrity.schema.json` (for `<tool>.integrity.json`), `index.schema.json`: the JSON schemas
+
+`<tool>.json` (the `files` are in `python/3.14.8.json` and `python.full.json`):
 
 ```json
 {
@@ -21,19 +27,23 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
     "versioning": "python"
   },
   "updatedAt": "2026-10-08T03:00:00.000Z",
-  "versions": [
+  "versions": [{ "version": "3.14.8", "releaseTimestamp": "2026-10-02T01:30:20.000Z" }]
+}
+```
+
+`python/3.14.8.json`, and the `files` of the version in `python.full.json`:
+
+```json
+{
+  "tool": "python",
+  "version": "3.14.8",
+  "files": [
     {
-      "version": "3.14.8",
-      "releaseTimestamp": "2026-10-02T01:30:20.000Z",
-      "files": [
-        {
-          "name": "python-3.14.8-jammy-x86_64.tar.xz",
-          "url": "https://github.com/containerbase/python-prebuild/releases/download/3.14.8/python-3.14.8-jammy-x86_64.tar.xz",
-          "checksum": "sha512:6976…",
-          "arch": "amd64",
-          "distro": "jammy"
-        }
-      ]
+      "name": "python-3.14.8-jammy-x86_64.tar.xz",
+      "url": "https://github.com/containerbase/python-prebuild/releases/download/3.14.8/python-3.14.8-jammy-x86_64.tar.xz",
+      "checksum": "sha512:6976…",
+      "arch": "amd64",
+      "distro": "jammy"
     }
   ]
 }
@@ -45,9 +55,15 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 - `versions`: newest first, including prereleases, only installable ones (with an `amd64` file or a file for any architecture, unless the tool has a `type`; `arm64` files are added when they exist). `version` is the exact `install-tool` version.
 - `prerelease`, `lts`: only present when `true`.
 - `releaseTimestamp`: the release time in UTC, for Renovate's `minimumReleaseAge`.
-- `files`: sorted by name, each with the https `url`, `checksum` (`sha256:` or `sha512:` lowercase hex), and `arch` (`amd64`/`arm64`) and `distro` where they apply.
+- `files` (in the full and the per-version files only): sorted by name, each with the https `url`, `checksum` (`sha256:` or `sha512:` lowercase hex), and `arch` (`amd64`/`arm64`) and `distro` where they apply.
 
 Optional fields are omitted when unknown.
+
+### Integrity
+
+The client files form a hash chain: `index.json` has the `integrity` of each `<tool>.json` and `<tool>.integrity.json`, and `<tool>.integrity.json` the integrity of each `<tool>/<version>.json`. The digests are kept out of `<tool>.json`, so the version list stays small for Renovate and the version resolution, and only the install fetches them. An integrity is the SRI-style sha256 digest of the file's exact published bytes, like npm's `integrity` (`sha256-<base64>`). Verifying a file against its parent catches corruption, truncation, and files of different deploys mixed by a running deploy or a stale cache: on a mismatch, fetch `index.json` again and retry once.
+
+The chain doesn't prove who published the files, `index.json` changes with every build, so it can't be pinned. Trust comes from HTTPS and GitHub Pages, like for the upstream checksums. A signature of `index.json` would add authenticity later.
 
 ## Tools
 
@@ -72,7 +88,7 @@ The package manager tools (`bundler`, `checkov`, `cocoapods`, `conan`, `copier`,
 
 ## Updates
 
-- **Incremental:** each build starts from the published files. Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
+- **Incremental:** each build starts from the published `<tool>.full.json` files (the `<tool>.json` of the old layout while there is no full file yet, only when it still has files; as the Pages deploy replaces the whole site, the per-version files can't be fetched again). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Full refresh:** run the `pages` workflow with the `full` input.
 - **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for golang, kubectl, php, python and ruby), and the automerged update publishes a release right away; GitHub releases wait until they are 2 hours old, when all their assets are uploaded (other datasources, like docker, have no release times to wait for). Add new lines when they are released.
