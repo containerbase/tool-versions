@@ -69,12 +69,14 @@ The chain doesn't prove who published the files, `index.json` changes with every
 
 The tools and their sources are mapped in [`src/tools.ts`](./src/tools.ts), each must exist in `@containerbase/base`.
 
-| Tool     | Versions                                        | Files                                                             |
-| -------- | ----------------------------------------------- | ----------------------------------------------------------------- |
-| `helm`   | GitHub releases `helm/helm`                     | get.helm.sh archives, sha256 from `.sha256sum` (older: `.sha256`) |
-| `java`   | Adoptium, JDK, GA                               | Adoptium linux packages, sha256 from the assets api               |
-| `node`   | nodejs.org                                      | `.tar.xz` archives, sha256 from `SHASUMS256.txt`                  |
-| `python` | GitHub releases `containerbase/python-prebuild` | prebuilds with a `.sha512` file, without `bionic` and `focal`     |
+| Tool     | Versions                                        | Files                                                                                                                                       |
+| -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `helm`   | GitHub releases `helm/helm`                     | get.helm.sh archives, sha256 from `.sha256sum` (older: `.sha256`)                                                                           |
+| `java`   | Adoptium, JDK, GA                               | Adoptium linux packages, sha256 from the assets api                                                                                         |
+| `node`   | nodejs.org                                      | `.tar.xz` archives (sha256 from `SHASUMS256.txt`) and the `containerbase/node-prebuild` assets with a `.sha512` file, which the CLI prefers |
+| `python` | GitHub releases `containerbase/python-prebuild` | prebuilds with a `.sha512` file, without `bionic` and `focal`                                                                               |
+
+`node` lists both: the versions and the nodejs.org archives come from nodejs.org, and the prebuild files (with their `arch` and `distro`, without `bionic` and `focal`) from the releases of `containerbase/node-prebuild`, the same list the CLI looks at before it falls back to nodejs.org. The prebuild releases are read as one paged GitHub list, which stops after the first page with a version that has a prebuild file, and only versions without them fetch their `.sha512` files. When the list can't be read, the build warns and keeps the known prebuild files.
 
 The containerbase prebuilds (`composer`, `erlang`, `flutter`, `golang`, `maven`, `mono`, `nix`, `php`, `ruby`, `skopeo`, `wally`, besides `python`) come from the releases of `containerbase/<tool>-prebuild` like `python`. Their versions are sorted with the Renovate versioning of the tool (`docker` for the four-part `erlang` versions, `maven`, `ruby`, else `semver`). Some prebuilds have no `arch` (`composer`, `maven`) and the `jammy` ones have a `distro`.
 
