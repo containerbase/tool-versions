@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { stdout } from 'node:process';
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { resetDownloadBudget } from '../download.ts';
 import type { AssetTemplate, FileTemplate } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
@@ -703,6 +705,165 @@ describe('datasources/github-releases', () => {
 
       expect(versions).toMatchObject([{ version: '5.4.1', files: [{ arch: 'amd64' }] }]);
       expect(versions).toHaveLength(1);
+    });
+
+    describe('computed checksums', () => {
+      const sha = (content: string): string =>
+        `sha256:${createHash('sha256').update(content).digest('hex')}`;
+
+      /**
+       * A release whose assets have a size and optionally a digest.
+       * @param tag - the tag
+       * @param assets - the asset names with their digest
+       */
+      function withDigests(
+        tag: string,
+        assets: Record<string, string | undefined>,
+      ): ReturnType<typeof release> & {
+        assets: { name: string; browser_download_url: string; digest?: string }[];
+      } {
+        return {
+          ...release(tag),
+          assets: Object.entries(assets).map(([name, digest]) => ({
+            name,
+            browser_download_url: dlUrl(tag, name),
+            ...(digest && { digest }),
+          })),
+        };
+      }
+
+      afterEach(() => {
+        resetDownloadBudget();
+      });
+
+      it('computes the checksum of a file by downloading it, or takes the digest of GitHub', async () => {
+        mockReleases([
+          withDigests('v1.1.0', { 'tool-linux-amd64': `sha256:${hex('d')}` }),
+          withDigests('v1.0.0', { 'tool-linux-amd64': undefined, 'tool-linux-arm64': undefined }),
+        ]);
+        nock(host)
+          .get(`${download}/v1.0.0/tool-linux-amd64`)
+          .reply(200, 'amd64 binary', { 'content-length': '12' })
+          .get(`${download}/v1.0.0/tool-linux-arm64`)
+          .reply(200, 'arm64 binary', { 'content-length': '12' });
+
+        const versions = await fetchWith({
+          files: () => [
+            { arch: 'amd64', name: 'tool-linux-amd64' },
+            { arch: 'arm64', name: 'tool-linux-arm64' },
+          ],
+          checksum: { compute: true },
+        });
+
+        expect(versions).toEqual([
+          {
+            version: '1.1.0',
+            files: [
+              {
+                name: 'tool-linux-amd64',
+                url: dlUrl('v1.1.0', 'tool-linux-amd64'),
+                checksum: `sha256:${hex('d')}`,
+                arch: 'amd64',
+              },
+            ],
+          },
+          {
+            version: '1.0.0',
+            files: [
+              {
+                name: 'tool-linux-amd64',
+                url: dlUrl('v1.0.0', 'tool-linux-amd64'),
+                checksum: sha('amd64 binary'),
+                arch: 'amd64',
+              },
+              {
+                name: 'tool-linux-arm64',
+                url: dlUrl('v1.0.0', 'tool-linux-arm64'),
+                checksum: sha('arm64 binary'),
+                arch: 'arm64',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('computes only when the release has no checksum asset for the file', async () => {
+        mockReleases([
+          withNames('v2.0.0', ['tool-linux-amd64', 'checksums.txt']),
+          withNames('v1.0.0', ['tool-linux-amd64']),
+        ]);
+        nock(host)
+          .get(`${download}/v2.0.0/checksums.txt`)
+          .reply(200, `${hex('a')}  tool-linux-amd64\n`)
+          .get(`${download}/v1.0.0/tool-linux-amd64`)
+          .reply(200, 'old binary', { 'content-length': '10' });
+
+        const versions = await fetchWith({
+          files: () => [{ arch: 'amd64', name: 'tool-linux-amd64' }],
+          checksum: { list: () => 'checksums.txt' },
+          computeMissing: true,
+        });
+
+        expect(versions.map(({ version, files }) => [version, files?.[0]?.checksum])).toEqual([
+          ['2.0.0', `sha256:${hex('a')}`],
+          ['1.0.0', sha('old binary')],
+        ]);
+      });
+
+      it('reads all pages, as old releases may still lack a checksum', async () => {
+        const page2 = `${api}/repositories/1/releases?per_page=100&page=2`;
+        nock(api)
+          .get('/repos/some/tool/releases')
+          .query({ per_page: '100' })
+          .reply(200, [withDigests('v2.0.0', { 'tool-linux-amd64': `sha256:${hex('a')}` })], {
+            link: `<${page2}>; rel="next"`,
+          })
+          .get('/repositories/1/releases')
+          .query({ per_page: '100', page: '2' })
+          .reply(200, [withDigests('v1.0.0', { 'tool-linux-amd64': `sha256:${hex('b')}` })]);
+        const known = {
+          name: 'tool-linux-amd64',
+          url: dlUrl('v2.0.0', 'tool-linux-amd64'),
+          checksum: `sha256:${hex('a')}`,
+          arch: 'amd64' as const,
+        };
+
+        const versions = await fetchGithubReleases(
+          'some/tool',
+          new Set(['2.0.0']),
+          new Map([['2.0.0', [known]]]),
+          {
+            files: () => [{ arch: 'amd64', name: 'tool-linux-amd64' }],
+            checksum: { compute: true },
+          },
+        );
+
+        expect(versions.map(({ version }) => version)).toEqual(['2.0.0', '1.0.0']);
+      });
+
+      it('prints one line for the tool when the budget is used up', async () => {
+        vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '0');
+        resetDownloadBudget();
+        const output: string[] = [];
+        vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+          output.push(String(chunk));
+          return true;
+        });
+        mockReleases([
+          withNames('v2.0.0', ['tool-linux-amd64']),
+          withNames('v1.0.0', ['tool-linux-amd64']),
+        ]);
+
+        await expect(
+          fetchWith({
+            files: () => [{ arch: 'amd64', name: 'tool-linux-amd64' }],
+            checksum: { compute: true },
+          }),
+        ).resolves.toEqual([{ version: '2.0.0' }, { version: '1.0.0' }]);
+        expect(output).toEqual([
+          '::notice::some/tool: download budget of the tool used up, the checksums of 2 files will be computed by the next builds\n',
+        ]);
+      });
     });
   });
 

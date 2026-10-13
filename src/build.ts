@@ -2,7 +2,8 @@ import { mkdir } from 'node:fs/promises';
 import { stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
-import { isUnsupportedDistro } from './files.ts';
+import { finishToolDownloads, resetDownloadBudget, startToolDownloads } from './download.ts';
+import { isUnsupportedDistro, mayCompute } from './files.ts';
 import { fileNameSafe, writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type {
@@ -165,6 +166,15 @@ async function fetchVersions(
 }
 
 /**
+ * Whether the files of a tool may have their checksum computed by downloading
+ * them, which counts for its share of the download budget.
+ * @param tool - the tool name
+ */
+function computesChecksums(tool: string): boolean {
+  return mayCompute(toolFiles[tool]);
+}
+
+/**
  * Fetches the versions of every mapped tool and writes the tool files, the
  * index and the json schemas. When a tool fails, its previously published file
  * is written again, with its old `updatedAt`. A tool which fails without a
@@ -184,6 +194,9 @@ export async function build({
     throw new Error(`Tools not found in @containerbase/base: ${unknown.join(', ')}`);
   }
 
+  // the budget of downloads for computed checksums is split between the tools
+  // which may compute files
+  resetDownloadBudget(Object.keys(sources).filter((tool) => computesChecksums(tool)).length);
   await mkdir(dir, { recursive: true });
   const updatedAt = now.toISOString();
   const index: ToolIndex = { updatedAt, tools: [] };
@@ -193,6 +206,7 @@ export async function build({
     const loaded = await loadPrevious(tool, source, full);
     const previous = loaded && cleanFiles(loaded);
     let data: ToolVersions;
+    startToolDownloads(computesChecksums(tool));
     try {
       data = {
         tool,
@@ -216,6 +230,8 @@ export async function build({
       stdout.write(
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
+    } finally {
+      finishToolDownloads();
     }
     const files = await writeToolVersions(dir, withMetadata(data));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });

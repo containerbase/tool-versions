@@ -1,4 +1,5 @@
 import { stdout } from 'node:process';
+import { computeChecksumTasks } from './download.ts';
 import { HttpError, request } from './http.ts';
 import type { ToolFile, ToolVersion } from './schema.ts';
 
@@ -52,10 +53,20 @@ export interface AssetTemplate {
   files: (version: string) => AssetFile[];
   /**
    * Where the checksum is: `sidecar` assets named `<file><suffix>`, the first
-   * one which exists is used, or a `list` asset with the checksums of many files.
+   * one which exists is used, a `list` asset with the checksums of many files,
+   * or `compute` when the release publishes none, so it is computed by
+   * downloading the file once.
    */
-  checksum: { sidecar: string[] } | { list: (version: string) => string };
-  /** the algorithm of the checksums, `sha256` by default */
+  checksum: { sidecar: string[] } | { list: (version: string) => string } | { compute: true };
+  /**
+   * Compute the checksum of a file by downloading it when the release has no
+   * checksum asset for it, which old releases of some tools lack.
+   */
+  computeMissing?: boolean;
+  /**
+   * The algorithm of the published checksums, `sha256` by default. Computed
+   * checksums are always sha256.
+   */
   algorithm?: Algorithm;
   /** the tag part before the version, for tags which aren't `v<version>` or `<version>` */
   tagPrefix?: string;
@@ -63,6 +74,27 @@ export interface AssetTemplate {
 
 /** How the files of a version are listed, by template function or release assets. */
 export type ToolFiles = FileTemplate | AssetTemplate;
+
+/** An asset of a release. */
+export interface ReleaseAsset {
+  /** the download url */
+  url: string;
+  /** the `sha256:<hex>` digest GitHub computed on upload, if it has one */
+  digest?: string | null | undefined;
+}
+
+/**
+ * Whether the files of a template may be computed by downloading them, so a
+ * list of releases has to be read completely to find the ones which still lack
+ * a checksum.
+ * @param template - how the files are listed
+ */
+export function mayCompute(template: ToolFiles | undefined): boolean {
+  return (
+    typeof template === 'object' &&
+    (Boolean(template.computeMissing) || 'compute' in template.checksum)
+  );
+}
 
 /**
  * Runs async tasks with a fixed number of workers.
@@ -186,18 +218,20 @@ export function withFiles(entry: ToolVersion, files: readonly ToolFile[]): ToolV
 /**
  * Creates the tasks which read the checksums of the assets of a release which
  * are files of an asset template and not known yet. A checksum list is
- * downloaded at most once for the release.
+ * downloaded at most once for the release. A file which has no published
+ * checksum is computed by downloading it when the template says so, using the
+ * digest GitHub has for the asset if there is one, see `computeChecksumTasks`.
  * @param label - names the tool or package in warnings
  * @param template - the files and checksums of the tool
  * @param version - the version of the release
- * @param assets - the download urls of the assets of the release, by name
+ * @param assets - the assets of the release, by name
  * @param files - the known files of the version, the downloads add to it
  */
 export function assetTasks(
   label: string,
   template: AssetTemplate,
   version: string,
-  assets: ReadonlyMap<string, string>,
+  assets: ReadonlyMap<string, ReleaseAsset>,
   files: ToolFile[],
 ): (() => Promise<void>)[] {
   const algorithm = template.algorithm ?? 'sha256';
@@ -208,7 +242,7 @@ export function assetTasks(
       text === undefined ? new Map() : parseChecksumList(text, algorithm),
     ));
   const sidecar = async (name: string, suffixes: string[]): Promise<string | undefined> => {
-    for (const url of suffixes.map((suffix) => assets.get(`${name}${suffix}`))) {
+    for (const url of suffixes.map((suffix) => assets.get(`${name}${suffix}`)?.url)) {
       const text = url === undefined ? undefined : await fetchText(url, label);
       if (text === undefined) {
         continue;
@@ -221,19 +255,44 @@ export function assetTasks(
     }
     return undefined;
   };
+  /** Whether the release has a checksum asset for the file. */
+  const published = (name: string): boolean =>
+    'sidecar' in source
+      ? source.sidecar.some((suffix) => assets.has(`${name}${suffix}`))
+      : 'list' in source && assets.has(source.list(version));
   return template
     .files(version)
     .filter(({ name }) => assets.has(name) && !files.some((file) => file.name === name))
-    .map(({ name, arch }) => async () => {
-      const url = assets.get(name);
-      const listUrl = 'list' in source ? assets.get(source.list(version)) : undefined;
-      const sum =
-        'sidecar' in source
-          ? await sidecar(name, source.sidecar)
-          : listUrl && (await sums(listUrl)).get(name);
-      if (url && sum) {
-        files.push({ name, url, checksum: sum, ...(arch && { arch }) });
+    .flatMap(({ name, arch }) => {
+      const asset = assets.get(name);
+      if (!asset) {
+        return [];
       }
+      const compute = 'compute' in source || (template.computeMissing && !published(name));
+      if (compute) {
+        // the digest of GitHub is a published checksum, which costs no download
+        const digest = /^sha256:[0-9a-f]{64}$/.exec(asset.digest ?? '')?.[0];
+        return digest
+          ? [
+              () => {
+                files.push({ name, url: asset.url, checksum: digest, ...(arch && { arch }) });
+                return Promise.resolve();
+              },
+            ]
+          : computeChecksumTasks(label, [{ name, url: asset.url, ...(arch && { arch }) }], files);
+      }
+      return [
+        async () => {
+          const listUrl = 'list' in source ? assets.get(source.list(version))?.url : undefined;
+          const sum =
+            'sidecar' in source
+              ? await sidecar(name, source.sidecar)
+              : listUrl && (await sums(listUrl)).get(name);
+          if (sum) {
+            files.push({ name, url: asset.url, checksum: sum, ...(arch && { arch }) });
+          }
+        },
+      ];
     });
 }
 

@@ -1,5 +1,6 @@
 import { env } from 'node:process';
 import { z } from 'zod';
+import { reportSkippedDownloads } from '../download.ts';
 import {
   type FileCandidate,
   type PreviousFiles,
@@ -7,6 +8,7 @@ import {
   assetTasks,
   checksumTasks,
   isUnsupportedDistro,
+  mayCompute,
   parsePrebuildName,
   runAll,
   withFiles,
@@ -19,6 +21,8 @@ import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
 const GithubAsset = z.object({
   name: z.string(),
   browser_download_url: z.string(),
+  // like `sha256:<hex>`, computed by GitHub for assets uploaded since 2025
+  digest: z.string().nullish(),
 });
 type GithubAsset = z.infer<typeof GithubAsset>;
 
@@ -101,10 +105,13 @@ function releaseTasks(
   files: ToolFile[],
 ): (() => Promise<void>)[] {
   if (typeof template === 'object') {
-    const urls = new Map(
-      assets.map(({ name, browser_download_url }) => [name, browser_download_url]),
+    const byName = new Map(
+      assets.map(({ name, browser_download_url, digest }) => [
+        name,
+        { url: browser_download_url, digest },
+      ]),
     );
-    return assetTasks(packageName, template, version, urls, files);
+    return assetTasks(packageName, template, version, byName, files);
   }
   const candidates = template ? template(version) : assetCandidates(assets);
   return checksumTasks(packageName, candidates, files);
@@ -170,9 +177,12 @@ export async function fetchGithubReleases(
       }
       versions.push({ entry, files });
     }
-    url = foundKnown ? undefined : nextPage(res.headers.get('link'));
+    // files which are computed by downloading them are filled newest first over
+    // several builds, so all releases are read to find the ones which lack them
+    url = foundKnown && !mayCompute(template) ? undefined : nextPage(res.headers.get('link'));
   }
   await runAll(tasks);
+  reportSkippedDownloads(packageName);
   return sortVersions(
     versions.map(({ entry, files }) => withFiles(entry, files)),
     compare,

@@ -15,6 +15,9 @@ ENV APKO_VERSION=1.4.11
 # renovate: datasource=github-releases depName=apm packageName=microsoft/apm
 ENV APM_VERSION=0.33.0
 
+# renovate: datasource=github-releases depName=bazelisk packageName=bazelbuild/bazelisk
+ENV BAZELISK_VERSION=1.29.0
+
 # renovate: datasource=github-releases depName=buf packageName=bufbuild/buf
 ENV BUF_VERSION=1.73.0
 
@@ -114,6 +117,9 @@ ENV HELM_VERSION=3.22.0
 
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
 ENV HELM_VERSION=4.3.0
+
+# renovate: datasource=github-releases depName=jb packageName=jsonnet-bundler/jsonnet-bundler
+ENV JB_VERSION=0.6.0
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
 ENV HELMFILE_VERSION=1.8.1
@@ -220,6 +226,9 @@ ENV PNPM_VERSION=12.11.2
 
 # renovate: datasource=pypi depName=poetry
 ENV POETRY_VERSION=2.5.1
+
+# renovate: datasource=github-releases depName=protoc packageName=protocolbuffers/protobuf versioning=docker
+ENV PROTOC_VERSION=36.2
 
 # renovate: datasource=github-releases depName=powershell packageName=PowerShell/PowerShell
 ENV POWERSHELL_VERSION=7.6.6

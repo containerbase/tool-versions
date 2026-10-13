@@ -523,6 +523,62 @@ describe('build', () => {
     ]);
   });
 
+  it('gives each tool which computes checksums a fair share of the download budget', async () => {
+    // two tools with two files of 8 bytes: the share of each is 15 bytes
+    vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '30');
+    nock(pages).get('/bazelisk.full.json').reply(404).get('/jb.full.json').reply(404);
+    const github = nock('https://api.github.com');
+    const download = nock('https://github.com');
+    for (const [repo, name] of [
+      ['bazelbuild/bazelisk', 'bazelisk'],
+      ['jsonnet-bundler/jsonnet-bundler', 'jb'],
+    ] as const) {
+      const base = `https://github.com/${repo}/releases/download/v1.0.0`;
+      github
+        .get(`/repos/${repo}/releases`)
+        .query({ per_page: '100' })
+        .reply(200, [
+          {
+            tag_name: 'v1.0.0',
+            draft: false,
+            prerelease: false,
+            assets: ['amd64', 'arm64'].map((arch) => ({
+              name: `${name}-linux-${arch}`,
+              browser_download_url: `${base}/${name}-linux-${arch}`,
+            })),
+          },
+        ]);
+      for (const arch of ['amd64', 'arm64']) {
+        download
+          .get(`/${repo}/releases/download/v1.0.0/${name}-linux-${arch}`)
+          .reply(200, 'x'.repeat(8), { 'content-length': '8' });
+      }
+    }
+
+    await build({
+      dir,
+      sources: {
+        bazelisk: {
+          datasource: 'github-releases',
+          packageName: 'bazelbuild/bazelisk',
+          versioning: 'semver',
+        },
+        jb: {
+          datasource: 'github-releases',
+          packageName: 'jsonnet-bundler/jsonnet-bundler',
+          versioning: 'semver',
+        },
+      },
+      now,
+    });
+
+    // bazelisk only fits one of its files, and the unused rest goes to jb
+    expect(JSON.parse(await read('jb.full.json')).versions[0].files).toHaveLength(2);
+    expect(output.filter((line) => line.startsWith('::notice::'))).toEqual([
+      '::notice::bazelbuild/bazelisk: download budget of the tool used up, the checksums of 1 files will be computed by the next builds\n',
+    ]);
+  });
+
   it('publishes the files of tools with a file template', async () => {
     const sha = 'e'.repeat(64);
     nock(pages).get('/helm.full.json').reply(404);
