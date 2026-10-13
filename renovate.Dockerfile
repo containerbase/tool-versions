@@ -285,7 +285,7 @@ ENV SBT_VERSION=1.13.0
 ENV SBT_VERSION=2.0.10
 
 # renovate: datasource=github-releases depName=scala packageName=scala/scala
-ENV SCALA_VERSION=2.12.20
+ENV SCALA_VERSION=2.12.21
 
 # renovate: datasource=github-releases depName=scala packageName=scala/scala
 ENV SCALA_VERSION=2.13.16
