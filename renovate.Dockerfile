@@ -240,7 +240,7 @@ ENV PYTHON_VERSION=3.13.16
 ENV PYTHON_VERSION=3.14.8
 
 # renovate: datasource=npm depName=renovate
-ENV RENOVATE_VERSION=43.0.10
+ENV RENOVATE_VERSION=43.288.0
 
 # renovate: datasource=github-releases depName=ruby packageName=containerbase/ruby-prebuild versioning=ruby
 ENV RUBY_VERSION=3.3.12
