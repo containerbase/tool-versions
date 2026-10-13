@@ -3,7 +3,7 @@ import { stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
 import { isUnsupportedDistro } from './files.ts';
-import { writeIndex, writeSchemas, writeToolVersions } from './output.ts';
+import { fileNameSafe, writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type {
   PreviousToolVersions,
@@ -154,7 +154,10 @@ async function fetchVersions(
       ...(!entry.releaseTimestamp && keptTimestamp && { releaseTimestamp: keptTimestamp }),
     };
   });
-  const versions = installable(tool, sortVersions([...fresh, ...previous], compare));
+  const versions = fileNameSafe(
+    tool,
+    installable(tool, sortVersions([...fresh, ...previous], compare)),
+  );
   if (!versions.length) {
     throw new Error('No versions found');
   }
@@ -205,13 +208,17 @@ export async function build({
         continue;
       }
       // with the current source, so it gets the current versioning
-      data = { ...previous, source, versions: installable(tool, previous.versions) };
+      data = {
+        ...previous,
+        source,
+        versions: fileNameSafe(tool, installable(tool, previous.versions)),
+      };
       stdout.write(
         `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
       );
     }
-    const file = await writeToolVersions(dir, withMetadata(data));
-    index.tools.push({ tool, file, versionCount: data.versions.length });
+    const files = await writeToolVersions(dir, withMetadata(data));
+    index.tools.push({ tool, versionCount: data.versions.length, ...files });
   }
 
   await writeIndex(dir, index);
