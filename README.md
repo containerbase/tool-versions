@@ -88,7 +88,7 @@ The package manager tools (`bundler`, `checkov`, `cocoapods`, `conan`, `copier`,
 
 ## Updates
 
-- **Incremental:** each build starts from the published `<tool>.full.json` files (the `<tool>.json` of the old layout while there is no full file yet, only when it still has files; as the Pages deploy replaces the whole site, the per-version files can't be fetched again). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
+- **Incremental:** each build starts from the published `<tool>.full.json` files (as the Pages deploy replaces the whole site, the per-version files can't be fetched again). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Full refresh:** run the `pages` workflow with the `full` input.
 - **Release trigger:** Renovate updates [`renovate.Dockerfile`](./renovate.Dockerfile), one line per maintained major (per minor for golang, kubectl, php, python and ruby), and the automerged update publishes a release right away; GitHub releases wait until they are 2 hours old, when all their assets are uploaded (other datasources, like docker, have no release times to wait for). Add new lines when they are released.
