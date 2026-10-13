@@ -1,7 +1,7 @@
-import { stdout } from 'node:process';
 import { z } from 'zod';
 import { type PreviousFiles, type ToolFiles, checksum, runAll, withFiles } from '../files.ts';
 import { HttpError, getJson } from '../http.ts';
+import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
   compareSemver,
@@ -191,9 +191,7 @@ async function fetchFeatureFiles(
       }
     }
   } catch (err) {
-    stdout.write(
-      `::warning::java: no files for feature ${major} (${architecture.arch}): ${String(err)}\n`,
-    );
+    logWarning(`java: no files for feature ${major} (${architecture.arch}): ${String(err)}`);
   }
 }
 

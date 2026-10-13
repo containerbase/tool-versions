@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { env, stdout } from 'node:process';
+import { env } from 'node:process';
 import { HttpError, request } from './http.ts';
+import { logNotice, logWarning } from './log.ts';
 import type { ToolFile } from './schema.ts';
 
 /** The default download budget of a build, in bytes. */
@@ -17,6 +18,24 @@ let remaining = unassigned;
 
 /** The number of files per label which were skipped as the budget was used up. */
 const skipped = new Map<string, number>();
+
+/** What was downloaded for the checksums of a tool. */
+export interface ToolDownloads {
+  /** the files whose checksum was computed */
+  files: number;
+  /** the bytes which were downloaded */
+  bytes: number;
+  /** the files which were skipped as the share of the tool was used up */
+  skipped: number;
+}
+
+/** The downloads of the tool whose turn it is. */
+let turn: ToolDownloads = { files: 0, bytes: 0, skipped: 0 };
+
+/** The budget of the build, in bytes. */
+export function downloadBudget(): number {
+  return budgetFromEnv();
+}
 
 /**
  * Reads the download budget from `TOOL_VERSIONS_DOWNLOAD_BUDGET`, in bytes.
@@ -41,6 +60,7 @@ export function resetDownloadBudget(tools = 0): void {
   waiting = tools;
   remaining = tools > 0 ? 0 : unassigned;
   skipped.clear();
+  turn = { files: 0, bytes: 0, skipped: 0 };
 }
 
 /**
@@ -50,6 +70,7 @@ export function resetDownloadBudget(tools = 0): void {
  * @param computes - whether the tool may compute files
  */
 export function startToolDownloads(computes: boolean): void {
+  turn = { files: 0, bytes: 0, skipped: 0 };
   remaining = 0;
   if (computes && waiting > 0) {
     const share = unassigned / waiting;
@@ -59,10 +80,14 @@ export function startToolDownloads(computes: boolean): void {
   }
 }
 
-/** Ends the turn of a tool, the unused part of its share goes to the next tools. */
-export function finishToolDownloads(): void {
+/**
+ * Ends the turn of a tool, the unused part of its share goes to the next tools.
+ * @returns what was downloaded in the turn
+ */
+export function finishToolDownloads(): ToolDownloads {
   unassigned += remaining;
   remaining = 0;
+  return turn;
 }
 
 /** The bytes the current tool can still download. */
@@ -78,8 +103,8 @@ export function remainingDownloadBudget(): number {
 export function reportSkippedDownloads(label: string): void {
   const count = skipped.get(label);
   if (count) {
-    stdout.write(
-      `::notice::${label}: download budget of the tool used up, the checksums of ${count} files will be computed by the next builds\n`,
+    logNotice(
+      `${label}: download budget of the tool used up, the checksums of ${count} files will be computed by the next builds`,
     );
     skipped.delete(label);
   }
@@ -91,6 +116,7 @@ export function reportSkippedDownloads(label: string): void {
  */
 function skipFile(label: string): void {
   skipped.set(label, (skipped.get(label) ?? 0) + 1);
+  turn.skipped++;
 }
 
 /**
@@ -116,11 +142,13 @@ export async function computeChecksum(url: string): Promise<string | undefined> 
   }
   if (known) {
     remaining -= length;
+    turn.bytes += length;
   }
   const hash = createHash('sha256');
   for await (const chunk of body) {
     if (!known) {
       remaining -= chunk.byteLength;
+      turn.bytes += chunk.byteLength;
       if (remaining < 0) {
         // leaving the loop cancels the stream
         return undefined;
@@ -164,10 +192,11 @@ export function computeChecksumTasks(
           return;
         }
         files.push({ name, url, checksum: sum, ...(arch && { arch }), ...(distro && { distro }) });
+        turn.files++;
       } catch (err) {
         // a file which doesn't exist upstream is no problem, other failures are
         if (!(err instanceof HttpError && err.status === 404)) {
-          stdout.write(`::warning::${label}: no checksum computed for ${url}: ${String(err)}\n`);
+          logWarning(`${label}: no checksum computed for ${url}: ${String(err)}`);
         }
       }
     });

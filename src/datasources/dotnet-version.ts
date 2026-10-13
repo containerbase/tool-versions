@@ -1,4 +1,3 @@
-import { stdout } from 'node:process';
 import { z } from 'zod';
 import {
   type Arch,
@@ -9,6 +8,7 @@ import {
   withFiles,
 } from '../files.ts';
 import { getJson } from '../http.ts';
+import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { versionings } from '../versioning.ts';
 import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
@@ -127,7 +127,7 @@ export async function fetchDotnetVersions(
       try {
         channels.push(await readChannel(url, versioning));
       } catch (err) {
-        stdout.write(`::warning::dotnet: no releases from ${url}: ${String(err)}\n`);
+        logWarning(`dotnet: no releases from ${url}: ${String(err)}`);
       }
     }),
   );

@@ -1,6 +1,6 @@
-import { stdout } from 'node:process';
 import { computeChecksumTasks } from './download.ts';
 import { HttpError, request } from './http.ts';
+import { logWarning } from './log.ts';
 import type { ToolFile, ToolVersion } from './schema.ts';
 
 /** How many requests run at once. */
@@ -145,7 +145,7 @@ export async function fetchText(url: string, label: string): Promise<string | un
     return new TextDecoder(utf16 ? 'utf-16le' : 'utf-8').decode(bytes);
   } catch (err) {
     if (!(err instanceof HttpError && err.status === 404)) {
-      stdout.write(`::warning::${label}: no checksum from ${url}: ${String(err)}\n`);
+      logWarning(`${label}: no checksum from ${url}: ${String(err)}`);
     }
     return undefined;
   }
@@ -268,7 +268,7 @@ export function assetTasks(
       }
       const sum = parseChecksumFile(text, algorithm);
       if (!sum) {
-        stdout.write(`::warning::${label}: no valid ${algorithm} digest in ${url}\n`);
+        logWarning(`${label}: no valid ${algorithm} digest in ${url}`);
       }
       return sum;
     }
@@ -348,7 +348,7 @@ export function checksumTasks(
         }
         const sum = parseChecksumFile(text, algorithm);
         if (!sum) {
-          stdout.write(`::warning::${label}: no valid ${algorithm} digest in ${checksumUrl}\n`);
+          logWarning(`${label}: no valid ${algorithm} digest in ${checksumUrl}`);
           return;
         }
         files.push({ name, url, checksum: sum, ...(arch && { arch }), ...(distro && { distro }) });
