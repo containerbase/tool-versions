@@ -3,9 +3,9 @@
   "extends": ["local>containerbase/.github:renovate-config"],
   "packageRules": [
     {
-      "description": "Allow minor updates on the renovate rebuild trigger file, the releases are linear within a major; golang, kubectl, php, python and ruby have one line per minor",
+      "description": "Allow minor updates on the renovate rebuild trigger file, the releases are linear within a major; golang, kubectl, php, python, ruby and scala have one line per minor",
       "matchFileNames": ["renovate.Dockerfile"],
-      "matchDepNames": ["!golang", "!kubectl", "!php", "!python", "!ruby"],
+      "matchDepNames": ["!golang", "!kubectl", "!php", "!python", "!ruby", "!scala"],
       "matchUpdateTypes": ["minor"],
       "enabled": true
     },

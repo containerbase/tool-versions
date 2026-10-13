@@ -9,6 +9,7 @@ import { fetchHaskellDownloads } from './haskell-downloads.ts';
 import { fetchJavaVersions } from './java-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
 import { fetchNpmVersions } from './npm.ts';
+import { fetchNugetExeVersions } from './nuget-exe.ts';
 import { fetchNugetVersions } from './nuget.ts';
 import { fetchPypiVersions } from './pypi.ts';
 import { fetchRubygemsVersions } from './rubygems.ts';
@@ -44,6 +45,7 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'node-version': fetchNodeVersions,
   npm: fetchNpmVersions,
   nuget: fetchNugetVersions,
+  'nuget-exe': fetchNugetExeVersions,
   pypi: fetchPypiVersions,
   rubygems: fetchRubygemsVersions,
 };

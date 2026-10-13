@@ -13,6 +13,7 @@ export const DatasourceName = z.enum([
   'node-version',
   'npm',
   'nuget',
+  'nuget-exe',
   'pypi',
   'rubygems',
 ]);

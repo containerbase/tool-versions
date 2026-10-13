@@ -2,7 +2,7 @@
 # renovate rebuild trigger
 # Each update is pushed to main, which runs the pages workflow and publishes
 # the new versions without waiting for the nightly run. There is one line per
-# major (per minor for golang, kubectl, php, python and ruby). New lines are picked up
+# major (per minor for golang, kubectl, php, python, ruby and scala). New lines are picked up
 # by the nightly run, add them here when they are released.
 #-------------------------
 
@@ -57,6 +57,9 @@ ENV COREPACK_VERSION=0.36.0
 
 # renovate: datasource=github-releases depName=deno packageName=denoland/deno
 ENV DENO_VERSION=2.9.7
+
+# renovate: datasource=github-releases depName=docker packageName=moby/moby
+ENV DOCKER_VERSION=28.5.2
 
 # renovate: datasource=github-releases depName=devbox packageName=jetify-com/devbox
 ENV DEVBOX_VERSION=0.18.4
@@ -185,6 +188,9 @@ ENV NPM_VERSION=11.21.0
 # renovate: datasource=npm depName=npm
 ENV NPM_VERSION=12.2.0
 
+# renovate: datasource=nuget depName=nuget packageName=NuGet.CommandLine
+ENV NUGET_VERSION=7.9.0
+
 # renovate: datasource=github-releases depName=nub packageName=nubjs/nub
 ENV NUB_VERSION=0.9.6
 
@@ -268,6 +274,12 @@ ENV SBT_VERSION=1.13.0
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
 ENV SBT_VERSION=2.0.10
+
+# renovate: datasource=github-releases depName=scala packageName=scala/scala
+ENV SCALA_VERSION=2.12.20
+
+# renovate: datasource=github-releases depName=scala packageName=scala/scala
+ENV SCALA_VERSION=2.13.16
 
 # renovate: datasource=github-releases depName=skopeo packageName=containerbase/skopeo-prebuild
 ENV SKOPEO_VERSION=1.24.1

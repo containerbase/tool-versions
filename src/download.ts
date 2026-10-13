@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { env, stdout } from 'node:process';
-import { request } from './http.ts';
+import { HttpError, request } from './http.ts';
 import type { ToolFile } from './schema.ts';
 
 /** The default download budget of a build, in bytes. */
@@ -143,7 +143,7 @@ export interface ComputedFile {
  * Creates the tasks which compute the checksums of files which have no
  * published one, by downloading them. Files which are known already aren't
  * downloaded again. A failed download skips the file with a warning, the next
- * build tries again. When the budget is used up the files are skipped, see
+ * build tries again, a missing file (404) is skipped silently. When the budget is used up the files are skipped, see
  * `reportSkippedDownloads`.
  * @param label - names the tool or package in warnings
  * @param candidates - the files of a version, newest version first across calls
@@ -165,7 +165,10 @@ export function computeChecksumTasks(
         }
         files.push({ name, url, checksum: sum, ...(arch && { arch }), ...(distro && { distro }) });
       } catch (err) {
-        stdout.write(`::warning::${label}: no checksum computed for ${url}: ${String(err)}\n`);
+        // a file which doesn't exist upstream is no problem, other failures are
+        if (!(err instanceof HttpError && err.status === 404)) {
+          stdout.write(`::warning::${label}: no checksum computed for ${url}: ${String(err)}\n`);
+        }
       }
     });
 }

@@ -1,6 +1,6 @@
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { describe, expect, it } from 'vitest';
-import type { AssetTemplate } from './files.ts';
+import { type AssetTemplate, mayCompute } from './files.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
@@ -272,7 +272,7 @@ describe('tools', () => {
         typeof template === 'object' && template.computeMissing ? [tool] : [],
       );
 
-      expect(computed.sort()).toEqual(['bazelisk', 'jb', 'protoc']);
+      expect(computed.sort()).toEqual(['bazelisk', 'jb', 'protoc', 'scala']);
       expect(old.sort()).toEqual([
         'buildx',
         'docker-compose',
@@ -300,6 +300,48 @@ describe('tools', () => {
         packageName: 'protocolbuffers/protobuf',
         versioning: 'docker',
       });
+    });
+
+    it('maps docker, nuget and scala to their sources', () => {
+      expect(
+        ['docker', 'nuget', 'scala'].map((tool) => [tool, toolSources[tool]?.datasource]),
+      ).toEqual([
+        ['docker', 'github-releases'],
+        ['nuget', 'nuget-exe'],
+        ['scala', 'github-releases'],
+      ]);
+      expect(toolSources['docker']?.packageName).toBe('moby/moby');
+      expect(toolSources['nuget']).toMatchObject({ packageName: 'nuget.exe', versioning: 'nuget' });
+      expect(toolSources['scala']?.packageName).toBe('scala/scala');
+    });
+
+    it('lists the static docker builds of both architectures, computing their checksums', () => {
+      const docker = toolFiles['docker'];
+      const files = typeof docker === 'function' ? docker('28.5.2') : [];
+
+      expect(mayCompute(docker)).toBe(true);
+      expect(files).toEqual([
+        {
+          name: 'docker-28.5.2-x86_64.tgz',
+          url: 'https://download.docker.com/linux/static/stable/x86_64/docker-28.5.2.tgz',
+          checksumUrls: [],
+          algorithm: 'sha256',
+          compute: true,
+          arch: 'amd64',
+        },
+        {
+          name: 'docker-28.5.2-aarch64.tgz',
+          url: 'https://download.docker.com/linux/static/stable/aarch64/docker-28.5.2.tgz',
+          checksumUrls: [],
+          algorithm: 'sha256',
+          compute: true,
+          arch: 'arm64',
+        },
+      ]);
+      const scala = toolFiles['scala'];
+      expect(typeof scala === 'object' ? scala.files('2.13.16') : []).toEqual([
+        { name: 'scala-2.13.16.tgz' },
+      ]);
     });
 
     it('maps android-sdk-cmdline-tools to the android sdk repository', () => {
