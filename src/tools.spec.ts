@@ -264,6 +264,17 @@ describe('tools', () => {
       });
     });
 
+    it('maps android-sdk-cmdline-tools to the android sdk repository', () => {
+      expect(toolSources['android-sdk-cmdline-tools']).toEqual({
+        datasource: 'android-sdk',
+        packageName: 'cmdline-tools',
+        versioning: 'docker',
+      });
+      expect(toolLinks['android-sdk-cmdline-tools']).toEqual({
+        homepage: 'https://developer.android.com/tools',
+      });
+    });
+
     it('lists the rust archives, gz before 1.19.0', () => {
       const rust = toolFiles['rust'];
       const files = (version: string): unknown[] | undefined =>

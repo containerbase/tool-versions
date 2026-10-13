@@ -28,6 +28,11 @@ function github(repository: string, versioning: Source['versioning'] = 'semver')
  * one Renovate uses for the tool.
  */
 export const toolSources: Record<string, Source> = {
+  'android-sdk-cmdline-tools': {
+    datasource: 'android-sdk',
+    packageName: 'cmdline-tools',
+    versioning: 'docker',
+  },
   apko: github('chainguard-dev/apko'),
   apm: github('microsoft/apm'),
   buf: github('bufbuild/buf'),
@@ -106,6 +111,9 @@ export interface ToolLinks {
 
 /** The source code and homepage of the tools. */
 export const toolLinks: Record<string, ToolLinks> = {
+  'android-sdk-cmdline-tools': {
+    homepage: 'https://developer.android.com/tools',
+  },
   apko: { sourceUrl: 'https://github.com/chainguard-dev/apko' },
   apm: { sourceUrl: 'https://github.com/microsoft/apm' },
   buf: { sourceUrl: 'https://github.com/bufbuild/buf', homepage: 'https://buf.build' },
