@@ -1,4 +1,3 @@
-import { stdout } from 'node:process';
 import { z } from 'zod';
 import {
   type PreviousFiles,
@@ -9,6 +8,7 @@ import {
   withFiles,
 } from '../files.ts';
 import { getJson } from '../http.ts';
+import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
   compareSemver,
@@ -98,7 +98,7 @@ async function fetchPrebuildFiles(previous: PreviousFiles): Promise<Map<string, 
       }),
     );
   } catch (err) {
-    stdout.write(`::warning::node: no prebuild files: ${String(err)}\n`);
+    logWarning(`node: no prebuild files: ${String(err)}`);
     return new Map();
   }
 }

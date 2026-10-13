@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { stdout } from 'node:process';
 import { z } from 'zod';
+import { logWarning } from './log.ts';
 import { ToolIndex, ToolVersions, VersionFiles, VersionIntegrity } from './schema.ts';
 
 /** The characters of a version which are safe in a file name. */
@@ -21,8 +21,8 @@ export type ToolFiles = Pick<ToolIndex['tools'][number], 'slim' | 'versionFiles'
 export function fileNameSafe<T extends { version: string }>(tool: string, versions: T[]): T[] {
   const unsafe = versions.filter(({ version }) => !safeVersion.test(version));
   if (unsafe.length) {
-    stdout.write(
-      `::warning::${tool}: leaving out versions which are not safe in a file name: ${unsafe.map(({ version }) => version).join(', ')}\n`,
+    logWarning(
+      `${tool}: leaving out versions which are not safe in a file name: ${unsafe.map(({ version }) => version).join(', ')}`,
     );
   }
   return versions.filter(({ version }) => safeVersion.test(version));

@@ -48,6 +48,8 @@ describe('build', () => {
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'tool-versions-'));
     vi.stubEnv('TOOL_VERSIONS_URL', pages);
+    // no job summary, unless a test sets one
+    vi.stubEnv('GITHUB_STEP_SUMMARY', '');
     output = [];
     vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
       output.push(String(chunk));
@@ -675,6 +677,101 @@ describe('build', () => {
     });
     expect(await read('pnpm.json')).not.toContain('files');
     expect(output.filter((line) => line.startsWith('::warning'))).toEqual([]);
+  });
+
+  describe('job summary', () => {
+    /** The previous file of the `npm` tool, which has one version. */
+    const previousNpm: ToolVersions = {
+      tool: 'npm',
+      source: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [{ version: '10.0.0' }],
+    };
+
+    it('writes the summary of a build with an updated, a kept and a failed tool', async () => {
+      const summary = join(dir, 'summary.md');
+      vi.stubEnv('GITHUB_STEP_SUMMARY', summary);
+      nock(pages)
+        .get('/pnpm.full.json')
+        .reply(200, previousPnpm([{ version: '9.0.0' }]))
+        .get('/npm.full.json')
+        .reply(200, previousNpm)
+        .get('/corepack.full.json')
+        .reply(404);
+      nock(registry)
+        .get('/pnpm')
+        .times(2)
+        .reply(200, { versions: { '9.0.0': {}, '10.0.0': {} } })
+        .get('/npm')
+        .times(3)
+        .reply(500)
+        .get('/corepack')
+        .times(3)
+        .reply(500);
+      const times = [1000, 13_000];
+
+      await build({
+        dir,
+        sources: {
+          pnpm: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
+          npm: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
+          corepack: { datasource: 'npm', packageName: 'corepack', versioning: 'npm' },
+        },
+        now,
+        clock: () => times.shift() ?? 0,
+      });
+
+      expect(await readFile(summary, 'utf8')).toBe(
+        [
+          '## Build summary',
+          '',
+          'Incremental build in 12 s. Tools updated: 1, kept previous: 1, failed: 1. Versions: 3.',
+          '',
+          '### Download budget',
+          '',
+          'Budget: 3.0 GiB, used: 0 B. Computed checksums: 0, waiting for the next builds: 0.',
+          '',
+          '### Tools',
+          '',
+          '| Tool | Status | Versions | New | Files added | Computed | Warnings |',
+          '| --- | --- | ---: | ---: | ---: | --- | ---: |',
+          '| corepack | failed | 0 | 0 | 0 | – | 1 |',
+          '| npm | kept previous | 1 | 0 | 0 | – | 1 |',
+          '| pnpm | updated | 2 | 1 | 0 | – | 0 |',
+          '',
+          '### Warnings and errors',
+          '',
+          '<details><summary>corepack: 1 message</summary>',
+          '',
+          '- **error** corepack: HttpError: GET https://registry.npmjs.org/corepack failed with status 500',
+          '',
+          '</details>',
+          '',
+          '<details><summary>npm: 1 message</summary>',
+          '',
+          '- **warning** npm: HttpError: GET https://registry.npmjs.org/npm failed with status 500, keeping the versions from 2026-10-07T03:00:00.000Z',
+          '',
+          '</details>',
+          '',
+        ].join('\n'),
+      );
+      // the log lines are written as before
+      expect(output).toContain(
+        '::error::corepack: HttpError: GET https://registry.npmjs.org/corepack failed with status 500\n',
+      );
+    });
+
+    it('writes no summary without GITHUB_STEP_SUMMARY', async () => {
+      nock(pages).get('/pnpm.full.json').reply(404);
+      nock(registry)
+        .get('/pnpm')
+        .times(2)
+        .reply(200, { versions: { '9.0.0': {} } });
+
+      await build({ dir, sources: pnpmSource, now });
+
+      expect(await readdir(dir)).not.toContain('summary.md');
+    });
   });
 
   it('ignores a previous file of another source', async () => {

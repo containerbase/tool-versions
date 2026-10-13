@@ -1,9 +1,15 @@
 import { mkdir } from 'node:fs/promises';
-import { stdout } from 'node:process';
+import { env, stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
-import { finishToolDownloads, resetDownloadBudget, startToolDownloads } from './download.ts';
+import {
+  downloadBudget,
+  finishToolDownloads,
+  resetDownloadBudget,
+  startToolDownloads,
+} from './download.ts';
 import { isUnsupportedDistro, mayCompute } from './files.ts';
+import { type LogEntry, collectLogs, logError, logWarning } from './log.ts';
 import { fileNameSafe, writeIndex, writeSchemas, writeToolVersions } from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type {
@@ -13,6 +19,7 @@ import type {
   ToolVersion,
   ToolVersions,
 } from './schema.ts';
+import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { versionings } from './versioning.ts';
 import { sortVersions } from './versions.ts';
@@ -29,6 +36,8 @@ export interface BuildOptions {
   now?: Date;
   /** fetch every version again, without the previously published files */
   full?: boolean;
+  /** the time in milliseconds, for the duration in the job summary */
+  clock?: () => number;
 }
 
 /**
@@ -190,6 +199,7 @@ export async function build({
   sources = toolSources,
   now = new Date(),
   full = false,
+  clock = () => performance.now(),
 }: BuildOptions): Promise<string[]> {
   const unknown = Object.keys(sources).filter((tool) => !Object.hasOwn(tools, tool));
   if (unknown.length) {
@@ -205,12 +215,16 @@ export async function build({
   const updatedAt = now.toISOString();
   const index: ToolIndex = { updatedAt, tools: [] };
   const failed: string[] = [];
+  const report = new BuildReport(full, downloadBudget(), clock());
 
   for (const [tool, source] of Object.entries(sources)) {
     const loaded = await loadPrevious(tool, source, full);
     const previous = loaded && cleanFiles(loaded);
-    let data: ToolVersions;
+    const logs: LogEntry[] = [];
+    let data: ToolVersions | undefined;
+    let status: ToolStatus = 'updated';
     startToolDownloads(computesChecksums(tool, source));
+    collectLogs(logs);
     try {
       data = {
         tool,
@@ -220,22 +234,42 @@ export async function build({
       };
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {
-      if (!previous) {
+      if (previous) {
+        // with the current source, so it gets the current versioning
+        data = {
+          ...previous,
+          source,
+          versions: fileNameSafe(tool, installable(tool, previous.versions)),
+        };
+        status = 'kept previous';
+        logWarning(`${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}`);
+      } else {
+        status = 'failed';
         failed.push(tool);
-        stdout.write(`::error::${tool}: ${String(err)}\n`);
-        continue;
+        logError(`${tool}: ${String(err)}`);
       }
-      // with the current source, so it gets the current versioning
-      data = {
-        ...previous,
-        source,
-        versions: fileNameSafe(tool, installable(tool, previous.versions)),
-      };
-      stdout.write(
-        `::warning::${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}\n`,
-      );
     } finally {
-      finishToolDownloads();
+      collectLogs(undefined);
+    }
+    const downloads = finishToolDownloads();
+    report.add({
+      tool,
+      status,
+      versions: data?.versions.length ?? 0,
+      newVersions: data
+        ? countNew(
+            data.versions.map(({ version }) => version),
+            previous?.versions,
+          )
+        : 0,
+      filesAdded: data ? countNewFiles(data.versions, previous?.versions ?? []) : 0,
+      computedFiles: downloads.files,
+      computedBytes: downloads.bytes,
+      waitingFiles: downloads.skipped,
+      logs: logs.filter(({ level }) => level !== 'notice'),
+    });
+    if (!data) {
+      continue;
     }
     const files = await writeToolVersions(dir, withMetadata(data));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });
@@ -243,5 +277,19 @@ export async function build({
 
   await writeIndex(dir, index);
   await writeSchemas(dir);
+  const summaryFile = env['GITHUB_STEP_SUMMARY'];
+  if (summaryFile) {
+    await writeSummary(summaryFile, report.render(clock()));
+  }
   return failed;
+}
+
+/**
+ * Counts the versions which weren't in the previous file.
+ * @param versions - the published versions
+ * @param previous - the versions of the previous file, if there is one
+ */
+function countNew(versions: string[], previous: ToolVersion[] | undefined): number {
+  const known = new Set(previous?.map(({ version }) => version));
+  return versions.filter((version) => !known.has(version)).length;
 }
