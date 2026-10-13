@@ -11,16 +11,20 @@ const file = {
 
 describe('schema', () => {
   describe('ToolFile', () => {
-    it('accepts sha256 and sha512 checksums', () => {
+    it('accepts sha1, sha256 and sha512 checksums', () => {
       expect(ToolFile.parse(file)).toEqual(file);
       const sha256 = { name: 'a.tgz', url: file.url, checksum: `sha256:${'b'.repeat(64)}` };
       expect(ToolFile.parse(sha256)).toEqual(sha256);
+      const sha1 = { name: 'a.zip', url: file.url, checksum: `sha1:${'c'.repeat(40)}` };
+      expect(ToolFile.parse(sha1)).toEqual(sha1);
     });
 
     it.each([
       ['ab12'],
       ['sha256:ab12'],
-      ['sha1:' + 'a'.repeat(40)],
+      ['sha1:' + 'a'.repeat(39)],
+      ['sha1:' + 'A'.repeat(40)],
+      ['md5:' + 'a'.repeat(32)],
       [`sha512:${'a'.repeat(64)}`],
       [`sha256:${'A'.repeat(64)}`],
       [`sha256:${'x'.repeat(64)}`],

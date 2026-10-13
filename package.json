@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@containerbase/base": "14.32.1",
+    "@nodable/flexible-xml-parser": "1.11.3",
     "@renovatebot/pep440": "5.0.1",
     "@renovatebot/ruby-semver": "5.0.0",
     "semver": "7.8.5",

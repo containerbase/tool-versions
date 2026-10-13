@@ -9,10 +9,10 @@ const concurrency = 8;
 export type PreviousFiles = ReadonlyMap<string, readonly ToolFile[]>;
 
 /** The checksum algorithms of the checksum files. */
-export type Algorithm = 'sha256' | 'sha512';
+export type Algorithm = 'sha1' | 'sha256' | 'sha512';
 
 /** The length of a hex digest by algorithm. */
-const digestLengths: Record<Algorithm, number> = { sha256: 64, sha512: 128 };
+const digestLengths: Record<Algorithm, number> = { sha1: 40, sha256: 64, sha512: 128 };
 
 /** A file whose checksum is read from a checksum file. */
 export interface FileCandidate {

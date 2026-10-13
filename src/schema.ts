@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
+  'android-sdk',
   'dart-version',
   'github-releases',
   'gradle-version',
@@ -47,7 +48,7 @@ export const ToolFile = z.object({
   /** the https download url */
   url: z.url({ protocol: /^https$/ }),
   /** `<algorithm>:<lowercase hex>` */
-  checksum: z.string().regex(/^(sha256:[0-9a-f]{64}|sha512:[0-9a-f]{128})$/),
+  checksum: z.string().regex(/^(sha1:[0-9a-f]{40}|sha256:[0-9a-f]{64}|sha512:[0-9a-f]{128})$/),
   /** the containerbase arch, omitted for arch-independent files */
   arch: z.enum(['amd64', 'arm64']).optional(),
   /** the distro of a distro specific file, like `jammy` */
