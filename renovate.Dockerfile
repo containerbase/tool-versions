@@ -50,7 +50,7 @@ ENV COMPOSER_VERSION=2.10.3
 ENV CONAN_VERSION=2.33.0
 
 # renovate: datasource=pypi depName=copier
-ENV COPIER_VERSION=9.19.0
+ENV COPIER_VERSION=9.19.1
 
 # renovate: datasource=npm depName=corepack
 ENV COREPACK_VERSION=0.36.0
