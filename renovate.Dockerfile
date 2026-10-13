@@ -288,7 +288,7 @@ ENV SBT_VERSION=2.0.10
 ENV SCALA_VERSION=2.12.21
 
 # renovate: datasource=github-releases depName=scala packageName=scala/scala
-ENV SCALA_VERSION=2.13.16
+ENV SCALA_VERSION=2.13.18
 
 # renovate: datasource=github-releases depName=skopeo packageName=containerbase/skopeo-prebuild
 ENV SKOPEO_VERSION=1.24.1
