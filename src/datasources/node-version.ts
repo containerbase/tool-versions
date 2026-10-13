@@ -1,3 +1,4 @@
+import { stdout } from 'node:process';
 import { z } from 'zod';
 import {
   type PreviousFiles,
@@ -17,6 +18,7 @@ import {
   toTimestamp,
   toolVersion,
 } from '../versions.ts';
+import { fetchGithubReleases } from './github-releases.ts';
 
 const NodeReleases = z.array(
   z.object({
@@ -66,11 +68,48 @@ async function fetchNodeFiles(version: string, files: ToolFile[]): Promise<void>
   }
 }
 
+/** The repository of the containerbase node prebuilds. */
+const prebuildRepository = 'containerbase/node-prebuild';
+
+/**
+ * Fetches the files of the containerbase node prebuilds, which the CLI prefers
+ * to the nodejs.org archives: the assets of the `containerbase/node-prebuild`
+ * releases which have a `.sha512` file, with their arch and distro. The release
+ * list is one paged GitHub request source and stops after the first page with
+ * a version which already has a prebuild file. A failure only prints a warning,
+ * the prebuild files of the previous build stay.
+ * @param previous - the already known files by version
+ * @returns the files of the prebuilds by version, without the other files
+ */
+async function fetchPrebuildFiles(previous: PreviousFiles): Promise<Map<string, ToolFile[]>> {
+  const isPrebuild = (version: string, file: ToolFile): boolean =>
+    file.name.startsWith(`node-${version}-`);
+  const known = new Set(
+    [...previous].flatMap(([version, files]) =>
+      files.some((file) => isPrebuild(version, file)) ? [version] : [],
+    ),
+  );
+  try {
+    const releases = await fetchGithubReleases(prebuildRepository, known, previous);
+    return new Map(
+      releases.flatMap(({ version, files }) => {
+        const prebuilds = files?.filter((file) => isPrebuild(version, file)) ?? [];
+        return prebuilds.length ? [[version, prebuilds] as const] : [];
+      }),
+    );
+  } catch (err) {
+    stdout.write(`::warning::node: no prebuild files: ${String(err)}\n`);
+    return new Map();
+  }
+}
+
 /**
  * Fetches the node releases from nodejs.org, like the containerbase node
  * resolver. The leading `v` is dropped and a release with an lts codename is
  * flagged as lts. The linux archives come with their sha256 from the
- * `SHASUMS256.txt` of the release, known files are not fetched again.
+ * `SHASUMS256.txt` of the release, and the containerbase prebuilds with their
+ * sha512 from the `containerbase/node-prebuild` releases. Known files are not
+ * fetched again.
  * @param _packageName - unused, nodejs.org only has node
  * @param _known - unused, nodejs.org lists all releases at once
  * @param previous - the already known files by version
@@ -106,6 +145,14 @@ export async function fetchNodeVersions(
             fetchNodeFiles(entry.version, files),
       ),
     );
+    const prebuilds = await fetchPrebuildFiles(previous);
+    for (const { entry, files } of versions) {
+      for (const file of prebuilds.get(entry.version) ?? []) {
+        if (!files.some(({ name }) => name === file.name)) {
+          files.push(file);
+        }
+      }
+    }
   }
   return sortVersions(
     versions.map(({ entry, files }) => withFiles(entry, files)),
