@@ -34,12 +34,14 @@ export const toolSources: Record<string, Source> = {
   buildx: github('docker/buildx'),
   bun: github('oven-sh/bun'),
   bundler: { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' },
+  cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'docker' },
   checkov: { datasource: 'pypi', packageName: 'checkov', versioning: 'pep440' },
   cocoapods: { datasource: 'rubygems', packageName: 'cocoapods', versioning: 'ruby' },
   composer: prebuild('composer'),
   conan: { datasource: 'pypi', packageName: 'conan', versioning: 'pep440' },
   copier: { datasource: 'pypi', packageName: 'copier', versioning: 'pep440' },
   corepack: { datasource: 'npm', packageName: 'corepack', versioning: 'npm' },
+  dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
   deno: github('denoland/deno'),
   devbox: github('jetify-com/devbox'),
   'docker-compose': github('docker/compose'),
@@ -50,12 +52,15 @@ export const toolSources: Record<string, Source> = {
   gh: github('cli/cli'),
   'git-lfs': github('git-lfs/git-lfs'),
   gleam: github('gleam-lang/gleam'),
+  ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'docker' },
   golang: prebuild('golang'),
   gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
   hashin: { datasource: 'pypi', packageName: 'hashin', versioning: 'pep440' },
   helm: github('helm/helm'),
   helmfile: github('helmfile/helmfile'),
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+  'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+  'java-jre': { datasource: 'java-version', packageName: 'java-jre', versioning: 'npm' },
   kas: { datasource: 'pypi', packageName: 'kas', versioning: 'pep440' },
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
@@ -78,6 +83,7 @@ export const toolSources: Record<string, Source> = {
   python: prebuild('python', 'python'),
   renovate: { datasource: 'npm', packageName: 'renovate', versioning: 'npm' },
   ruby: prebuild('ruby', 'ruby'),
+  rust: github('rust-lang/rust'),
   sbt: github('sbt/sbt'),
   skopeo: prebuild('skopeo'),
   sops: github('getsops/sops'),
@@ -110,6 +116,10 @@ export const toolLinks: Record<string, ToolLinks> = {
   bun: { sourceUrl: 'https://github.com/oven-sh/bun', homepage: 'https://bun.sh' },
   // bundler lives in the rubygems repository
   bundler: { sourceUrl: 'https://github.com/rubygems/rubygems', homepage: 'https://bundler.io' },
+  cabal: {
+    sourceUrl: 'https://github.com/haskell/cabal',
+    homepage: 'https://www.haskell.org/cabal',
+  },
   checkov: {
     sourceUrl: 'https://github.com/bridgecrewio/checkov',
     homepage: 'https://www.checkov.io',
@@ -144,18 +154,22 @@ export const toolLinks: Record<string, ToolLinks> = {
     sourceUrl: 'https://github.com/elixir-lang/elixir',
     homepage: 'https://elixir-lang.org',
   },
+  dart: { sourceUrl: 'https://github.com/dart-lang/sdk', homepage: 'https://dart.dev' },
   erlang: { sourceUrl: 'https://github.com/erlang/otp', homepage: 'https://www.erlang.org' },
   flutter: { sourceUrl: 'https://github.com/flutter/flutter', homepage: 'https://flutter.dev' },
   flux: { sourceUrl: 'https://github.com/fluxcd/flux2', homepage: 'https://fluxcd.io' },
   gh: { sourceUrl: 'https://github.com/cli/cli', homepage: 'https://cli.github.com' },
   'git-lfs': { sourceUrl: 'https://github.com/git-lfs/git-lfs', homepage: 'https://git-lfs.com' },
   gleam: { sourceUrl: 'https://github.com/gleam-lang/gleam', homepage: 'https://gleam.run' },
+  ghc: { sourceUrl: 'https://gitlab.haskell.org/ghc/ghc', homepage: 'https://www.haskell.org/ghc' },
   golang: { sourceUrl: 'https://github.com/golang/go', homepage: 'https://go.dev' },
   gradle: { sourceUrl: 'https://github.com/gradle/gradle', homepage: 'https://gradle.org' },
   hashin: { sourceUrl: 'https://github.com/peterbe/hashin' },
   helm: { sourceUrl: 'https://github.com/helm/helm', homepage: 'https://helm.sh' },
   helmfile: { sourceUrl: 'https://github.com/helmfile/helmfile' },
   java: { homepage: 'https://adoptium.net' },
+  'java-jdk': { homepage: 'https://adoptium.net' },
+  'java-jre': { homepage: 'https://adoptium.net' },
   kas: { sourceUrl: 'https://github.com/siemens/kas', homepage: 'https://kas.readthedocs.io' },
   kubectl: {
     sourceUrl: 'https://github.com/kubernetes/kubernetes',
@@ -199,6 +213,7 @@ export const toolLinks: Record<string, ToolLinks> = {
     homepage: 'https://docs.renovatebot.com',
   },
   ruby: { sourceUrl: 'https://github.com/ruby/ruby', homepage: 'https://www.ruby-lang.org' },
+  rust: { sourceUrl: 'https://github.com/rust-lang/rust', homepage: 'https://www.rust-lang.org' },
   sbt: { sourceUrl: 'https://github.com/sbt/sbt', homepage: 'https://www.scala-sbt.org' },
   skopeo: { sourceUrl: 'https://github.com/containers/skopeo' },
   sops: { sourceUrl: 'https://github.com/getsops/sops', homepage: 'https://getsops.io' },
@@ -375,6 +390,30 @@ export const toolFiles: Record<string, ToolFiles> = {
       const checksumUrls = [`${url}.sha256sum`, `${url}.sha256`];
       return { name, url, checksumUrls, algorithm: 'sha256', arch };
     }),
+  dart: (version) =>
+    // the containerbase installer doesn't support versions below 2
+    semver.major(version) < 2
+      ? []
+      : (['amd64', 'arm64'] as const).map((arch) => {
+          const name = `dartsdk-linux-${arch === 'amd64' ? 'x64' : 'arm64'}-release.zip`;
+          const url = `https://storage.googleapis.com/dart-archive/channels/stable/release/${version}/sdk/${name}`;
+          return {
+            name,
+            url,
+            checksumUrls: [`${url}.sha256sum`],
+            algorithm: 'sha256',
+            arch,
+          };
+        }),
+  rust: (version) => {
+    // `.tar.xz` since 1.19.0, the `.tar.gz` ones before
+    const ext = semver.gte(version, '1.19.0') ? 'xz' : 'gz';
+    return (['amd64', 'arm64'] as const).map((arch) => {
+      const name = `rust-${version}-${arch === 'amd64' ? 'x86_64' : 'aarch64'}-unknown-linux-gnu.tar.${ext}`;
+      const url = `https://static.rust-lang.org/dist/${name}`;
+      return { name, url, checksumUrls: [`${url}.sha256`], algorithm: 'sha256', arch };
+    });
+  },
   kubectl: (version) =>
     (['amd64', 'arm64'] as const).map((arch) => {
       // the file name is the one of the containerbase download, the binary is

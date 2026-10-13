@@ -31,6 +31,9 @@ ENV BUNDLER_VERSION=2.7.2
 # renovate: datasource=rubygems depName=bundler versioning=ruby
 ENV BUNDLER_VERSION=4.0.22
 
+# renovate: datasource=github-releases depName=cabal packageName=haskell/cabal versioning=docker
+ENV CABAL_VERSION=3.18.2.0
+
 # renovate: datasource=pypi depName=checkov
 ENV CHECKOV_VERSION=3.3.28
 
@@ -96,6 +99,12 @@ ENV GRADLE_VERSION=8.14.6
 
 # renovate: datasource=gradle-version depName=gradle versioning=gradle
 ENV GRADLE_VERSION=9.8.1
+
+# renovate: datasource=dart-version depName=dart
+ENV DART_VERSION=3.13.5
+
+# renovate: datasource=docker depName=ghc packageName=haskell versioning=docker
+ENV GHC_VERSION=9.14.1
 
 # renovate: datasource=pypi depName=hashin
 ENV HASHIN_VERSION=1.0.5
@@ -241,6 +250,9 @@ ENV RUBY_VERSION=3.4.11
 
 # renovate: datasource=github-releases depName=ruby packageName=containerbase/ruby-prebuild versioning=ruby
 ENV RUBY_VERSION=4.0.7
+
+# renovate: datasource=github-releases depName=rust packageName=rust-lang/rust
+ENV RUST_VERSION=1.99.0
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
 ENV SBT_VERSION=1.13.0

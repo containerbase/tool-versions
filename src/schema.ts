@@ -3,9 +3,11 @@ import { z } from 'zod';
 
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
+  'dart-version',
   'github-releases',
   'gradle-version',
   'hashicorp-releases',
+  'haskell-downloads',
   'java-version',
   'node-version',
   'npm',
