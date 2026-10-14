@@ -32,7 +32,7 @@ ENV BUN_VERSION=1.4.3
 ENV BUNDLER_VERSION=2.7.2
 
 # renovate: datasource=rubygems depName=bundler versioning=ruby
-ENV BUNDLER_VERSION=4.0.22
+ENV BUNDLER_VERSION=4.0.23
 
 # renovate: datasource=github-releases depName=cabal packageName=haskell/cabal versioning=docker
 ENV CABAL_VERSION=3.18.2.0
