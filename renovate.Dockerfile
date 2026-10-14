@@ -309,7 +309,7 @@ ENV UV_VERSION=0.13.1
 ENV VENDIR_VERSION=0.46.2
 
 # renovate: datasource=github-releases depName=vp packageName=voidzero-dev/vite-plus
-ENV VP_VERSION=1.1.0
+ENV VP_VERSION=1.2.0
 
 # renovate: datasource=github-releases depName=wally packageName=containerbase/wally-prebuild
 ENV WALLY_VERSION=0.3.2
