@@ -63,6 +63,28 @@ describe('datasources/haskell-downloads', () => {
     ]);
   });
 
+  it('skips the releases older than the minimum version, without reading their SHA256SUMS', async () => {
+    nock(host)
+      .get('/~ghc/')
+      .reply(200, ['<a href="9.8.2/">9.8.2/</a>', '<a href="8.8.4/">8.8.4/</a>'].join('\n'))
+      .get('/~ghc/9.8.2/SHA256SUMS')
+      .reply(404);
+    // an unmocked request of the old release would fail the fetch
+
+    await expect(
+      fetchHaskellDownloads(
+        'ghc',
+        undefined,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        'docker',
+        '8.10.1',
+      ),
+    ).resolves.toEqual([{ version: '9.8.2' }]);
+  });
+
   it('reads the cabal releases, with the build of the version', async () => {
     nock(host)
       .get('/~cabal/')
