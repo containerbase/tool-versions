@@ -1,6 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>containerbase/.github:renovate-config"],
+  "extends": [
+    "local>containerbase/.github:renovate-config",
+    "local>containerbase/.github:merge-queue"
+  ],
   "packageRules": [
     {
       "description": "Allow minor updates on the renovate rebuild trigger file, the releases are linear within a major; golang, kubectl, php, python, ruby and scala have one line per minor",
