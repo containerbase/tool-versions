@@ -17,6 +17,7 @@ export const DatasourceName = z.enum([
   'nuget-exe',
   'pypi',
   'rubygems',
+  'swift-releases',
 ]);
 export type DatasourceName = z.infer<typeof DatasourceName>;
 

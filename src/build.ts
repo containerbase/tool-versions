@@ -214,8 +214,12 @@ async function fetchVersions(
  * @param source - the source of the tool
  */
 function computesChecksums(tool: string, source: Source): boolean {
-  // the nuget.exe datasource computes the checksum of every release
-  return mayCompute(toolFiles[tool]) || source.datasource === 'nuget-exe';
+  // the nuget.exe and swift datasources compute the checksum of every release
+  return (
+    mayCompute(toolFiles[tool]) ||
+    source.datasource === 'nuget-exe' ||
+    source.datasource === 'swift-releases'
+  );
 }
 
 /**

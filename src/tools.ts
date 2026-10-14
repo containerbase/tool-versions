@@ -105,6 +105,7 @@ export const toolSources: Record<string, Source> = {
   scala: github('scala/scala'),
   skopeo: prebuild('skopeo'),
   sops: github('getsops/sops'),
+  swift: { datasource: 'swift-releases', packageName: 'swift', versioning: 'docker' },
   terraform: { datasource: 'hashicorp-releases', packageName: 'terraform', versioning: 'semver' },
   tofu: github('opentofu/opentofu'),
   uv: { datasource: 'pypi', packageName: 'uv', versioning: 'pep440' },
@@ -251,6 +252,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   scala: { sourceUrl: 'https://github.com/scala/scala', homepage: 'https://www.scala-lang.org' },
   skopeo: { sourceUrl: 'https://github.com/containers/skopeo' },
   sops: { sourceUrl: 'https://github.com/getsops/sops', homepage: 'https://getsops.io' },
+  swift: { sourceUrl: 'https://github.com/swiftlang/swift', homepage: 'https://www.swift.org' },
   terraform: {
     sourceUrl: 'https://github.com/hashicorp/terraform',
     homepage: 'https://www.terraform.io',

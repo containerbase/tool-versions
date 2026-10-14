@@ -296,6 +296,9 @@ ENV SKOPEO_VERSION=1.24.1
 # renovate: datasource=github-releases depName=sops packageName=getsops/sops
 ENV SOPS_VERSION=3.13.3
 
+# renovate: datasource=docker depName=swift versioning=docker
+ENV SWIFT_VERSION=6.4.1
+
 # renovate: datasource=docker depName=terraform packageName=hashicorp/terraform versioning=docker
 ENV TERRAFORM_VERSION=1.16.6
 
