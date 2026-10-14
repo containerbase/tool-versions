@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { formats, formatsSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
-import { ToolIndex, ToolVersions, VersionFiles, VersionIntegrity } from './schema.ts';
+import { Formats, ToolIndex, ToolVersions, VersionFiles, VersionIntegrity } from './schema.ts';
 
 /** The characters of a version which are safe in a file name. */
 const safeVersion = /^[0-9A-Za-z.+_-]+$/;
@@ -61,7 +62,12 @@ async function writeJson(file: string, value: unknown): Promise<string> {
  */
 export async function writeToolVersions(dir: string, data: ToolVersions): Promise<ToolFiles> {
   const parsed = ToolVersions.parse(data);
-  const full = { ...parsed, versions: fileNameSafe(parsed.tool, parsed.versions) };
+  // the `$schema` is part of the written bytes, so of their integrity
+  const full = ToolVersions.parse({
+    ...parsed,
+    $schema: schemaUrl('tool.schema.json'),
+    versions: fileNameSafe(parsed.tool, parsed.versions),
+  });
   const folder = join(dir, full.tool);
   // a reused output folder keeps no files of versions which are gone
   await rm(folder, { recursive: true, force: true });
@@ -72,7 +78,12 @@ export async function writeToolVersions(dir: string, data: ToolVersions): Promis
     const versions: Record<string, string> = {};
     for (const { version, files } of full.versions) {
       if (files) {
-        const entry = VersionFiles.parse({ tool: full.tool, version, files });
+        const entry = VersionFiles.parse({
+          $schema: schemaUrl('version.schema.json'),
+          tool: full.tool,
+          version,
+          files,
+        });
         versions[version] = await writeJson(join(folder, `${version}.json`), entry);
       }
     }
@@ -81,7 +92,11 @@ export async function writeToolVersions(dir: string, data: ToolVersions): Promis
       file,
       integrity: await writeJson(
         join(dir, file),
-        VersionIntegrity.parse({ tool: full.tool, versions }),
+        VersionIntegrity.parse({
+          $schema: schemaUrl('integrity.schema.json'),
+          tool: full.tool,
+          versions,
+        }),
       ),
     };
   }
@@ -100,12 +115,25 @@ export async function writeToolVersions(dir: string, data: ToolVersions): Promis
 }
 
 /**
- * Validates and writes the `index.json` file.
- * @param dir - the output folder
+ * Validates and writes the `index.json` file of the format.
+ * @param dir - the output folder of the format
  * @param index - the index of all written tools
  */
 export async function writeIndex(dir: string, index: ToolIndex): Promise<void> {
-  await writeJson(join(dir, 'index.json'), ToolIndex.parse(index));
+  await writeJson(
+    join(dir, 'index.json'),
+    ToolIndex.parse({ ...index, $schema: schemaUrl('index.schema.json') }),
+  );
+}
+
+/**
+ * Writes the root `index.json`, which lists the published formats, and its json
+ * schema `formats.schema.json`.
+ * @param dir - the output folder, the root of the site
+ */
+export async function writeFormats(dir: string): Promise<void> {
+  await writeJson(join(dir, 'index.json'), Formats.parse({ $schema: formatsSchemaUrl, formats }));
+  await writeJson(join(dir, 'formats.schema.json'), z.toJSONSchema(Formats));
 }
 
 /**
@@ -113,7 +141,7 @@ export async function writeIndex(dir: string, index: ToolIndex): Promise<void> {
  * `<tool>/<version>.json`, `<tool>.integrity.json` and `index.json` files, as
  * `tool.schema.json`, `version.schema.json`, `integrity.schema.json` and
  * `index.schema.json`.
- * @param dir - the output folder
+ * @param dir - the output folder of the format
  */
 export async function writeSchemas(dir: string): Promise<void> {
   await writeJson(join(dir, 'tool.schema.json'), z.toJSONSchema(ToolVersions));

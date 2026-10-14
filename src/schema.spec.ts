@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PreviousToolVersions, ToolFile, ToolVersion, ToolVersions } from './schema.ts';
+import { Formats, PreviousToolVersions, ToolFile, ToolVersion, ToolVersions } from './schema.ts';
 
 const file = {
   name: 'python-3.14.8-jammy-x86_64.tar.xz',
@@ -54,11 +54,42 @@ describe('schema', () => {
       expect(PreviousToolVersions.parse(data)).toEqual(data);
     });
 
+    it('accepts a $schema, which is optional, and rejects a non-https one', () => {
+      const $schema = 'https://containerbase.github.io/tool-versions/v1/tool.schema.json';
+      expect(ToolVersions.parse({ $schema, ...data })).toEqual({ $schema, ...data });
+      expect(
+        ToolVersions.safeParse({ ...data, $schema: 'http://example.com/a.json' }).success,
+      ).toBe(false);
+    });
+
     it.each(['sourceUrl', 'homepage'])('rejects a non-https %s', (field) => {
       expect(ToolVersions.safeParse({ ...data, [field]: 'http://example.com' }).success).toBe(
         false,
       );
       expect(ToolVersions.safeParse({ ...data, [field]: 'nodejs.org' }).success).toBe(false);
+    });
+  });
+
+  describe('Formats', () => {
+    it('accepts the status values and the removal date of a deprecated format', () => {
+      const formats = {
+        $schema: 'https://containerbase.github.io/tool-versions/formats.schema.json',
+        formats: [
+          { version: 1, path: 'v1/', status: 'deprecated', removalDate: '2027-01-31' },
+          { version: 2, path: 'v2/', status: 'current' },
+          { version: 3, path: 'v3/', status: 'preview' },
+        ],
+      };
+      expect(Formats.parse(formats)).toEqual(formats);
+    });
+
+    it.each([
+      { version: 1, path: 'v1/', status: 'old' },
+      { version: 0, path: 'v0/', status: 'current' },
+      { version: 1, path: '', status: 'current' },
+      { version: 1, path: 'v1/', status: 'deprecated', removalDate: 'soon' },
+    ])('rejects the format %j', (format) => {
+      expect(Formats.safeParse({ formats: [format] }).success).toBe(false);
     });
   });
 

@@ -5,19 +5,30 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 
 ## Files
 
-The files of a tool are split, as the full ones are too big to fetch for each use:
+The site has a root [`index.json`](https://containerbase.github.io/tool-versions/index.json) which lists the published formats, `{ "formats": [{ "version": 1, "path": "v1/", "status": "current" }] }`, and its JSON schema `formats.schema.json`. The `status` is `current`, `preview` or `deprecated`, a deprecated format may have a `removalDate`. Everything else is published in the folder of a format, `v1/` for now. A consumer pins a major version of the format and only reads the root index to warn when its major is deprecated.
 
-- [`<tool>.json`](https://containerbase.github.io/tool-versions/node.json): the versions of one tool, without their `files`. Renovate's datasource and the containerbase CLI's version resolution read it.
+Every JSON file has the url of its JSON schema as the first property, `$schema`, so editors and tools can validate it, and the format of a file is known without a version field. The `$schema` is part of the bytes the integrity digests cover.
+
+The files of a tool are split, as the full ones are too big to fetch for each use. The paths are relative to `https://containerbase.github.io/tool-versions/v1/`:
+
+- [`<tool>.json`](https://containerbase.github.io/tool-versions/v1/node.json): the versions of one tool, without their `files`. Renovate's datasource and the containerbase CLI's version resolution read it.
 - `<tool>/<version>.json`: the `files` of one version, `{ tool, version, files }`, for every version which has files, so not for the package manager tools. The containerbase CLI reads it to install. The file name is the raw version, so `java/25.0.4+101.0.LTS.json` has a literal `+`: request it url encoded (`%2B`), GitHub Pages decodes the path. Versions which contain other characters than `[0-9A-Za-z.+_-]` are left out with a warning.
 - `<tool>.integrity.json`: the integrity of each `<tool>/<version>.json`, `{ tool, versions: { "<version>": "sha256-…" } }`, only for tools with files. The containerbase CLI reads it to verify a per-version file.
-- [`index.json`](https://containerbase.github.io/tool-versions/index.json): all tools with their `versionCount`, `slim` (`<tool>.json`) and, for tools with files, `versionFiles` (`<tool>.integrity.json`), each as `{ file, integrity }`, so clients don't hard-code the names.
+- [`index.json`](https://containerbase.github.io/tool-versions/v1/index.json): all tools with their `versionCount`, `slim` (`<tool>.json`) and, for tools with files, `versionFiles` (`<tool>.integrity.json`), each as `{ file, integrity }`, so clients don't hard-code the names.
 - `<tool>.full.json`: internal, the same as `<tool>.json` with the `files` of all versions. Only the next build reads it, as the previous state to start from, so it isn't in the index; clients read the files above instead.
-- `tool.schema.json` (for `<tool>.json` and `<tool>.full.json`), `version.schema.json` (for `<tool>/<version>.json`), `integrity.schema.json` (for `<tool>.integrity.json`), `index.schema.json`: the JSON schemas
+- `tool.schema.json` (for `<tool>.json` and `<tool>.full.json`), `version.schema.json` (for `<tool>/<version>.json`), `integrity.schema.json` (for `<tool>.integrity.json`), `index.schema.json`: the JSON schemas, referenced by the `$schema` of the files
+
+### Versioning policy
+
+A change which breaks consumers, like renaming or removing a field or changing its meaning, is published in a new folder, `/v2/`, and listed in the root index. `/v1/` keeps being published for a while, as `deprecated` with a `removalDate`, so consumers can migrate. Adding optional fields is not breaking.
+
+### Examples
 
 `<tool>.json` (the `files` are in `python/3.14.8.json` and `python.full.json`):
 
 ```json
 {
+  "$schema": "https://containerbase.github.io/tool-versions/v1/tool.schema.json",
   "tool": "python",
   "sourceUrl": "https://github.com/python/cpython",
   "homepage": "https://www.python.org",
@@ -35,6 +46,7 @@ The files of a tool are split, as the full ones are too big to fetch for each us
 
 ```json
 {
+  "$schema": "https://containerbase.github.io/tool-versions/v1/version.schema.json",
   "tool": "python",
   "version": "3.14.8",
   "files": [
@@ -98,7 +110,7 @@ The downloads of a build have a budget, 3 GiB by default, `TOOL_VERSIONS_DOWNLOA
 
 ## Updates
 
-- **Incremental:** each build starts from the published `<tool>.full.json` files (as the Pages deploy replaces the whole site, the per-version files can't be fetched again). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
+- **Incremental:** each build starts from the published `v1/<tool>.full.json` files (as the Pages deploy replaces the whole site, the per-version files can't be fetched again; until a `v1/` build is published, a missing one falls back to the `<tool>.full.json` of the root, which can go afterwards). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Job summary:** when `GITHUB_STEP_SUMMARY` is set, as in GitHub Actions, each build appends a summary to it: the build kind and duration, the tools which were updated, kept their previous file or failed, the download budget, a table with a row per tool (versions, new versions, files added, computed checksums and bytes, warnings) and the warnings and errors of each tool. The log lines (`::warning::`, `::error::`, `::notice::`) stay as they are.
 - **Full refresh:** run the `pages` workflow with the `full` input.

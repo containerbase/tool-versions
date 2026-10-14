@@ -76,8 +76,16 @@ export const ToolVersion = z.object({
 });
 export type ToolVersion = z.infer<typeof ToolVersion>;
 
+/**
+ * The url of the json schema of a published file, which identifies its format.
+ * It is the first property, optional so files published before it was added
+ * still parse.
+ */
+const SchemaUrl = z.url({ protocol: /^https$/ }).optional();
+
 /** The content of a `<tool>.json` file. */
 export const ToolVersions = z.object({
+  $schema: SchemaUrl,
   tool: z.string(),
   /** the package manager installing the tool, omitted for other tools */
   type: ToolType.optional(),
@@ -103,6 +111,7 @@ export type PreviousToolVersions = z.infer<typeof PreviousToolVersions>;
 
 /** The content of a `<tool>/<version>.json` file: the files of one version. */
 export const VersionFiles = z.object({
+  $schema: SchemaUrl,
   tool: z.string(),
   version: z.string().min(1),
   /** sorted by name */
@@ -115,6 +124,7 @@ export type VersionFiles = z.infer<typeof VersionFiles>;
  * `<tool>/<version>.json` file, by version.
  */
 export const VersionIntegrity = z.object({
+  $schema: SchemaUrl,
   tool: z.string(),
   versions: z.record(z.string(), Integrity),
 });
@@ -129,6 +139,7 @@ export type FileReference = z.infer<typeof FileReference>;
 
 /** The content of the `index.json` file. */
 export const ToolIndex = z.object({
+  $schema: SchemaUrl,
   updatedAt: z.iso.datetime(),
   tools: z.array(
     z.object({
@@ -145,3 +156,25 @@ export const ToolIndex = z.object({
   ),
 });
 export type ToolIndex = z.infer<typeof ToolIndex>;
+
+/**
+ * The content of the root `index.json` file, which lists the published formats.
+ * It is minimal and stable: consumers pin a major version of the format and
+ * only read it to warn when their major is deprecated.
+ */
+export const Formats = z.object({
+  $schema: SchemaUrl,
+  formats: z.array(
+    z.object({
+      /** the major version of the format */
+      version: z.number().int().positive(),
+      /** the folder of the format, relative to the root */
+      path: z.string().min(1),
+      /** `current` is the format to use, `preview` is not stable yet */
+      status: z.enum(['current', 'preview', 'deprecated']),
+      /** the date a deprecated format is no longer published */
+      removalDate: z.iso.date().optional(),
+    }),
+  ),
+});
+export type Formats = z.infer<typeof Formats>;

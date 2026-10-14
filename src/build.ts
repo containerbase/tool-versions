@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { env, stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
@@ -9,8 +10,15 @@ import {
   startToolDownloads,
 } from './download.ts';
 import { isUnsupportedDistro, mayCompute } from './files.ts';
+import { formatDir } from './formats.ts';
 import { type LogEntry, collectLogs, logError, logWarning } from './log.ts';
-import { fileNameSafe, writeIndex, writeSchemas, writeToolVersions } from './output.ts';
+import {
+  fileNameSafe,
+  writeFormats,
+  writeIndex,
+  writeSchemas,
+  writeToolVersions,
+} from './output.ts';
 import { fetchPrevious } from './previous.ts';
 import type {
   PreviousToolVersions,
@@ -211,7 +219,8 @@ export async function build({
   resetDownloadBudget(
     Object.entries(sources).filter(([tool, source]) => computesChecksums(tool, source)).length,
   );
-  await mkdir(dir, { recursive: true });
+  const formatFolder = join(dir, formatDir);
+  await mkdir(formatFolder, { recursive: true });
   const updatedAt = now.toISOString();
   const index: ToolIndex = { updatedAt, tools: [] };
   const failed: string[] = [];
@@ -271,12 +280,13 @@ export async function build({
     if (!data) {
       continue;
     }
-    const files = await writeToolVersions(dir, withMetadata(data));
+    const files = await writeToolVersions(formatFolder, withMetadata(data));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });
   }
 
-  await writeIndex(dir, index);
-  await writeSchemas(dir);
+  await writeIndex(formatFolder, index);
+  await writeSchemas(formatFolder);
+  await writeFormats(dir);
   const summaryFile = env['GITHUB_STEP_SUMMARY'];
   if (summaryFile) {
     await writeSummary(summaryFile, report.render(clock()));
