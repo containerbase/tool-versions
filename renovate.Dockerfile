@@ -297,7 +297,7 @@ ENV SKOPEO_VERSION=1.24.1
 ENV SOPS_VERSION=3.13.3
 
 # renovate: datasource=docker depName=terraform packageName=hashicorp/terraform versioning=docker
-ENV TERRAFORM_VERSION=1.16.5
+ENV TERRAFORM_VERSION=1.16.6
 
 # renovate: datasource=github-releases depName=tofu packageName=opentofu/opentofu
 ENV TOFU_VERSION=1.13.1
