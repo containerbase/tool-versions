@@ -110,7 +110,7 @@ The downloads of a build have a budget, 3 GiB by default, `TOOL_VERSIONS_DOWNLOA
 
 ## Updates
 
-- **Incremental:** each build starts from the published `v1/<tool>.full.json` files (as the Pages deploy replaces the whole site, the per-version files can't be fetched again; until a `v1/` build is published, a missing one falls back to the `<tool>.full.json` of the root, which can go afterwards). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
+- **Incremental:** each build starts from the published `v1/<tool>.full.json` files (as the Pages deploy replaces the whole site, the per-version files can't be fetched again). Known versions, files and release times are reused, only missing ones are fetched, and versions gone upstream stay listed. Paged sources stop at the first known version, so older gaps are filled by a full refresh.
 - **Failures:** a missing checksum (404) skips the file, other errors warn and the next build retries. A tool whose fetch fails republishes its previous file with the old `updatedAt`; the build only fails for a tool without any versions.
 - **Job summary:** when `GITHUB_STEP_SUMMARY` is set, as in GitHub Actions, each build appends a summary to it: the build kind and duration, the tools which were updated, kept their previous file or failed, the download budget, a table with a row per tool (versions, new versions, files added, computed checksums and bytes, warnings) and the warnings and errors of each tool. The log lines (`::warning::`, `::error::`, `::notice::`) stay as they are.
 - **Full refresh:** run the `pages` workflow with the `full` input.
