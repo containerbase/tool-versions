@@ -14,6 +14,7 @@ import { fetchNugetExeVersions } from './nuget-exe.ts';
 import { fetchNugetVersions } from './nuget.ts';
 import { fetchPypiVersions } from './pypi.ts';
 import { fetchRubygemsVersions } from './rubygems.ts';
+import { fetchSwiftReleases } from './swift-releases.ts';
 
 /**
  * Fetches the versions of a package, newest first. Paged sources may stop
@@ -54,4 +55,5 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'nuget-exe': fetchNugetExeVersions,
   pypi: fetchPypiVersions,
   rubygems: fetchRubygemsVersions,
+  'swift-releases': fetchSwiftReleases,
 };
