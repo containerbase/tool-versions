@@ -1,15 +1,16 @@
 name: build
 
 on:
+  # branches run through their pull request and the merge queue
   push:
-    branches-ignore:
-      - gh-readonly-queue/**
+    branches:
+      - main
   pull_request:
   merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number ||  github.ref_name }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.event_name == 'push' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
