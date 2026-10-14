@@ -23,6 +23,9 @@ import { fetchRubygemsVersions } from './rubygems.ts';
  * is `false`. Sources which need a request for the release time of a version
  * skip it for the versions in `hasTimestamp`, which already have one. Sources
  * which list arbitrary tags validate and sort them with the `versioning`.
+ * Sources which fetch files per version may skip the versions older than
+ * `minVersion`, so their files aren't fetched or computed; the build leaves
+ * them out anyway.
  */
 export type Fetcher = (
   packageName: string,
@@ -32,6 +35,7 @@ export type Fetcher = (
   fetchFiles?: boolean,
   hasTimestamp?: ReadonlySet<string>,
   versioning?: VersioningName,
+  minVersion?: string,
 ) => Promise<ToolVersion[]>;
 
 /** The fetcher of each datasource. */
