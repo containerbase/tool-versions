@@ -15,7 +15,7 @@ import {
 } from '../files.ts';
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
-import { versionings } from '../versioning.ts';
+import { belowMinimum, versionings } from '../versioning.ts';
 import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
 
 const GithubAsset = z.object({
@@ -135,6 +135,8 @@ function releaseTasks(
  * @param _hasTimestamp - unused, the release time is part of the release list
  * @param versioning - which tags are valid versions, which are prereleases and
  * how they are sorted, `semver` by default
+ * @param minVersion - the oldest version to read, older releases are skipped
+ * so their files aren't downloaded
  */
 export async function fetchGithubReleases(
   packageName: string,
@@ -144,8 +146,10 @@ export async function fetchGithubReleases(
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
   versioning: VersioningName = 'semver',
+  minVersion?: string,
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];
+  const isTooOld = belowMinimum(versioning, minVersion);
   const headers = githubHeaders();
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
   const tasks: (() => Promise<void>)[] = [];
@@ -163,7 +167,7 @@ export async function fetchGithubReleases(
         prefix === undefined
           ? release.tag_name.replace(/^v/, '')
           : release.tag_name.slice(prefix.length);
-      if (release.draft || !isValid(version)) {
+      if (release.draft || !isValid(version) || isTooOld(version)) {
         continue;
       }
       foundKnown ||= known.has(version);

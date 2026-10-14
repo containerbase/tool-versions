@@ -2,13 +2,14 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stdout } from 'node:process';
-import { tools } from '@containerbase/base';
+import { type ToolMetadata, tools } from '@containerbase/base';
 import nock from 'nock';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build } from './build.ts';
 import { integrity } from './output.ts';
 import { type Source, type ToolFile, ToolIndex, type ToolVersions } from './schema.ts';
 import { toolSources } from './tools.ts';
+import { versionings } from './versioning.ts';
 
 const now = new Date('2026-10-08T12:00:00.000Z');
 const pages = 'https://pages.example.com';
@@ -645,6 +646,112 @@ describe('build', () => {
           ],
         },
       ],
+    });
+  });
+
+  describe('minimum version', () => {
+    const helm: Source = {
+      datasource: 'github-releases',
+      packageName: 'helm/helm',
+      versioning: 'semver',
+    };
+    const helmSource = { helm };
+    const sha = 'e'.repeat(64);
+
+    /**
+     * A file of a helm version.
+     * @param version - the version
+     */
+    function helmFile(version: string): ToolFile {
+      const name = `helm-v${version}-linux-amd64.tar.gz`;
+      return { name, url: `https://get.helm.sh/${name}`, checksum: `sha256:${sha}`, arch: 'amd64' };
+    }
+
+    it('leaves out the versions older than the minimum and does not fetch their files', async () => {
+      nock(pages).get('/v1/helm.full.json').reply(404);
+      nock('https://api.github.com')
+        .get('/repos/helm/helm/releases')
+        .query({ per_page: '100' })
+        .reply(200, [
+          { tag_name: 'v3.19.0', draft: false, prerelease: false },
+          { tag_name: 'v3.0.2', draft: false, prerelease: false },
+        ]);
+      // an unmocked request of the files of 3.0.2 would warn
+      nock('https://get.helm.sh')
+        .get('/helm-v3.19.0-linux-amd64.tar.gz.sha256sum')
+        .reply(200, `${sha}  helm-v3.19.0-linux-amd64.tar.gz\n`)
+        .get('/helm-v3.19.0-linux-arm64.tar.gz.sha256sum')
+        .reply(404)
+        .get('/helm-v3.19.0-linux-arm64.tar.gz.sha256')
+        .reply(404);
+
+      await build({ dir, sources: helmSource, now });
+
+      expect(JSON.parse(await read('helm.json')).versions).toEqual([{ version: '3.19.0' }]);
+      expect(await readdir(join(dir, 'v1', 'helm'))).toEqual(['3.19.0.json']);
+      expect(output.filter((line) => line.startsWith('::warning::'))).toEqual([]);
+      expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
+        await indexEntry('helm', 1, true),
+      ]);
+    });
+
+    it('drops the versions of the previous file which are older than the minimum', async () => {
+      const previous: ToolVersions = {
+        tool: 'helm',
+        source: helm,
+        updatedAt: '2026-10-07T03:00:00.000Z',
+        versions: [
+          { version: '3.2.0', files: [helmFile('3.2.0')] },
+          { version: '3.0.2', files: [helmFile('3.0.2')] },
+        ],
+      };
+      nock(pages).get('/v1/helm.full.json').reply(200, previous);
+      nock('https://api.github.com')
+        .get('/repos/helm/helm/releases')
+        .query({ per_page: '100' })
+        .times(3)
+        .reply(500);
+
+      await expect(build({ dir, sources: helmSource, now })).resolves.toEqual([]);
+
+      expect(JSON.parse(await read('helm.full.json')).versions).toEqual([
+        { version: '3.2.0', files: [helmFile('3.2.0')] },
+      ]);
+      expect(await readdir(join(dir, 'v1', 'helm'))).toEqual(['3.2.0.json']);
+    });
+
+    it('warns for a minimum which is no valid version of the versioning of the tool', async () => {
+      nock(pages).get('/v1/docker.full.json').reply(404);
+      nock('https://api.github.com')
+        .get('/repos/moby/moby/releases')
+        .query({ per_page: '100' })
+        .times(3)
+        .reply(500);
+
+      await build({
+        dir,
+        sources: {
+          docker: { datasource: 'github-releases', packageName: 'moby/moby', versioning: 'semver' },
+        },
+        now,
+      });
+
+      expect(output).toContain(
+        '::warning::docker: the minimum version 18.09.0 is not a valid semver version, no versions are left out\n',
+      );
+    });
+
+    it('has a minimum which fits the versioning of each mapped tool, but docker', () => {
+      const metadata: Record<string, ToolMetadata> = tools;
+      const invalid = Object.entries(toolSources)
+        .filter(([tool, { versioning }]) => {
+          const minVersion = metadata[tool]?.minVersion;
+          return minVersion !== undefined && !versionings[versioning].isValid(minVersion);
+        })
+        .map(([tool]) => tool);
+
+      // the minimum 18.09.0 has a leading zero, which semver doesn't allow
+      expect(invalid).toEqual(['docker']);
     });
   });
 

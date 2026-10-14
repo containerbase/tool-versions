@@ -115,6 +115,27 @@ describe('datasources/github-releases', () => {
     expect(scope.isDone()).toBe(true);
   });
 
+  it('skips the releases older than the minimum version, without downloading their files', async () => {
+    nock(api)
+      .get(`/repos/${repo}/releases`)
+      .query({ per_page: '100' })
+      .reply(200, [
+        withAssets('3.14.8', ['python-3.14.8-x86_64.tar.xz', 'python-3.14.8-x86_64.tar.xz.sha512']),
+        withAssets('2.7.17', ['python-2.7.17-x86_64.tar.xz', 'python-2.7.17-x86_64.tar.xz.sha512']),
+        release('2.7.18'),
+        release('2.7.18-rc.1'),
+      ]);
+    // an unmocked download of the old release would fail the fetch
+    nock(dl).get('/3.14.8/python-3.14.8-x86_64.tar.xz.sha512').reply(200, sum1);
+
+    await expect(
+      fetchGithubReleases(repo, none, undefined, undefined, true, undefined, 'python', '2.7.18'),
+    ).resolves.toEqual([
+      { version: '3.14.8', files: [prebuildFile('3.14.8', 'x86_64', sum1, { arch: 'amd64' })] },
+      { version: '2.7.18' },
+    ]);
+  });
+
   it('reads the release timestamp from published_at', async () => {
     nock(api)
       .get('/repos/helm/helm/releases')

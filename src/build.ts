@@ -29,7 +29,7 @@ import type {
 } from './schema.ts';
 import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
-import { versionings } from './versioning.ts';
+import { belowMinimum, versionings } from './versioning.ts';
 import { sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
@@ -130,6 +130,30 @@ function installable(tool: string, versions: ToolVersion[]): ToolVersion[] {
 }
 
 /**
+ * The oldest version containerbase supports for a tool. It is the floor of the
+ * noble image, the `distroMinVersion` of newer distros is not used yet.
+ * @param tool - the tool name
+ */
+function minVersionOf(tool: string): string | undefined {
+  return metadata[tool]?.minVersion;
+}
+
+/**
+ * Leaves out the versions older than the minimum version of the tool, in the
+ * versioning of its source, and the ones which can't be installed.
+ * @param tool - the tool name
+ * @param source - the source of the tool
+ * @param versions - the versions of the tool
+ */
+function publishable(tool: string, source: Source, versions: ToolVersion[]): ToolVersion[] {
+  const isTooOld = belowMinimum(source.versioning, minVersionOf(tool));
+  return installable(
+    tool,
+    versions.filter(({ version }) => !isTooOld(version)),
+  );
+}
+
+/**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
  * files and release times are kept for fresh versions without any.
@@ -162,6 +186,7 @@ async function fetchVersions(
     hasFiles(tool),
     new Set(timestamps.keys()),
     source.versioning,
+    minVersionOf(tool),
   );
   const fresh = fetched.map((entry) => {
     const keptFiles = files.get(entry.version);
@@ -174,7 +199,7 @@ async function fetchVersions(
   });
   const versions = fileNameSafe(
     tool,
-    installable(tool, sortVersions([...fresh, ...previous], compare)),
+    publishable(tool, source, sortVersions([...fresh, ...previous], compare)),
   );
   if (!versions.length) {
     throw new Error('No versions found');
@@ -214,6 +239,15 @@ export async function build({
     throw new Error(`Tools not found in @containerbase/base: ${unknown.join(', ')}`);
   }
 
+  for (const [tool, source] of Object.entries(sources)) {
+    const minVersion = minVersionOf(tool);
+    if (minVersion !== undefined && !versionings[source.versioning].isValid(minVersion)) {
+      logWarning(
+        `${tool}: the minimum version ${minVersion} is not a valid ${source.versioning} version, no versions are left out`,
+      );
+    }
+  }
+
   // the budget of downloads for computed checksums is split between the tools
   // which may compute files
   resetDownloadBudget(
@@ -248,7 +282,7 @@ export async function build({
         data = {
           ...previous,
           source,
-          versions: fileNameSafe(tool, installable(tool, previous.versions)),
+          versions: fileNameSafe(tool, publishable(tool, source, previous.versions)),
         };
         status = 'kept previous';
         logWarning(`${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}`);

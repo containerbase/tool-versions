@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { compareDocker, compareMaven, compareNuget, versionings } from './versioning.ts';
+import {
+  belowMinimum,
+  compareDocker,
+  compareMaven,
+  compareNuget,
+  versionings,
+} from './versioning.ts';
 
 describe('versioning', () => {
   describe('compareDocker', () => {
@@ -103,6 +109,34 @@ describe('versioning', () => {
       expect(compareMaven('3.9', '3.9.0')).toBe(0);
       expect(compareMaven('1.0-b2', '1.0-beta-2')).toBe(0);
       expect(compareMaven('1.0-unknown', '1.0')).toBeGreaterThan(0);
+    });
+  });
+
+  describe('belowMinimum', () => {
+    it('finds the versions older than the minimum in the versioning', () => {
+      const semver = belowMinimum('semver', '3.1.0');
+      expect([semver('3.0.9'), semver('3.1.0'), semver('3.1.0-rc.1'), semver('4.0.0')]).toEqual([
+        true,
+        false,
+        true,
+        false,
+      ]);
+      // docker versions compare the segments as numbers
+      const docker = belowMinimum('docker', '8.10.1');
+      expect([docker('8.8.4'), docker('8.10.1'), docker('9.2.0'), docker('8.10')]).toEqual([
+        true,
+        false,
+        false,
+        true,
+      ]);
+    });
+
+    it('finds nothing too old without a minimum', () => {
+      expect(belowMinimum('semver')('0.0.1')).toBe(false);
+    });
+
+    it('finds nothing too old with a minimum which is no valid version of the versioning', () => {
+      expect(belowMinimum('semver', '18.09.0')('1.0.0')).toBe(false);
     });
   });
 
