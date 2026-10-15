@@ -125,7 +125,7 @@ ENV GHC_VERSION=9.14.1
 ENV HASHIN_VERSION=1.0.5
 
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
-ENV HELM_VERSION=3.22.0
+ENV HELM_VERSION=3.22.1
 
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
 ENV HELM_VERSION=4.3.1
