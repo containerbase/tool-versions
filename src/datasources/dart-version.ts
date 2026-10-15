@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { type PreviousFiles, type ToolFiles, checksumTasks, runAll, withFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
-import { versionings } from '../versioning.ts';
+import { belowMinimum, versionings } from '../versioning.ts';
 import { sortVersions, toolVersion } from '../versions.ts';
 
 const DartListing = z.object({
@@ -48,6 +48,8 @@ async function listVersions(): Promise<string[]> {
  * @param fetchFiles - whether to fetch the files at all
  * @param _hasTimestamp - unused, there are no release times
  * @param versioning - which versions are valid and prereleases, `semver` by default
+ * @param minVersion - the oldest version to read, older releases are skipped so
+ * their checksums aren't requested
  */
 export async function fetchDartVersions(
   _packageName: string,
@@ -57,12 +59,14 @@ export async function fetchDartVersions(
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
   versioning: VersioningName = 'semver',
+  minVersion?: string,
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];
+  const isTooOld = belowMinimum(versioning, minVersion);
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
   const tasks: (() => Promise<void>)[] = [];
   for (const version of await listVersions()) {
-    if (!isValid(version)) {
+    if (!isValid(version) || isTooOld(version)) {
       continue;
     }
     const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];

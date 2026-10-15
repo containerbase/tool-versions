@@ -468,20 +468,17 @@ export const toolFiles: Record<string, ToolFiles> = {
       return { name, url, checksumUrls, algorithm: 'sha256', arch };
     }),
   dart: (version) =>
-    // the containerbase installer doesn't support versions below 2
-    semver.major(version) < 2
-      ? []
-      : (['amd64', 'arm64'] as const).map((arch) => {
-          const name = `dartsdk-linux-${arch === 'amd64' ? 'x64' : 'arm64'}-release.zip`;
-          const url = `https://storage.googleapis.com/dart-archive/channels/stable/release/${version}/sdk/${name}`;
-          return {
-            name,
-            url,
-            checksumUrls: [`${url}.sha256sum`],
-            algorithm: 'sha256',
-            arch,
-          };
-        }),
+    (['amd64', 'arm64'] as const).map((arch) => {
+      const name = `dartsdk-linux-${arch === 'amd64' ? 'x64' : 'arm64'}-release.zip`;
+      const url = `https://storage.googleapis.com/dart-archive/channels/stable/release/${version}/sdk/${name}`;
+      return {
+        name,
+        url,
+        checksumUrls: [`${url}.sha256sum`],
+        algorithm: 'sha256',
+        arch,
+      };
+    }),
   rust: (version) => {
     // `.tar.xz` since 1.19.0, the `.tar.gz` ones before
     const ext = semver.gte(version, '1.19.0') ? 'xz' : 'gz';

@@ -72,6 +72,33 @@ describe('datasources/dart-version', () => {
     ]);
   });
 
+  it('skips the releases older than the minimum version without requesting their checksums', async () => {
+    nock(host)
+      .get(listing)
+      .query(query())
+      .reply(200, {
+        prefixes: ['channels/stable/release/3.5.0/', 'channels/stable/release/1.24.3/'],
+      })
+      .get(
+        '/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-x64-release.zip.sha256sum',
+      )
+      .reply(200, `${sum('c')} *dartsdk-linux-x64-release.zip\n`);
+    // an unmocked request of the checksum of 1.24.3 would fail the test
+
+    const versions = await fetchDartVersions(
+      'dart',
+      undefined,
+      undefined,
+      template,
+      true,
+      undefined,
+      'semver',
+      '2.0.0',
+    );
+
+    expect(versions.map(({ version }) => version)).toEqual(['3.5.0']);
+  });
+
   it('reuses the known files without a request', async () => {
     nock(host)
       .get(listing)

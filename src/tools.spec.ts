@@ -384,7 +384,7 @@ describe('tools', () => {
       ]);
     });
 
-    it('lists the dart sdk zips from version 2 on', () => {
+    it('lists the dart sdk zips', () => {
       const dart = toolFiles['dart'];
       expect(typeof dart === 'function' ? dart('3.5.0') : undefined).toEqual([
         {
@@ -406,7 +406,6 @@ describe('tools', () => {
           arch: 'arm64',
         },
       ]);
-      expect(typeof dart === 'function' ? dart('1.24.3') : undefined).toEqual([]);
     });
 
     it('lists the kubectl binaries of dl.k8s.io with their sha256 files', () => {
