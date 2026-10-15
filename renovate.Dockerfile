@@ -80,7 +80,7 @@ ENV DOCKER_COMPOSE_VERSION=5.6.0
 ENV ELIXIR_VERSION=1.20.4
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
-ENV ERLANG_VERSION=27.3.4.18
+ENV ERLANG_VERSION=27.3.4.19
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
 ENV ERLANG_VERSION=28.5.0.8
