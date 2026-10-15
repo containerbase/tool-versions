@@ -62,6 +62,17 @@ describe('schema', () => {
       ).toBe(false);
     });
 
+    it('accepts the minimum versions, with any distro codename', () => {
+      const minimums = {
+        minVersion: '7.4.0',
+        distroMinVersion: { resolute: '8.1.31', sid: '9.0' },
+      };
+      expect(ToolVersions.parse({ ...data, ...minimums })).toEqual({ ...data, ...minimums });
+      expect(ToolVersions.safeParse({ ...data, distroMinVersion: { resolute: 8 } }).success).toBe(
+        false,
+      );
+    });
+
     it.each(['sourceUrl', 'homepage'])('rejects a non-https %s', (field) => {
       expect(ToolVersions.safeParse({ ...data, [field]: 'http://example.com' }).success).toBe(
         false,
@@ -74,6 +85,7 @@ describe('schema', () => {
     it('accepts the status values and the removal date of a deprecated format', () => {
       const formats = {
         $schema: 'https://containerbase.github.io/tool-versions/formats.schema.json',
+        defaultDistro: 'noble',
         formats: [
           { version: 1, path: 'v1/', status: 'deprecated', removalDate: '2027-01-31' },
           { version: 2, path: 'v2/', status: 'current' },
@@ -89,7 +101,11 @@ describe('schema', () => {
       { version: 1, path: '', status: 'current' },
       { version: 1, path: 'v1/', status: 'deprecated', removalDate: 'soon' },
     ])('rejects the format %j', (format) => {
-      expect(Formats.safeParse({ formats: [format] }).success).toBe(false);
+      expect(Formats.safeParse({ defaultDistro: 'noble', formats: [format] }).success).toBe(false);
+    });
+
+    it('requires the default distro', () => {
+      expect(Formats.safeParse({ formats: [] }).success).toBe(false);
     });
   });
 

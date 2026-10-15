@@ -5,7 +5,7 @@ A workflow builds them nightly from the upstream sources the containerbase CLI u
 
 ## Files
 
-The site has a root [`index.json`](https://containerbase.github.io/tool-versions/index.json) which lists the published formats, `{ "formats": [{ "version": 1, "path": "v1/", "status": "current" }] }`, and its JSON schema `formats.schema.json`. The `status` is `current`, `preview` or `deprecated`, a deprecated format may have a `removalDate`. Everything else is published in the folder of a format, `v1/` for now. A consumer pins a major version of the format and only reads the root index to warn when its major is deprecated.
+The site has a root [`index.json`](https://containerbase.github.io/tool-versions/index.json) which lists the published formats, `{ "defaultDistro": "noble", "formats": [{ "version": 1, "path": "v1/", "status": "current" }] }`, and its JSON schema `formats.schema.json`. The `defaultDistro` is the codename of the Ubuntu release the default containerbase image is built from, from `@containerbase/base`; the `minVersion` of the tools refers to it. The `status` is `current`, `preview` or `deprecated`, a deprecated format may have a `removalDate`. Everything else is published in the folder of a format, `v1/` for now. A consumer pins a major version of the format and only reads the root index to warn when its major is deprecated.
 
 Every JSON file has the url of its JSON schema as the first property, `$schema`, so editors and tools can validate it, and the format of a file is known without a version field. The `$schema` is part of the bytes the integrity digests cover.
 
@@ -64,7 +64,9 @@ A change which breaks consumers, like renaming or removing a field or changing i
 - `source`: the datasource, package and [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) of the versions.
 - `type`: the package manager installing the tool (`dotnet`, `gem`, `npm` or `pip`, from [`@containerbase/base`](https://www.npmjs.com/package/@containerbase/base)). These tools have no files, the package manager installs and verifies them.
 - `sourceUrl`, `homepage`: links for Renovate's changelogs.
-- `versions`: newest first, including prereleases, only installable ones (with an `amd64` file or a file for any architecture, unless the tool has a `type`; `arm64` files are added when they exist). `version` is the exact `install-tool` version. Versions older than the `minVersion` of the tool in `@containerbase/base` are left out, compared with the versioning of the tool; their files aren't fetched or computed either.
+- `minVersion`: the oldest version containerbase supports for the tool on the `defaultDistro` of the root index, in the versioning of the tool, from `@containerbase/base`. Only present when the tool has one.
+- `distroMinVersion`: the oldest version on a distro, a map from the distro codename to the version, only for the distros whose floor differs from `minVersion` (like `resolute` for `php` and `swift`). The codenames aren't a fixed list, so a new distro doesn't break readers.
+- `versions`: newest first, including prereleases, only installable ones (with an `amd64` file or a file for any architecture, unless the tool has a `type`; `arm64` files are added when they exist). `version` is the exact `install-tool` version. Versions older than the `minVersion` of the tool are left out, compared with the versioning of the tool; their files aren't fetched or computed either. The files of a distro for versions older than its `distroMinVersion` are left out too.
 - `prerelease`, `lts`: only present when `true`.
 - `releaseTimestamp`: the release time in UTC, for Renovate's `minimumReleaseAge`.
 - `files` (in the full and the per-version files only): sorted by name, each with the https `url`, `checksum` (`sha256:` or `sha512:`, `sha1:` for the android tools, lowercase hex), and `arch` (`amd64`/`arm64`) and `distro` where they apply.
