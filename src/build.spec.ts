@@ -11,6 +11,13 @@ import { type Source, type ToolFile, ToolIndex, type ToolVersions } from './sche
 import { toolSources } from './tools.ts';
 import { versionings } from './versioning.ts';
 
+// adds a tool with a minimum version which doesn't fit its versioning, so the
+// warning for it doesn't depend on the minimum of a real tool
+vi.mock('@containerbase/base', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@containerbase/base')>();
+  return { ...actual, tools: { ...actual.tools, 'min-test': { minVersion: '18.09.0' } } };
+});
+
 const now = new Date('2026-10-08T12:00:00.000Z');
 const pages = 'https://pages.example.com';
 const registry = 'https://registry.npmjs.org';
@@ -721,9 +728,11 @@ describe('build', () => {
     });
 
     it('warns for a minimum which is no valid version of the versioning of the tool', async () => {
-      nock(pages).get('/v1/docker.full.json').reply(404);
+      // `min-test` has the minimum 18.09.0 in the mocked metadata, which has a
+      // leading zero that semver doesn't allow
+      nock(pages).get('/v1/min-test.full.json').reply(404);
       nock('https://api.github.com')
-        .get('/repos/moby/moby/releases')
+        .get('/repos/example/min-test/releases')
         .query({ per_page: '100' })
         .times(3)
         .reply(500);
@@ -731,17 +740,21 @@ describe('build', () => {
       await build({
         dir,
         sources: {
-          docker: { datasource: 'github-releases', packageName: 'moby/moby', versioning: 'semver' },
+          'min-test': {
+            datasource: 'github-releases',
+            packageName: 'example/min-test',
+            versioning: 'semver',
+          },
         },
         now,
       });
 
       expect(output).toContain(
-        '::warning::docker: the minimum version 18.09.0 is not a valid semver version, no versions are left out\n',
+        '::warning::min-test: the minimum version 18.09.0 is not a valid semver version, no versions are left out\n',
       );
     });
 
-    it('has a minimum which fits the versioning of each mapped tool, but docker', () => {
+    it('has a minimum which fits the versioning of each mapped tool', () => {
       const metadata: Record<string, ToolMetadata> = tools;
       const invalid = Object.entries(toolSources)
         .filter(([tool, { versioning }]) => {
@@ -750,8 +763,7 @@ describe('build', () => {
         })
         .map(([tool]) => tool);
 
-      // the minimum 18.09.0 has a leading zero, which semver doesn't allow
-      expect(invalid).toEqual(['docker']);
+      expect(invalid).toEqual([]);
     });
   });
 
