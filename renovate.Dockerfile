@@ -86,7 +86,7 @@ ENV ERLANG_VERSION=27.3.4.19
 ENV ERLANG_VERSION=28.5.0.8
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
-ENV ERLANG_VERSION=29.1.1.0
+ENV ERLANG_VERSION=29.1.2.0
 
 # renovate: datasource=github-releases depName=flutter packageName=containerbase/flutter-prebuild
 ENV FLUTTER_VERSION=3.47.7
