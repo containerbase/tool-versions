@@ -128,7 +128,7 @@ ENV HASHIN_VERSION=1.0.5
 ENV HELM_VERSION=3.22.0
 
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
-ENV HELM_VERSION=4.3.0
+ENV HELM_VERSION=4.3.1
 
 # renovate: datasource=github-releases depName=jb packageName=jsonnet-bundler/jsonnet-bundler
 ENV JB_VERSION=0.6.0
