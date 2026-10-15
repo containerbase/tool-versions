@@ -81,20 +81,32 @@ function hasFiles(tool: string): boolean {
 }
 
 /**
- * Sets the `type` of a tool from `@containerbase/base` and its links from the
- * mapping, and removes them when the tool has none, so a previously published
- * file gets the current ones.
+ * Sets the `type`, `minVersion` and `distroMinVersion` of a tool from
+ * `@containerbase/base` and its links from the mapping, and removes them when
+ * the tool has none, so a previously published file gets the current ones.
  * @param data - the tool versions
  */
 function withMetadata(data: ToolVersions): ToolVersions {
-  const { tool, type: _type, sourceUrl: _sourceUrl, homepage: _homepage, ...rest } = data;
+  const {
+    tool,
+    type: _type,
+    sourceUrl: _sourceUrl,
+    homepage: _homepage,
+    minVersion: _minVersion,
+    distroMinVersion: _distroMinVersion,
+    ...rest
+  } = data;
   const type = metadata[tool]?.type;
   const { sourceUrl, homepage } = toolLinks[tool] ?? {};
+  const minVersion = minVersionOf(tool);
+  const distroMinVersion = distroMinVersionsOf(tool);
   return {
     tool,
     ...(type && { type }),
     ...(sourceUrl && { sourceUrl }),
     ...(homepage && { homepage }),
+    ...(minVersion && { minVersion }),
+    ...(Object.keys(distroMinVersion).length && { distroMinVersion }),
     ...rest,
   };
 }
@@ -130,8 +142,8 @@ function installable(tool: string, versions: ToolVersion[]): ToolVersion[] {
 }
 
 /**
- * The oldest version containerbase supports for a tool. It is the floor of the
- * noble image, the `distroMinVersion` of newer distros is not used yet.
+ * The oldest version containerbase supports for a tool, on the default distro
+ * of `@containerbase/base`. Versions below it aren't published.
  * @param tool - the tool name
  */
 function minVersionOf(tool: string): string | undefined {
@@ -139,8 +151,50 @@ function minVersionOf(tool: string): string | undefined {
 }
 
 /**
+ * The oldest version containerbase supports on a distro, by codename, for the
+ * distros whose floor differs from the minimum version.
+ * @param tool - the tool name
+ */
+function distroMinVersionsOf(tool: string): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(metadata[tool]?.distroMinVersion ?? {}).flatMap(([distro, version]) =>
+      version === undefined ? [] : [[distro, version] as const],
+    ),
+  );
+}
+
+/**
+ * Leaves out the files of a distro for the versions older than the minimum
+ * version on that distro. A version left without any file stays as it is, the
+ * installable rules decide about it.
+ * @param tool - the tool name
+ * @param source - the source of the tool
+ * @param versions - the versions of the tool
+ */
+function withoutBelowDistroMinimum(
+  tool: string,
+  source: Source,
+  versions: ToolVersion[],
+): ToolVersion[] {
+  const floors = Object.entries(distroMinVersionsOf(tool)).map(
+    ([distro, min]) => [distro, belowMinimum(source.versioning, min)] as const,
+  );
+  if (!floors.length) {
+    return versions;
+  }
+  return versions.map(({ files, ...entry }) => {
+    const kept = files?.filter(
+      ({ distro }) =>
+        !floors.some(([name, isTooOld]) => name === distro && isTooOld(entry.version)),
+    );
+    return kept?.length ? { ...entry, files: kept } : entry;
+  });
+}
+
+/**
  * Leaves out the versions older than the minimum version of the tool, in the
- * versioning of its source, and the ones which can't be installed.
+ * versioning of its source, the files of a distro for versions older than its
+ * minimum, and the versions which can't be installed.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param versions - the versions of the tool
@@ -149,7 +203,11 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
   const isTooOld = belowMinimum(source.versioning, minVersionOf(tool));
   return installable(
     tool,
-    versions.filter(({ version }) => !isTooOld(version)),
+    withoutBelowDistroMinimum(
+      tool,
+      source,
+      versions.filter(({ version }) => !isTooOld(version)),
+    ),
   );
 }
 

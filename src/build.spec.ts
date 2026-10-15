@@ -11,11 +11,19 @@ import { type Source, type ToolFile, ToolIndex, type ToolVersions } from './sche
 import { toolSources } from './tools.ts';
 import { versionings } from './versioning.ts';
 
-// adds a tool with a minimum version which doesn't fit its versioning, so the
-// warning for it doesn't depend on the minimum of a real tool
+// adds tools with minimum versions, so the tests don't depend on the minimums
+// of real tools: `min-test` has one which doesn't fit its versioning, and
+// `distro-test` has a floor for resolute
 vi.mock('@containerbase/base', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@containerbase/base')>();
-  return { ...actual, tools: { ...actual.tools, 'min-test': { minVersion: '18.09.0' } } };
+  return {
+    ...actual,
+    tools: {
+      ...actual.tools,
+      'min-test': { minVersion: '18.09.0' },
+      'distro-test': { minVersion: '1.0.0', distroMinVersion: { resolute: '2.0.0' } },
+    },
+  };
 });
 
 const now = new Date('2026-10-08T12:00:00.000Z');
@@ -142,6 +150,7 @@ describe('build', () => {
     expect((await readdir(dir)).sort()).toEqual(['formats.schema.json', 'index.json', 'v1']);
     expect(JSON.parse(await readFile(join(dir, 'index.json'), 'utf8'))).toEqual({
       $schema: 'https://containerbase.github.io/tool-versions/formats.schema.json',
+      defaultDistro: 'noble',
       formats: [{ version: 1, path: 'v1/', status: 'current' }],
     });
     expect((await readdir(join(dir, 'v1'))).sort()).toEqual([
@@ -725,6 +734,66 @@ describe('build', () => {
         { version: '3.2.0', files: [helmFile('3.2.0')] },
       ]);
       expect(await readdir(join(dir, 'v1', 'helm'))).toEqual(['3.2.0.json']);
+    });
+
+    it('publishes the minimum versions and leaves out the files below the minimum of a distro', async () => {
+      const distroSource: Source = {
+        datasource: 'github-releases',
+        packageName: 'example/distro-test',
+        versioning: 'semver',
+      };
+      const file = (name: string, distro?: string): ToolFile => ({
+        name,
+        url: `https://example.com/${name}`,
+        checksum: `sha256:${sha}`,
+        arch: 'amd64',
+        ...(distro && { distro }),
+      });
+      const previous: ToolVersions = {
+        tool: 'distro-test',
+        // a stale minimum is replaced by the current one
+        minVersion: '0.1.0',
+        source: distroSource,
+        updatedAt: '2026-10-07T03:00:00.000Z',
+        versions: [
+          {
+            version: '2.1.0',
+            files: [file('a-2.1.0.tgz'), file('a-2.1.0-resolute.tgz', 'resolute')],
+          },
+          {
+            version: '1.5.0',
+            files: [file('a-1.5.0.tgz'), file('a-1.5.0-resolute.tgz', 'resolute')],
+          },
+          // below the minimum
+          { version: '0.9.0', files: [file('a-0.9.0.tgz')] },
+        ],
+      };
+      nock(pages).get('/v1/distro-test.full.json').reply(200, previous);
+      nock('https://api.github.com')
+        .get('/repos/example/distro-test/releases')
+        .query({ per_page: '100' })
+        .times(3)
+        .reply(500);
+
+      await build({ dir, sources: { 'distro-test': distroSource }, now });
+
+      const slim = JSON.parse(await read('distro-test.json'));
+      expect(Object.keys(slim).slice(0, 4)).toEqual([
+        '$schema',
+        'tool',
+        'minVersion',
+        'distroMinVersion',
+      ]);
+      expect(slim).toMatchObject({ minVersion: '1.0.0', distroMinVersion: { resolute: '2.0.0' } });
+      expect(slim.versions).toEqual([{ version: '2.1.0' }, { version: '1.5.0' }]);
+      // 1.5.0 has no resolute file, 2.1.0 keeps it
+      expect(JSON.parse(await read('distro-test.full.json')).versions).toEqual([
+        {
+          version: '2.1.0',
+          files: [file('a-2.1.0.tgz'), file('a-2.1.0-resolute.tgz', 'resolute')],
+        },
+        { version: '1.5.0', files: [file('a-1.5.0.tgz')] },
+      ]);
     });
 
     it('warns for a minimum which is no valid version of the versioning of the tool', async () => {

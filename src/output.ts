@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { defaultDistro } from '@containerbase/base';
 import { z } from 'zod';
 import { formats, formatsSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
@@ -127,12 +128,16 @@ export async function writeIndex(dir: string, index: ToolIndex): Promise<void> {
 }
 
 /**
- * Writes the root `index.json`, which lists the published formats, and its json
- * schema `formats.schema.json`.
+ * Writes the root `index.json`, which lists the published formats and has the
+ * default distro of `@containerbase/base`, and its json schema
+ * `formats.schema.json`.
  * @param dir - the output folder, the root of the site
  */
 export async function writeFormats(dir: string): Promise<void> {
-  await writeJson(join(dir, 'index.json'), Formats.parse({ $schema: formatsSchemaUrl, formats }));
+  await writeJson(
+    join(dir, 'index.json'),
+    Formats.parse({ $schema: formatsSchemaUrl, defaultDistro, formats }),
+  );
   await writeJson(join(dir, 'formats.schema.json'), z.toJSONSchema(Formats));
 }
 

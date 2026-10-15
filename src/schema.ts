@@ -94,6 +94,18 @@ export const ToolVersions = z.object({
   sourceUrl: z.url({ protocol: /^https$/ }).optional(),
   /** the homepage of the tool, omitted when unset */
   homepage: z.url({ protocol: /^https$/ }).optional(),
+  /**
+   * the oldest version containerbase supports, on the `defaultDistro` of the
+   * root index, in the versioning of the tool. Older versions aren't listed.
+   * Omitted for tools without a limit.
+   */
+  minVersion: z.string().min(1).optional(),
+  /**
+   * the oldest version on a distro, by codename, only for the distros whose
+   * floor differs from `minVersion`. Any codename is allowed, so new distros
+   * don't break readers.
+   */
+  distroMinVersion: z.record(z.string().min(1), z.string().min(1)).optional(),
   source: Source,
   updatedAt: z.iso.datetime(),
   /** newest first */
@@ -165,6 +177,11 @@ export type ToolIndex = z.infer<typeof ToolIndex>;
  */
 export const Formats = z.object({
   $schema: SchemaUrl,
+  /**
+   * the codename of the Ubuntu release the default image is built from, which
+   * the `minVersion` of the tools refers to
+   */
+  defaultDistro: z.string().min(1),
   formats: z.array(
     z.object({
       /** the major version of the format */

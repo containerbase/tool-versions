@@ -214,11 +214,11 @@ describe('output', () => {
     await writeFormats(dir);
 
     expect(await read('index.json')).toBe(
-      '{"$schema":"https://containerbase.github.io/tool-versions/formats.schema.json","formats":[{"version":1,"path":"v1/","status":"current"}]}\n',
+      '{"$schema":"https://containerbase.github.io/tool-versions/formats.schema.json","defaultDistro":"noble","formats":[{"version":1,"path":"v1/","status":"current"}]}\n',
     );
     expect(JSON.parse(await read('formats.schema.json'))).toMatchObject({
       type: 'object',
-      required: ['formats'],
+      required: ['defaultDistro', 'formats'],
     });
   });
 
@@ -228,6 +228,11 @@ describe('output', () => {
     expect(JSON.parse(await read('tool.schema.json'))).toMatchObject({
       type: 'object',
       required: ['tool', 'source', 'updatedAt', 'versions'],
+    });
+    // any codename is allowed, not a list of known ones
+    expect(JSON.parse(await read('tool.schema.json')).properties.distroMinVersion).toMatchObject({
+      type: 'object',
+      additionalProperties: { type: 'string' },
     });
     expect(JSON.parse(await read('version.schema.json'))).toMatchObject({
       type: 'object',
