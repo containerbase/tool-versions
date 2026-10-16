@@ -43,26 +43,30 @@ The paths are relative to the folder of the format, like `v1/`.
 
 Optional fields are omitted when unknown.
 
-| Field                          | Type                          | Meaning                                                                                                     |
-| ------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `tool`                         | string                        | the tool name                                                                                               |
-| `type`                         | `dotnet`, `gem`, `npm`, `pip` | the package manager which installs the tool, from `@containerbase/base`                                     |
-| `sourceUrl`                    | url                           | where the source code lives, for changelogs                                                                 |
-| `homepage`                     | url                           | the homepage                                                                                                |
-| `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                          |
-| `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key          |
-| `source`                       | object                        | `datasource`, `packageName` and the [Renovate versioning](https://docs.renovatebot.com/modules/versioning/) |
-| `updatedAt`                    | UTC time                      | when the build ran                                                                                          |
-| `versions`                     | list                          | the versions, newest first, prereleases included                                                            |
-| `versions[].version`           | string                        | the exact `install-tool` version                                                                            |
-| `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                                      |
-| `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                           |
-| `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                                       |
-| `files[].name`                 | string                        | the file name                                                                                               |
-| `files[].url`                  | https url                     | where to download it                                                                                        |
-| `files[].checksum`             | string                        | `sha256:`, `sha512:` or `sha1:` and the lowercase hex digest                                                |
-| `files[].arch`                 | `amd64`, `arm64`              | the architecture, omitted for files which work on every one                                                 |
-| `files[].distro`               | string                        | the distro codename, for distro specific files                                                              |
+| Field                          | Type                          | Meaning                                                                                            |
+| ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| `tool`                         | string                        | the tool name                                                                                      |
+| `type`                         | `dotnet`, `gem`, `npm`, `pip` | the package manager which installs the tool, from `@containerbase/base`                            |
+| `sourceUrl`                    | url                           | where the source code lives, for changelogs                                                        |
+| `homepage`                     | url                           | the homepage                                                                                       |
+| `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                 |
+| `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key |
+| `source`                       | object                        | deprecated build information, don't use it, see below                                              |
+| `updatedAt`                    | UTC time                      | when the build ran                                                                                 |
+| `versions`                     | list                          | the versions, newest first, prereleases included                                                   |
+| `versions[].version`           | string                        | the exact `install-tool` version                                                                   |
+| `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
+| `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
+| `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                              |
+| `files[].name`                 | string                        | the file name                                                                                      |
+| `files[].url`                  | https url                     | where to download it                                                                               |
+| `files[].checksum`             | string                        | `sha256:`, `sha512:` or `sha1:` and the lowercase hex digest                                       |
+| `files[].arch`                 | `amd64`, `arm64`              | the architecture, omitted for files which work on every one                                        |
+| `files[].distro`               | string                        | the distro codename, for distro specific files                                                     |
+
+`source` (`datasource`, `packageName`, `versioning`) is deprecated.
+It describes how the build fetches the versions, readers must not rely on it.
+It is removed with the next format major ([#146](https://github.com/containerbase/tool-versions/issues/146)).
 
 Which versions are listed:
 

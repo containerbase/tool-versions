@@ -106,7 +106,15 @@ export const ToolVersions = z.object({
    * don't break readers.
    */
   distroMinVersion: z.record(z.string().min(1), z.string().min(1)).optional(),
-  source: Source,
+  /**
+   * build information, deprecated: readers must not rely on it, it is removed
+   * with the next format major (#146)
+   */
+  source: Source.meta({
+    deprecated: true,
+    description:
+      'Deprecated build information, do not use it. It is removed in the next format major.',
+  }),
   updatedAt: z.iso.datetime(),
   /** newest first */
   versions: z.array(ToolVersion),
