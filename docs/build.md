@@ -64,11 +64,27 @@ The pages workflow runs it after the build and adds the number of files and the 
 - **When:** a release is due when there is no release yet, or the data changed. The pack step writes `changed` and `version` to the outputs of the job and the `build` job uploads `dist-release/` as the artifact `release`.
 - **Release job:** the `release` job runs on `main` after the `build` and `deploy` jobs, so a release always matches the deployed site. It downloads the artifact and runs `gh release create v<version>` for the commit with the notes and the two archive files. It is the only job with `contents: write`.
 - **First release:** `1.0.0`.
-- **Versions:** a data change is a patch release. The base `major.minor` is `releaseBase` in [`src/release.ts`](../src/release.ts), set by hand. A new major version is for a breaking change of the format or the archive, a new minor version for new fields or files.
-- The next version is the latest published patch version of the base plus one, or `<major>.<minor>.0` when there is none yet, like after a bump of the base. `--published <tag>` passes the versions or tags of the existing releases.
+- **Versions:** the version follows the conventional commits since the previous release, like semantic-release. `--published <tag>` passes the tags of the existing releases, `--commits <file>` the subjects.
+  - A `feat` commit is a minor release, like `1.0.1` to `1.1.0`.
+  - Anything else is a patch release, also a change of the data only.
+  - The major version is the data format major, `releaseMajor` in [`src/release.ts`](../src/release.ts), and only changes with a new format folder, see the [versioning policy](./format.md#versioning-policy).
+  - A breaking commit (`type!:` in the subject) of the major version of the latest release can't be released. The pack step doesn't fail, the site is deployed as usual, but it writes no archive and sets the outputs `breaking` and `error`. The `release` job then fails with the message and creates no release.
+  - Once the code has a new format major, the breaking commit is released as `<major>.0.0`.
+  - The previous release is the highest `v<major>.x.y` tag, tags of other majors and of no version are ignored. The first release of a major is `<major>.0.0`.
 - **Data change:** the new files differ from the previous release in other than the `updatedAt` of the files and the digests which follow from it.
 - **Tags:** a release is tagged `v<version>`, like `v1.0.3`.
-- **Release notes:** the header with the version and date, the data changes (versions added and removed per tool, at most 10 listed, new and removed tools on their own line) and the code changes: the conventional commits since the previous tag (`--commits <file>` has their subjects, one per line), as features, bug fixes, performance improvements, reverts, breaking changes and other (`refactor`, `docs`), each with its pull request number. `chore`, `ci`, `test` and `build` commits aren't listed.
+- **Release notes:** the header with the version and date, the data changes (versions added and removed per tool, and versions which only gained, lost or changed files, at most 10 listed each, new and removed tools on their own line) and the code changes: the conventional commits since the previous tag (`--commits <file>` has their subjects, one per line), as features, bug fixes, performance improvements, reverts, breaking changes and other (`refactor`, `docs`), each with its pull request number. `chore`, `ci`, `test` and `build` commits aren't listed.
+
+## Regenerate the notes of a release
+
+`pnpm release-notes` writes the notes from two extracted release archives, without a build or network:
+
+```bash
+pnpm release-notes --previous <folder> --next <folder> --version 1.0.1 --date 2026-10-16 \
+  [--commits <file>] [--out <file>]
+```
+
+It prints the markdown, or writes it to `--out`. Use `gh release edit v<version> --notes-file <file>` to replace the notes of a release.
 
 ## Environment
 

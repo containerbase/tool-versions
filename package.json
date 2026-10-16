@@ -19,6 +19,7 @@
     "oxlint": "oxlint",
     "oxlint-fix": "oxlint --fix",
     "pack:release": "node src/pack.ts",
+    "release-notes": "node src/notes.ts",
     "prepare": "husky",
     "test": "vitest run"
   },

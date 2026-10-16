@@ -37,6 +37,7 @@ All tooling runs through `pnpm`:
 - `pnpm test`: run the unit tests
 - `pnpm build`: build the files into `dist/`, starting empty. `--previous-archive <folder>` starts from the extracted archive of a release (see the README for downloading one into the ignored `tmp/`), `--full` ignores the previous state
 - `pnpm pack:release`: pack the release archive from `dist/` into `dist-release/`
+- `pnpm release-notes`: write the notes of a release from two extracted archives
 
 `jactionlint` lints the GitHub workflows and local actions.
 
@@ -57,6 +58,18 @@ pull request:
 
 Never list tool names in the docs, [`src/tools.ts`](./src/tools.ts) is the list.
 Give one example tool per kind of source instead.
+
+## Commits and releases
+
+Use conventional commit subjects, they decide the release version after each
+change of the data or the code:
+
+- `feat` is a minor release, anything else a patch release.
+- A breaking change (`type!:`) blocks the release job, the site is still
+  deployed. The major version is the data format major and only changes with a
+  new format folder, see the versioning policy in
+  [`docs/format.md`](./docs/format.md). Release it with the new format major,
+  which starts at `<major>.0.0`.
 
 ## Code
 

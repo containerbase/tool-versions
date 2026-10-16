@@ -6,11 +6,13 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  BreakingChangeError,
   createArchive,
   githubOutput,
   hasChanges,
   isReleaseDue,
   nextVersion,
+  planVersion,
   selectFiles,
 } from './release.ts';
 
@@ -50,31 +52,54 @@ function indexFile(updatedAt: string, integrity: string): string {
 
 describe('release', () => {
   describe('nextVersion', () => {
-    it('starts the base with patch 0', () => {
-      expect(nextVersion('1.0', [])).toBe('1.0.0');
+    it('starts the major version with 0.0, without a release', () => {
+      expect(nextVersion(1, [], [])).toBe('1.0.0');
+      expect(nextVersion(2, ['v1.3.7'], ['feat: a'])).toBe('2.0.0');
     });
 
-    it('counts up the latest patch version of the base', () => {
-      expect(nextVersion('1.0', ['1.0.0', '1.0.10', '1.0.9'])).toBe('1.0.11');
+    it('is a patch release for a change of the data only', () => {
+      expect(nextVersion(1, ['v1.0.0', 'v1.0.1'], [])).toBe('1.0.2');
     });
 
-    it('starts again at patch 0 after a bump of the minor or major version', () => {
-      expect(nextVersion('1.1', ['1.0.0', '1.0.4'])).toBe('1.1.0');
-      expect(nextVersion('2.0', ['1.3.7'])).toBe('2.0.0');
+    it('is a patch release for fixes and other commits', () => {
+      expect(
+        nextVersion(1, ['v1.0.1'], ['fix: b (#2)', 'docs: c', 'chore: d', 'not conventional']),
+      ).toBe('1.0.2');
     });
 
-    it('continues a bumped base', () => {
-      expect(nextVersion('1.1', ['1.0.4', '1.1.0', '1.1.1'])).toBe('1.1.2');
+    it('is a minor release for a feature', () => {
+      expect(nextVersion(1, ['v1.0.1'], ['fix: b', 'feat(npm): a (#1)'])).toBe('1.1.0');
     });
 
-    it('reads tags with a leading v', () => {
-      expect(nextVersion('1.0', ['v1.0.0', 'v1.0.1', 'latest'])).toBe('1.0.2');
+    it('counts up the highest version, also after a minor release', () => {
+      const published = ['v1.0.1', 'v1.1.0', 'v1.0.9', 'v1.1.3'];
+
+      expect(nextVersion(1, published, [])).toBe('1.1.4');
+      expect(nextVersion(1, published, ['feat: a'])).toBe('1.2.0');
     });
 
-    it('ignores versions of other bases, prereleases and look-alikes', () => {
-      expect(nextVersion('1.1', ['1.10.5', '1.1.2-beta.1', '11.1.3', '1.1.x', '1.1.1'])).toBe(
-        '1.1.2',
+    it('rejects a breaking change of the major version of the latest release', () => {
+      expect(() => nextVersion(1, ['v1.0.1'], ['feat!: rename a field (#3)'])).toThrow(
+        /only changes with a new format folder/,
       );
+      expect(() => nextVersion(1, ['v1.0.1'], ['fix(x): a BREAKING CHANGE'])).toThrow(
+        BreakingChangeError,
+      );
+    });
+
+    it('starts a new major version with a breaking change, as it has a new format folder', () => {
+      expect(nextVersion(2, ['v1.3.7'], ['feat!: new format (#4)'])).toBe('2.0.0');
+      expect(nextVersion(1, [], ['feat!: first (#4)'])).toBe('1.0.0');
+    });
+
+    it('reads tags with and without a leading v and ignores others', () => {
+      expect(
+        nextVersion(
+          1,
+          ['1.0.0', 'v1.0.1', 'latest', 'v2.5.0', 'v1.2.x', 'v1.0.2-beta.1', 'v11.0.0'],
+          [],
+        ),
+      ).toBe('1.0.2');
     });
   });
 
@@ -145,10 +170,38 @@ describe('release', () => {
     });
   });
 
+  describe('planVersion', () => {
+    it('is the next version', () => {
+      expect(planVersion(1, ['v1.0.1'], ['fix: a'])).toEqual({ version: '1.0.2' });
+    });
+
+    it('returns a breaking change as an error instead of throwing it', () => {
+      const plan = planVersion(1, ['v1.0.1'], ['feat!: rename a field (#3)']);
+
+      expect(plan.version).toBe('');
+      expect(plan.error).toContain("A breaking change can't be released as 1.x.y");
+      expect(plan.error).toContain('feat: rename a field (#3)');
+    });
+
+    it('has the next major version for a breaking change with a new format folder', () => {
+      expect(planVersion(2, ['v1.0.1'], ['feat!: new format'])).toEqual({ version: '2.0.0' });
+    });
+  });
+
   describe('githubOutput', () => {
     it('has the outputs of the step', () => {
-      expect(githubOutput('1.0.3', true)).toBe('changed=true\nversion=1.0.3\n');
-      expect(githubOutput('1.0.0', false)).toBe('changed=false\nversion=1.0.0\n');
+      expect(githubOutput({ version: '1.0.3', changed: true })).toBe(
+        'changed=true\nversion=1.0.3\nbreaking=false\nerror=\n',
+      );
+      expect(githubOutput({ version: '1.0.0', changed: false })).toBe(
+        'changed=false\nversion=1.0.0\nbreaking=false\nerror=\n',
+      );
+    });
+
+    it('flags a breaking change with its message', () => {
+      expect(githubOutput({ version: '', changed: false, error: 'a breaking change' })).toBe(
+        'changed=false\nversion=\nbreaking=true\nerror=a breaking change\n',
+      );
     });
   });
 

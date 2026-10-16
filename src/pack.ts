@@ -7,9 +7,9 @@ import {
   createArchive,
   githubOutput,
   isReleaseDue,
-  nextVersion,
+  planVersion,
   readFiles,
-  releaseBase,
+  releaseMajor,
   selectFiles,
 } from './release.ts';
 
@@ -20,6 +20,7 @@ const { values } = parseArgs({
     // the folder for the archive, its .sha512 and the release notes
     to: { type: 'string', default: 'dist-release' },
     // the versions or tags of the releases, the next version follows the latest of them
+    // and the commits
     published: { type: 'string', multiple: true, default: [] },
     // the folder with the extracted archive of the previous release
     previous: { type: 'string' },
@@ -33,29 +34,41 @@ const { values } = parseArgs({
   },
 });
 
-const version = nextVersion(releaseBase, values.published);
-await rm(values.to, { recursive: true, force: true });
-const info = await createArchive(values.from, values.to, version);
-
 const commits = values.commits
   ? (await readFile(values.commits, 'utf8')).split('\n').filter(Boolean)
   : [];
-const previous = values.previous ? await readFiles(values.previous) : undefined;
-const next = selectFiles(await readFiles(values.from));
-const notes = releaseNotes({
-  version,
-  date: new Date(),
-  previous: previous ?? new Map(),
-  next,
-  commits,
-});
-await writeFile(join(values.to, 'release-notes.md'), notes);
+const { version, error } = planVersion(releaseMajor, values.published, commits);
+if (error === undefined) {
+  await rm(values.to, { recursive: true, force: true });
+  const info = await createArchive(values.from, values.to, version);
 
-const line = `${info.files} files, ${info.packed} bytes packed, ${info.unpacked} bytes unpacked`;
-process.stdout.write(`${info.archive}: ${line}, version ${version}\n`);
-if (values.summary) {
-  await appendFile(values.summary, `### Release archive ${version}\n\n${line}\n`);
-}
-if (values['github-output']) {
-  await appendFile(values['github-output'], githubOutput(version, isReleaseDue(previous, next)));
+  const previous = values.previous ? await readFiles(values.previous) : undefined;
+  const next = selectFiles(await readFiles(values.from));
+  const notes = releaseNotes({
+    version,
+    date: new Date(),
+    previous: previous ?? new Map(),
+    next,
+    commits,
+  });
+  await writeFile(join(values.to, 'release-notes.md'), notes);
+
+  const line = `${info.files} files, ${info.packed} bytes packed, ${info.unpacked} bytes unpacked`;
+  process.stdout.write(`${info.archive}: ${line}, version ${version}\n`);
+  if (values.summary) {
+    await appendFile(values.summary, `### Release archive ${version}\n\n${line}\n`);
+  }
+  if (values['github-output']) {
+    await appendFile(
+      values['github-output'],
+      githubOutput({ version, changed: isReleaseDue(previous, next) }),
+    );
+  }
+} else {
+  // a breaking change blocks the release, but not the build: the release job
+  // fails with the message
+  process.stdout.write(`::warning::${error}\n`);
+  if (values['github-output']) {
+    await appendFile(values['github-output'], githubOutput({ version, changed: false, error }));
+  }
 }
