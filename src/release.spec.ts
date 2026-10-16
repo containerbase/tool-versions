@@ -5,7 +5,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createArchive, hasChanges, nextVersion, selectFiles } from './release.ts';
+import {
+  createArchive,
+  githubOutput,
+  hasChanges,
+  isReleaseDue,
+  nextVersion,
+  selectFiles,
+} from './release.ts';
 
 /**
  * A slim tool file, as written by the build.
@@ -119,6 +126,29 @@ describe('release', () => {
       expect(hasChanges(previous, schema)).toBe(true);
       expect(hasChanges(new Map([['a.txt', 'a']]), new Map([['a.txt', 'b']]))).toBe(true);
       expect(hasChanges(new Map([['a.json', '{']]), new Map([['a.json', '{']]))).toBe(false);
+    });
+  });
+
+  describe('isReleaseDue', () => {
+    const files = new Map([['v1/helm.json', toolFile('2026-10-15T03:00:00.000Z', ['3.19.0'])]]);
+
+    it('is due without a previous release', () => {
+      expect(isReleaseDue(undefined, files)).toBe(true);
+    });
+
+    it('is due for a data change only', () => {
+      const same = new Map([['v1/helm.json', toolFile('2026-10-16T03:00:00.000Z', ['3.19.0'])]]);
+      const changed = new Map([['v1/helm.json', toolFile('2026-10-16T03:00:00.000Z', ['3.20.0'])]]);
+
+      expect(isReleaseDue(files, same)).toBe(false);
+      expect(isReleaseDue(files, changed)).toBe(true);
+    });
+  });
+
+  describe('githubOutput', () => {
+    it('has the outputs of the step', () => {
+      expect(githubOutput('1.0.3', true)).toBe('changed=true\nversion=1.0.3\n');
+      expect(githubOutput('1.0.0', false)).toBe('changed=false\nversion=1.0.0\n');
     });
   });
 

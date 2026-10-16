@@ -25,9 +25,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    outputs:
+      changed: ${{ steps.pack.outputs.changed }}
+      version: ${{ steps.pack.outputs.version }}
+
     steps:
+      # the full commit history without the old file contents, which is enough
+      # for the subjects of the commits since the previous release
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          show-progress: false
+
       - name: ⚙️ Setup
         uses: containerbase/internal-tools/setup@065c7cd31765ae2015249a42ec1e3798e462b5d4 # v5.3.1
+        with:
+          checkout: false
 
       # a failing tool falls back to its published file with a warning, the
       # build only fails when a tool has neither fresh nor published versions
@@ -36,9 +51,46 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # only builds the release archive and prints its size, nothing is released
+      # packs the release archive and decides whether a release is due, which
+      # the release job creates once the site is deployed
       - name: pack the release archive
-        run: pnpm pack:release --summary "$GITHUB_STEP_SUMMARY"
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          gh release list --json tagName --jq '.[].tagName' > "$RUNNER_TEMP/tags.txt"
+          while read -r tag; do
+            args+=(--published "$tag")
+          done < "$RUNNER_TEMP/tags.txt"
+
+          latest="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+          if [ -n "$latest" ]; then
+            previous="$RUNNER_TEMP/previous"
+            mkdir -p "$previous/download" "$previous/files"
+            gh release download "$latest" --pattern 'tool-versions-*.tar.xz*' --dir "$previous/download"
+            (
+              cd "$previous/download"
+              for archive in tool-versions-*.tar.xz; do
+                echo "$(cat "$archive.sha512")  $archive" | sha512sum --check --strict -
+                tar -xJf "$archive" -C "$previous/files"
+              done
+            )
+            git log --format=%s "$latest..HEAD" > "$RUNNER_TEMP/commits.txt"
+            args+=(--previous "$previous/files" --commits "$RUNNER_TEMP/commits.txt")
+          fi
+
+          pnpm pack:release "${args[@]}" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.pack.outputs.changed == 'true'
+        with:
+          name: release
+          path: dist-release
+          if-no-files-found: error
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -63,3 +115,33 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # a release is only created for what is deployed to the site
+  release:
+    needs:
+      - build
+      - deploy
+    if: github.ref == 'refs/heads/main' && needs.build.outputs.changed == 'true'
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+
+      - name: create the release
+        run: >
+          gh release create "v$VERSION"
+          --repo "$GITHUB_REPOSITORY"
+          --target "$GITHUB_SHA"
+          --title "v$VERSION"
+          --notes-file release-notes.md
+          tool-versions-*.tar.xz
+          tool-versions-*.tar.xz.sha512
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
