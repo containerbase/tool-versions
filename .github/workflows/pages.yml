@@ -12,6 +12,10 @@ on:
         description: Fetch every version again, without the previously published files
         type: boolean
         default: false
+      budget:
+        description: Download budget in whole GiB instead of the default 3 GiB, to compute many checksums at once
+        type: string
+        required: false
 
 concurrency:
   group: pages
@@ -23,7 +27,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # a raised download budget takes longer
+    timeout-minutes: ${{ inputs.budget && 120 || 30 }}
 
     outputs:
       changed: ${{ steps.pack.outputs.changed }}
@@ -82,10 +87,14 @@ jobs:
           if [ -n "$PREVIOUS_ARCHIVE" ]; then
             args+=(--previous-archive "$PREVIOUS_ARCHIVE")
           fi
+          if [ -n "$BUDGET" ]; then
+            export TOOL_VERSIONS_DOWNLOAD_BUDGET="$((BUDGET * 1024 ** 3))"
+          fi
           pnpm build ${{ inputs.full && '--full' || '' }} "${args[@]}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREVIOUS_ARCHIVE: ${{ steps.previous.outputs.dir }}
+          BUDGET: ${{ inputs.budget }}
 
       # packs the release archive and decides whether a release is due, which
       # the release job creates once the site is deployed

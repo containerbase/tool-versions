@@ -66,5 +66,6 @@ Some upstreams publish no checksum, at least for old releases. The tools are mar
 - It is split between the tools which may compute files. When its turn comes, a tool gets the budget left divided by the number of tools still waiting.
 - A tool which needs less leaves the rest to the next ones. The total never exceeds the budget.
 - The newest versions are computed first. Older ones follow in the next nightly builds.
+- To compute a big backlog in one build, and so in one release, run the `pages` workflow manually with the `budget` input in GiB. It also raises the job timeout to 2 hours.
 - A file which doesn't fit the share, by its `content-length`, is skipped. The build prints one `::notice::` line per tool when its share is used up.
 - A failed download skips the file with a warning, the next build tries again.
