@@ -101,6 +101,25 @@ export function hasChanges(previous: FileMap, next: FileMap): boolean {
 }
 
 /**
+ * Decides whether a release is due: there is none yet, or the data differs from
+ * the previous release.
+ * @param previous - the files of the previous release, none when there isn't one
+ * @param next - the files of the new release
+ */
+export function isReleaseDue(previous: FileMap | undefined, next: FileMap): boolean {
+  return previous === undefined || hasChanges(previous, next);
+}
+
+/**
+ * Creates the lines for the `GITHUB_OUTPUT` file of a workflow step.
+ * @param version - the version of the release
+ * @param changed - whether a release is due
+ */
+export function githubOutput(version: string, changed: boolean): string {
+  return `changed=${changed}\nversion=${version}\n`;
+}
+
+/**
  * Reads all files of a folder, recursively.
  * @param dir - the folder
  * @returns the files by their path relative to the folder, with `/` separators

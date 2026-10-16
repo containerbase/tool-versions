@@ -44,7 +44,12 @@ The log lines (`::warning::`, `::error::`, `::notice::`) stay as they are.
 - `tool-versions-<version>.tar.xz.sha512`
 - `release-notes.md`
 
-The pages workflow runs it after the build and adds the number of files and the packed and unpacked size to the job summary. It doesn't create a release yet.
+The pages workflow runs it after the build and adds the number of files and the packed and unpacked size to the job summary.
+
+- **Previous release:** the `build` job downloads the latest release, verifies its `.sha512`, extracts it and passes it as `--previous`. The tags of all releases are passed as `--published`, and the commit subjects since its tag as `--commits`.
+- **When:** a release is due when there is no release yet, or the data changed. The pack step writes `changed` and `version` to the outputs of the job and the `build` job uploads `dist-release/` as the artifact `release`.
+- **Release job:** the `release` job runs on `main` after the `build` and `deploy` jobs, so a release always matches the deployed site. It downloads the artifact and runs `gh release create v<version>` for the commit with the notes and the two archive files. It is the only job with `contents: write`.
+- **First release:** `1.0.0`.
 
 - **Versions:** a data change is a patch release. The base `major.minor` is `releaseBase` in [`src/release.ts`](../src/release.ts), set by hand. A new major version is for a breaking change of the format or the archive, a new minor version for new fields or files.
 - The next version is the latest published patch version of the base plus one, or `<major>.<minor>.0` when there is none yet, like after a bump of the base. `--published <tag>` passes the versions or tags of the existing releases.

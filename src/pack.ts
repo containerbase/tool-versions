@@ -3,7 +3,15 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 import { releaseNotes } from './release-notes.ts';
-import { createArchive, nextVersion, readFiles, releaseBase, selectFiles } from './release.ts';
+import {
+  createArchive,
+  githubOutput,
+  isReleaseDue,
+  nextVersion,
+  readFiles,
+  releaseBase,
+  selectFiles,
+} from './release.ts';
 
 const { values } = parseArgs({
   options: {
@@ -19,6 +27,9 @@ const { values } = parseArgs({
     commits: { type: 'string' },
     // a file to append the size of the archive to, like the job summary
     summary: { type: 'string' },
+    // a file to append the outputs of the workflow step to: `changed`, whether a
+    // release is due, and the `version`
+    'github-output': { type: 'string' },
   },
 });
 
@@ -29,11 +40,13 @@ const info = await createArchive(values.from, values.to, version);
 const commits = values.commits
   ? (await readFile(values.commits, 'utf8')).split('\n').filter(Boolean)
   : [];
+const previous = values.previous ? await readFiles(values.previous) : undefined;
+const next = selectFiles(await readFiles(values.from));
 const notes = releaseNotes({
   version,
   date: new Date(),
-  previous: values.previous ? await readFiles(values.previous) : new Map(),
-  next: selectFiles(await readFiles(values.from)),
+  previous: previous ?? new Map(),
+  next,
   commits,
 });
 await writeFile(join(values.to, 'release-notes.md'), notes);
@@ -42,4 +55,7 @@ const line = `${info.files} files, ${info.packed} bytes packed, ${info.unpacked}
 process.stdout.write(`${info.archive}: ${line}, version ${version}\n`);
 if (values.summary) {
   await appendFile(values.summary, `### Release archive ${version}\n\n${line}\n`);
+}
+if (values['github-output']) {
+  await appendFile(values['github-output'], githubOutput(version, isReleaseDue(previous, next)));
 }
