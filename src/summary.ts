@@ -28,7 +28,7 @@ export interface ToolReport {
 /** The data of a build, filled while it runs. */
 export class BuildReport {
   readonly tools: ToolReport[] = [];
-  /** whether it is a full build, without the previous files */
+  /** whether it is a full build, without the previous state */
   readonly full: boolean;
   /** the download budget, in bytes */
   readonly budget: number;
@@ -36,7 +36,7 @@ export class BuildReport {
   readonly start: number;
 
   /**
-   * @param full - whether it is a full build, without the previous files
+   * @param full - whether it is a full build, without the previous state
    * @param budget - the download budget, in bytes
    * @param start - when the build started, in milliseconds
    */

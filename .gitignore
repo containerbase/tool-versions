@@ -93,6 +93,8 @@ out
 # generated version files and the release archive
 dist
 dist-release
+# a release downloaded for a local build
+tmp
 
 # Gatsby files
 .cache/

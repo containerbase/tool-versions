@@ -12,23 +12,23 @@ The `pages` workflow runs on every push to `main`, nightly and on demand.
 4. **Deploy:** the `deploy` job publishes `dist/` to GitHub Pages.
 5. **Release:** the `release` job creates the release, only when one is due.
 
-Without a release yet, step 1 is skipped and the build doesn't get `--previous-archive`: it starts from the published `v1/<tool>.full.json` files instead.
+Without a release yet, step 1 is skipped and the build doesn't get `--previous-archive`: it starts empty.
 
 ## Updates
 
 - **Incremental:** each build starts from the previous state of every tool.
 - The previous state is the archive of the latest release: the slim `<tool>.json` with the files of each version from `<tool>/<version>.json`. The workflow extracts it and passes it as `--previous-archive <folder>`.
-- Without a release archive, like with a local `pnpm build`, the build starts from the published `v1/<tool>.full.json` files. It prints which source it used.
+- Without it, like for the first release or with a local `pnpm build`, the build starts empty, like a full refresh. All checksums are computed again, limited by the [download budget](./sources.md#download-budget). It prints which previous state it used.
 - Known versions, files and release times are reused. Only missing ones are fetched.
 - Versions gone upstream stay listed.
 - Paged sources stop at the first known version. A full refresh fills older gaps.
-- **Full refresh:** run the `pages` workflow with the `full` input, or `pnpm build --full`. It doesn't use the previous state.
+- **Full refresh:** run the `pages` workflow with the `full` input, or `pnpm build --full`. It ignores the previous state, also when there is a release.
 
 ## Failures
 
 - A missing checksum (404) skips the file.
 - Other errors warn, the next build retries.
-- A tool whose fetch fails republishes its previous file with the old `updatedAt`.
+- A tool whose fetch fails republishes its previous data with the old `updatedAt`.
 - The build only fails for a tool without any versions.
 
 ## Job summary
@@ -36,7 +36,7 @@ Without a release yet, step 1 is skipped and the build doesn't get `--previous-a
 When `GITHUB_STEP_SUMMARY` is set, as in GitHub Actions, each build appends a summary:
 
 - the build kind and duration
-- which tools were updated, kept their previous file or failed
+- which tools were updated, kept their previous data or failed
 - the download budget
 - a table with a row per tool: versions, new versions, files added, computed checksums and bytes, warnings
 - the warnings and errors of each tool
@@ -73,5 +73,4 @@ The pages workflow runs it after the build and adds the number of files and the 
 ## Environment
 
 - `GITHUB_TOKEN` avoids the GitHub rate limit.
-- `TOOL_VERSIONS_URL` overrides where the previous files come from, when there is no release archive.
 - `TOOL_VERSIONS_DOWNLOAD_BUDGET` sets the download budget, see [sources](./sources.md#download-budget).

@@ -7,7 +7,6 @@ const { values } = parseArgs({
     // fetch every version again, without the previous state
     full: { type: 'boolean', default: false },
     // the folder with the extracted archive of the latest release, to start from
-    // instead of the published full files
     'previous-archive': { type: 'string' },
   },
 });

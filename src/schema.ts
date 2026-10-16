@@ -72,7 +72,7 @@ export const ToolVersion = z.object({
   lts: z.literal(true).optional(),
   /** when the version was released, in UTC */
   releaseTimestamp: z.iso.datetime().optional(),
-  /** sorted by name, only in `<tool>.full.json` */
+  /** sorted by name, not in the `<tool>.json` files, but in the `<tool>/<version>.json` ones */
   files: z.array(ToolFile).min(1).optional(),
 });
 export type ToolVersion = z.infer<typeof ToolVersion>;

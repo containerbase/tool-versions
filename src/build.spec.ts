@@ -7,7 +7,14 @@ import nock from 'nock';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build } from './build.ts';
 import { integrity } from './output.ts';
-import { type Source, type ToolFile, ToolIndex, type ToolVersions } from './schema.ts';
+import { readArchivePrevious } from './previous.ts';
+import {
+  type PreviousToolVersions,
+  type Source,
+  type ToolFile,
+  ToolIndex,
+  type ToolVersions,
+} from './schema.ts';
 import { toolSources } from './tools.ts';
 import { versionings } from './versioning.ts';
 
@@ -27,7 +34,6 @@ vi.mock('@containerbase/base', async (importOriginal) => {
 });
 
 const now = new Date('2026-10-08T12:00:00.000Z');
-const pages = 'https://pages.example.com';
 const registry = 'https://registry.npmjs.org';
 const schemas = 'https://containerbase.github.io/tool-versions/v1';
 const pnpmLinks = { sourceUrl: 'https://github.com/pnpm/pnpm', homepage: 'https://pnpm.io' };
@@ -56,6 +62,7 @@ function previousPnpm(
 
 describe('build', () => {
   let dir: string;
+  let archive: string;
   let output: string[];
 
   beforeAll(() => {
@@ -64,7 +71,7 @@ describe('build', () => {
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'tool-versions-'));
-    vi.stubEnv('TOOL_VERSIONS_URL', pages);
+    archive = await mkdtemp(join(tmpdir(), 'tool-versions-archive-'));
     // no job summary, unless a test sets one
     vi.stubEnv('GITHUB_STEP_SUMMARY', '');
     output = [];
@@ -79,7 +86,41 @@ describe('build', () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
+    await rm(archive, { recursive: true, force: true });
   });
+
+  /**
+   * Writes the extracted archive of a release with the previous data of some
+   * tools: the slim files and the files of each version.
+   * @param previous - the previous data of the tools
+   * @returns the folder of the archive
+   */
+  async function archiveOf(...previous: PreviousToolVersions[]): Promise<string> {
+    await mkdir(join(archive, 'v1'), { recursive: true });
+    for (const data of previous) {
+      const slim = { ...data, versions: data.versions.map(({ files: _files, ...rest }) => rest) };
+      await writeFile(join(archive, 'v1', `${data.tool}.json`), JSON.stringify(slim));
+      for (const { version, files } of data.versions) {
+        if (files) {
+          await mkdir(join(archive, 'v1', data.tool), { recursive: true });
+          await writeFile(
+            join(archive, 'v1', data.tool, `${version}.json`),
+            JSON.stringify({ tool: data.tool, version, files }),
+          );
+        }
+      }
+    }
+    return archive;
+  }
+
+  /**
+   * Reads the data of a written tool back like the next build does, with the
+   * files of its versions.
+   * @param tool - the tool name
+   */
+  async function readBack(tool: string): Promise<PreviousToolVersions | undefined> {
+    return await readArchivePrevious(dir, tool);
+  }
 
   /**
    * Reads a written file of the format folder `v1`.
@@ -118,13 +159,6 @@ describe('build', () => {
   });
 
   it('writes the tools and leaves out failing ones without a previous file', async () => {
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(404)
-      .get('/v1/npm.full.json')
-      .reply(404)
-      .get('/v1/corepack.full.json')
-      .reply(404);
     nock(registry)
       .get('/pnpm')
       .times(2)
@@ -157,7 +191,6 @@ describe('build', () => {
       'index.json',
       'index.schema.json',
       'integrity.schema.json',
-      'pnpm.full.json',
       'pnpm.json',
       'tool.schema.json',
       'version.schema.json',
@@ -184,10 +217,14 @@ describe('build', () => {
 
   it('writes the previous file when the fetch fails', async () => {
     const previous = previousPnpm([{ version: '9.0.0', lts: true }]);
-    nock(pages).get('/v1/pnpm.full.json').reply(200, previous);
     nock(registry).get('/pnpm').times(3).reply(500);
 
-    const failed = await build({ dir, sources: pnpmSource, now });
+    const failed = await build({
+      dir,
+      sources: pnpmSource,
+      now,
+      previousArchive: await archiveOf(previous),
+    });
 
     expect(failed).toEqual([]);
     // the previous file gets the current type and links
@@ -207,26 +244,19 @@ describe('build', () => {
     );
   });
 
-  it('starts from the extracted archive of the latest release and says so', async () => {
-    const previous = previousPnpm([{ version: '9.0.0', lts: true }]);
-    const archive = join(dir, 'archive');
-    await mkdir(join(archive, 'v1'), { recursive: true });
-    await writeFile(join(archive, 'v1', 'pnpm.json'), JSON.stringify(previous));
-    // an unmocked request of the published file would fail the tool
-    nock(registry).get('/pnpm').times(3).reply(500);
+  it('says which previous state it starts from', async () => {
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, { versions: { '10.0.0': {} } });
+    const previousArchive = await archiveOf(previousPnpm([{ version: '9.0.0' }]));
 
-    await expect(
-      build({ dir: join(dir, 'out'), sources: pnpmSource, now, previousArchive: archive }),
-    ).resolves.toEqual([]);
+    await build({ dir, sources: pnpmSource, now, previousArchive });
 
-    expect(
-      JSON.parse(await readFile(join(dir, 'out', 'v1', 'pnpm.json'), 'utf8')).versions,
-    ).toEqual([{ version: '9.0.0', lts: true }]);
-    expect(output).toContain(`previous state: the release archive in ${archive}\n`);
+    expect(output).toContain(`previous state: the release archive in ${previousArchive}\n`);
   });
 
-  it('says that it starts from the published files without an archive', async () => {
-    nock(pages).get('/v1/pnpm.full.json').reply(404);
+  it('starts empty without an archive, and says so', async () => {
     nock(registry)
       .get('/pnpm')
       .times(2)
@@ -234,19 +264,19 @@ describe('build', () => {
 
     await build({ dir, sources: pnpmSource, now });
 
-    expect(output).toContain(
-      'previous state: the published full files, there is no release archive\n',
-    );
+    expect(output).toContain('previous state: none, there is no release archive\n');
+    expect(JSON.parse(await read('pnpm.json')).versions).toEqual([{ version: '10.0.0' }]);
   });
 
   it('keeps a previous file without versioning and writes the current one', async () => {
     const previous = previousPnpm([{ version: '9.0.0' }]);
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(200, { ...previous, source: { datasource: 'npm', packageName: 'pnpm' } });
     nock(registry).get('/pnpm').times(3).reply(500);
+    const previousArchive = await archiveOf({
+      ...previous,
+      source: { datasource: 'npm', packageName: 'pnpm' },
+    });
 
-    await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual([]);
+    await expect(build({ dir, sources: pnpmSource, now, previousArchive })).resolves.toEqual([]);
 
     expect(JSON.parse(await read('pnpm.json'))).toEqual({
       $schema: `${schemas}/tool.schema.json`,
@@ -257,7 +287,6 @@ describe('build', () => {
   });
 
   it('writes the links after the type', async () => {
-    nock(pages).get('/v1/pnpm.full.json').reply(404);
     nock(registry)
       .get('/pnpm')
       .times(2)
@@ -278,25 +307,23 @@ describe('build', () => {
   });
 
   it('leaves out an unset link of the republished previous file', async () => {
-    nock(pages)
-      .get('/v1/java.full.json')
-      .reply(200, {
-        tool: 'java',
-        source: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
-        updatedAt: '2026-10-07T03:00:00.000Z',
-        versions: [
-          {
-            version: '21.0.5+11.0.LTS',
-            files: [
-              {
-                name: 'a.tar.gz',
-                url: 'https://example.com/a.tar.gz',
-                checksum: `sha256:${'a'.repeat(64)}`,
-              },
-            ],
-          },
-        ],
-      });
+    const previousArchive = await archiveOf({
+      tool: 'java',
+      source: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [
+        {
+          version: '21.0.5+11.0.LTS',
+          files: [
+            {
+              name: 'a.tar.gz',
+              url: 'https://example.com/a.tar.gz',
+              checksum: `sha256:${'a'.repeat(64)}`,
+            },
+          ],
+        },
+      ],
+    });
     nock('https://api.adoptium.net').get('/v3/info/available_releases').times(3).reply(500);
 
     await build({
@@ -305,6 +332,7 @@ describe('build', () => {
         java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
       },
       now,
+      previousArchive,
     });
 
     const java = JSON.parse(await read('java.json'));
@@ -313,22 +341,19 @@ describe('build', () => {
   });
 
   it('merges the fresh versions with the previous ones', async () => {
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(
-        200,
-        previousPnpm([
-          { version: '10.0.0-rc.1', prerelease: true },
-          { version: '9.0.0', lts: true },
-          { version: '8.0.0' },
-        ]),
-      );
+    const previousArchive = await archiveOf(
+      previousPnpm([
+        { version: '10.0.0-rc.1', prerelease: true },
+        { version: '9.0.0', lts: true },
+        { version: '8.0.0' },
+      ]),
+    );
     nock(registry)
       .get('/pnpm')
       .times(2)
       .reply(200, { versions: { '9.0.0': {}, '10.0.0-rc.1': {}, '10.0.0': {} } });
 
-    await build({ dir, sources: pnpmSource, now });
+    await build({ dir, sources: pnpmSource, now, previousArchive });
 
     expect(JSON.parse(await read('pnpm.json'))).toEqual({
       $schema: `${schemas}/tool.schema.json`,
@@ -355,12 +380,10 @@ describe('build', () => {
       },
     ];
     // a tool without an installer type, whose source returns no files
-    nock(pages)
-      .get('/v1/node.full.json')
-      .reply(200, {
-        ...previousPnpm([{ version: '9.0.0', files }], 'node'),
-        tool: 'node',
-      });
+    const previousArchive = await archiveOf({
+      ...previousPnpm([{ version: '9.0.0', files }], 'node'),
+      tool: 'node',
+    });
     nock(registry)
       .get('/node')
       .times(2)
@@ -370,10 +393,11 @@ describe('build', () => {
       dir,
       sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
       now,
+      previousArchive,
     });
 
     // 10.0.0 has no files and is left out
-    expect(JSON.parse(await read('node.full.json'))).toMatchObject({
+    expect(await readBack('node')).toMatchObject({
       versions: [{ version: '9.0.0', files }],
     });
     // the slim file has no files, they are in the file of the version, whose
@@ -403,31 +427,30 @@ describe('build', () => {
     ];
 
     it('drops the unsupported distro files of the previous file and the versions left empty', async () => {
-      nock(pages)
-        .get('/v1/node.full.json')
-        .reply(200, {
-          ...previousPnpm(
-            [
-              { version: '3.0.0', files: file('a.tar.xz', 'bionic') },
-              {
-                version: '2.0.0',
-                files: [...(file('b.tar.xz', 'focal') ?? []), ...(file('c.tar.xz', 'jammy') ?? [])],
-              },
-              { version: '1.0.0', files: file('d.tar.xz') },
-            ],
-            'node',
-          ),
-          tool: 'node',
-        });
+      const previousArchive = await archiveOf({
+        ...previousPnpm(
+          [
+            { version: '3.0.0', files: file('a.tar.xz', 'bionic') },
+            {
+              version: '2.0.0',
+              files: [...(file('b.tar.xz', 'focal') ?? []), ...(file('c.tar.xz', 'jammy') ?? [])],
+            },
+            { version: '1.0.0', files: file('d.tar.xz') },
+          ],
+          'node',
+        ),
+        tool: 'node',
+      });
       nock(registry).get('/node').times(3).reply(500);
 
       await build({
         dir,
         sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
         now,
+        previousArchive,
       });
 
-      expect(JSON.parse(await read('node.full.json')).versions).toEqual([
+      expect((await readBack('node'))?.versions).toEqual([
         { version: '2.0.0', files: file('c.tar.xz', 'jammy') },
         { version: '1.0.0', files: file('d.tar.xz') },
       ]);
@@ -437,17 +460,16 @@ describe('build', () => {
     });
 
     it('leaves out versions without files when the fetch fails and keeps them for typed tools', async () => {
-      nock(pages)
-        .get('/v1/node.full.json')
-        .reply(200, {
+      const previousArchive = await archiveOf(
+        {
           ...previousPnpm(
             [{ version: '2.0.0' }, { version: '1.0.0', files: file('d.tar.xz') }],
             'node',
           ),
           tool: 'node',
-        })
-        .get('/v1/pnpm.full.json')
-        .reply(200, previousPnpm([{ version: '2.0.0' }, { version: '1.0.0' }]));
+        },
+        previousPnpm([{ version: '2.0.0' }, { version: '1.0.0' }]),
+      );
       nock(registry).get('/node').times(3).reply(500).get('/pnpm').times(3).reply(500);
 
       await build({
@@ -457,9 +479,10 @@ describe('build', () => {
           ...pnpmSource,
         },
         now,
+        previousArchive,
       });
 
-      expect(JSON.parse(await read('node.full.json')).versions).toEqual([
+      expect((await readBack('node'))?.versions).toEqual([
         { version: '1.0.0', files: file('d.tar.xz') },
       ]);
       expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
@@ -473,18 +496,16 @@ describe('build', () => {
     });
 
     it('leaves out a version of the previous file which is not safe in a file name', async () => {
-      nock(pages)
-        .get('/v1/node.full.json')
-        .reply(200, {
-          ...previousPnpm(
-            [
-              { version: '2.0.0~rc1', files: file('a.tar.xz') },
-              { version: '1.0.0', files: file('b.tar.xz') },
-            ],
-            'node',
-          ),
-          tool: 'node',
-        });
+      const previousArchive = await archiveOf({
+        ...previousPnpm(
+          [
+            { version: '2.0.0~rc1', files: file('a.tar.xz') },
+            { version: '1.0.0', files: file('b.tar.xz') },
+          ],
+          'node',
+        ),
+        tool: 'node',
+      });
       nock(registry).get('/node').reply(404);
 
       await expect(
@@ -492,6 +513,7 @@ describe('build', () => {
           dir,
           sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
           now,
+          previousArchive,
         }),
       ).resolves.toEqual([]);
 
@@ -513,28 +535,27 @@ describe('build', () => {
       });
       const arm = archFile('arm64');
       const amd = archFile('amd64');
-      nock(pages)
-        .get('/v1/node.full.json')
-        .reply(200, {
-          ...previousPnpm(
-            [
-              { version: '3.0.0', files: [arm] },
-              { version: '2.0.0', files: [amd, arm] },
-              { version: '1.0.0', files: file('any.tar.xz') },
-            ],
-            'node',
-          ),
-          tool: 'node',
-        });
+      const previousArchive = await archiveOf({
+        ...previousPnpm(
+          [
+            { version: '3.0.0', files: [arm] },
+            { version: '2.0.0', files: [amd, arm] },
+            { version: '1.0.0', files: file('any.tar.xz') },
+          ],
+          'node',
+        ),
+        tool: 'node',
+      });
       nock(registry).get('/node').reply(404);
 
       await build({
         dir,
         sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
         now,
+        previousArchive,
       });
 
-      expect(JSON.parse(await read('node.full.json')).versions).toEqual([
+      expect((await readBack('node'))?.versions).toEqual([
         { version: '2.0.0', files: [amd, arm] },
         { version: '1.0.0', files: file('any.tar.xz') },
       ]);
@@ -543,13 +564,11 @@ describe('build', () => {
 
   it('omits the type of a tool without one', async () => {
     // a stale type in the previous file is dropped
-    nock(pages)
-      .get('/v1/node.full.json')
-      .reply(200, {
-        ...previousPnpm([{ version: '9.0.0' }], 'node'),
-        tool: 'node',
-        type: 'npm',
-      });
+    const previousArchive = await archiveOf({
+      ...previousPnpm([{ version: '9.0.0' }], 'node'),
+      tool: 'node',
+      type: 'npm',
+    });
     nock(registry)
       .get('/node')
       .times(2)
@@ -559,22 +578,20 @@ describe('build', () => {
       dir,
       sources: { node: { datasource: 'npm', packageName: 'node', versioning: 'node' } },
       now,
+      previousArchive,
     });
 
     expect(JSON.parse(await read('node.json'))).not.toHaveProperty('type');
   });
 
   it('keeps the previous release timestamps and adds the ones of new versions', async () => {
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(
-        200,
-        previousPnpm([
-          { version: '10.0.0', releaseTimestamp: '2025-01-01T00:00:00.000Z' },
-          { version: '9.0.0', releaseTimestamp: '2024-01-01T00:00:00.000Z' },
-          { version: '8.0.0', releaseTimestamp: '2023-01-01T00:00:00.000Z' },
-        ]),
-      );
+    const previousArchive = await archiveOf(
+      previousPnpm([
+        { version: '10.0.0', releaseTimestamp: '2025-01-01T00:00:00.000Z' },
+        { version: '9.0.0', releaseTimestamp: '2024-01-01T00:00:00.000Z' },
+        { version: '8.0.0', releaseTimestamp: '2023-01-01T00:00:00.000Z' },
+      ]),
+    );
     nock(registry)
       .get('/pnpm')
       .times(2)
@@ -583,7 +600,7 @@ describe('build', () => {
         time: { '9.0.0': '2024-02-02T00:00:00.000Z', '11.0.0': '2026-01-01T00:00:00.000Z' },
       });
 
-    await build({ dir, sources: pnpmSource, now });
+    await build({ dir, sources: pnpmSource, now, previousArchive });
 
     expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
       { version: '11.0.0', releaseTimestamp: '2026-01-01T00:00:00.000Z' },
@@ -597,7 +614,6 @@ describe('build', () => {
   it('gives each tool which computes checksums a fair share of the download budget', async () => {
     // two tools with two files of 8 bytes: the share of each is 15 bytes
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '30');
-    nock(pages).get('/v1/bazelisk.full.json').reply(404).get('/v1/jb.full.json').reply(404);
     const github = nock('https://api.github.com');
     const download = nock('https://github.com');
     for (const [repo, name] of [
@@ -644,7 +660,7 @@ describe('build', () => {
     });
 
     // bazelisk only fits one of its files, and the unused rest goes to jb
-    expect(JSON.parse(await read('jb.full.json')).versions[0].files).toHaveLength(2);
+    expect((await readBack('jb'))?.versions[0]?.files).toHaveLength(2);
     expect(output.filter((line) => line.startsWith('::notice::'))).toEqual([
       '::notice::bazelbuild/bazelisk: download budget of the tool used up, the checksums of 1 files will be computed by the next builds\n',
     ]);
@@ -652,7 +668,6 @@ describe('build', () => {
 
   it('publishes the files of tools with a file template', async () => {
     const sha = 'e'.repeat(64);
-    nock(pages).get('/v1/helm.full.json').reply(404);
     nock('https://api.github.com')
       .get('/repos/helm/helm/releases')
       .query({ per_page: '100' })
@@ -674,7 +689,7 @@ describe('build', () => {
       now,
     });
 
-    expect(JSON.parse(await read('helm.full.json'))).toMatchObject({
+    expect(await readBack('helm')).toMatchObject({
       versions: [
         {
           version: '3.19.0',
@@ -716,7 +731,6 @@ describe('build', () => {
     }
 
     it('leaves out the versions older than the minimum and does not fetch their files', async () => {
-      nock(pages).get('/v1/helm.full.json').reply(404);
       nock('https://api.github.com')
         .get('/repos/helm/helm/releases')
         .query({ per_page: '100' })
@@ -753,16 +767,16 @@ describe('build', () => {
           { version: '3.0.2', files: [helmFile('3.0.2')] },
         ],
       };
-      nock(pages).get('/v1/helm.full.json').reply(200, previous);
+      const previousArchive = await archiveOf(previous);
       nock('https://api.github.com')
         .get('/repos/helm/helm/releases')
         .query({ per_page: '100' })
         .times(3)
         .reply(500);
 
-      await expect(build({ dir, sources: helmSource, now })).resolves.toEqual([]);
+      await expect(build({ dir, sources: helmSource, now, previousArchive })).resolves.toEqual([]);
 
-      expect(JSON.parse(await read('helm.full.json')).versions).toEqual([
+      expect((await readBack('helm'))?.versions).toEqual([
         { version: '3.2.0', files: [helmFile('3.2.0')] },
       ]);
       expect(await readdir(join(dir, 'v1', 'helm'))).toEqual(['3.2.0.json']);
@@ -800,14 +814,14 @@ describe('build', () => {
           { version: '0.9.0', files: [file('a-0.9.0.tgz')] },
         ],
       };
-      nock(pages).get('/v1/distro-test.full.json').reply(200, previous);
+      const previousArchive = await archiveOf(previous);
       nock('https://api.github.com')
         .get('/repos/example/distro-test/releases')
         .query({ per_page: '100' })
         .times(3)
         .reply(500);
 
-      await build({ dir, sources: { 'distro-test': distroSource }, now });
+      await build({ dir, sources: { 'distro-test': distroSource }, now, previousArchive });
 
       const slim = JSON.parse(await read('distro-test.json'));
       expect(Object.keys(slim).slice(0, 4)).toEqual([
@@ -819,7 +833,7 @@ describe('build', () => {
       expect(slim).toMatchObject({ minVersion: '1.0.0', distroMinVersion: { resolute: '2.0.0' } });
       expect(slim.versions).toEqual([{ version: '2.1.0' }, { version: '1.5.0' }]);
       // 1.5.0 has no resolute file, 2.1.0 keeps it
-      expect(JSON.parse(await read('distro-test.full.json')).versions).toEqual([
+      expect((await readBack('distro-test'))?.versions).toEqual([
         {
           version: '2.1.0',
           files: [file('a-2.1.0.tgz'), file('a-2.1.0-resolute.tgz', 'resolute')],
@@ -831,7 +845,6 @@ describe('build', () => {
     it('warns for a minimum which is no valid version of the versioning of the tool', async () => {
       // `min-test` has the minimum 18.09.0 in the mocked metadata, which has a
       // leading zero that semver doesn't allow
-      nock(pages).get('/v1/min-test.full.json').reply(404);
       nock('https://api.github.com')
         .get('/repos/example/min-test/releases')
         .query({ per_page: '100' })
@@ -871,23 +884,18 @@ describe('build', () => {
   it('publishes no files for a tool with an installer type', async () => {
     const sha = 'f'.repeat(128);
     const dl = 'https://github.com/pnpm/pnpm/releases/download/v10.0.0';
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(
-        200,
-        previousPnpm(
-          [
-            {
-              version: '9.0.0',
-              files: [
-                { name: 'a.tgz', url: 'https://example.com/a.tgz', checksum: `sha512:${sha}` },
-              ],
-            },
-          ],
-          'pnpm/pnpm',
-          'github-releases',
-        ),
-      );
+    const previousArchive = await archiveOf(
+      previousPnpm(
+        [
+          {
+            version: '9.0.0',
+            files: [{ name: 'a.tgz', url: 'https://example.com/a.tgz', checksum: `sha512:${sha}` }],
+          },
+        ],
+        'pnpm/pnpm',
+        'github-releases',
+      ),
+    );
     nock('https://api.github.com')
       .get('/repos/pnpm/pnpm/releases')
       .query({ per_page: '100' })
@@ -910,6 +918,7 @@ describe('build', () => {
         pnpm: { datasource: 'github-releases', packageName: 'pnpm/pnpm', versioning: 'npm' },
       },
       now,
+      previousArchive,
     });
 
     expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
@@ -931,13 +940,7 @@ describe('build', () => {
     it('writes the summary of a build with an updated, a kept and a failed tool', async () => {
       const summary = join(dir, 'summary.md');
       vi.stubEnv('GITHUB_STEP_SUMMARY', summary);
-      nock(pages)
-        .get('/v1/pnpm.full.json')
-        .reply(200, previousPnpm([{ version: '9.0.0' }]))
-        .get('/v1/npm.full.json')
-        .reply(200, previousNpm)
-        .get('/v1/corepack.full.json')
-        .reply(404);
+      const previousArchive = await archiveOf(previousPnpm([{ version: '9.0.0' }]), previousNpm);
       nock(registry)
         .get('/pnpm')
         .times(2)
@@ -959,6 +962,7 @@ describe('build', () => {
         },
         now,
         clock: () => times.shift() ?? 0,
+        previousArchive,
       });
 
       expect(await readFile(summary, 'utf8')).toBe(
@@ -1002,7 +1006,6 @@ describe('build', () => {
     });
 
     it('writes no summary without GITHUB_STEP_SUMMARY', async () => {
-      nock(pages).get('/v1/pnpm.full.json').reply(404);
       nock(registry)
         .get('/pnpm')
         .times(2)
@@ -1015,29 +1018,25 @@ describe('build', () => {
   });
 
   it('ignores a previous file of another source', async () => {
-    nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(200, previousPnpm([{ version: '1.0.0' }], 'other'));
+    const previousArchive = await archiveOf(previousPnpm([{ version: '1.0.0' }], 'other'));
     nock(registry).get('/pnpm').times(3).reply(500);
 
-    await expect(build({ dir, sources: pnpmSource, now })).resolves.toEqual(['pnpm']);
+    await expect(build({ dir, sources: pnpmSource, now, previousArchive })).resolves.toEqual([
+      'pnpm',
+    ]);
   });
 
-  it('skips the previous files in full mode', async () => {
-    const scope = nock(pages)
-      .get('/v1/pnpm.full.json')
-      .reply(200, previousPnpm([{ version: '8.0.0' }]));
+  it('skips the previous state in full mode', async () => {
+    const previousArchive = await archiveOf(previousPnpm([{ version: '8.0.0' }]));
     nock(registry)
       .get('/pnpm')
       .times(2)
       .reply(200, { versions: { '10.0.0': {} } });
 
-    await build({ dir, sources: pnpmSource, now, full: true });
+    await build({ dir, sources: pnpmSource, now, full: true, previousArchive });
 
-    expect(scope.isDone()).toBe(false);
-    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
-      versions: [{ version: '10.0.0' }],
-    });
+    // 8.0.0 would be kept, as it is gone upstream
+    expect(JSON.parse(await read('pnpm.json')).versions).toEqual([{ version: '10.0.0' }]);
   });
 
   it('fails for a tool unknown to @containerbase/base', async () => {

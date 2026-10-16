@@ -33,7 +33,6 @@ The paths are relative to the folder of the format, like `v1/`.
 | `<tool>.json`           | the versions of a tool, without their files                   | Renovate, version resolution     | `tool.schema.json`      |
 | `<tool>/<version>.json` | the files of one version, only for tools with files           | the install                      | `version.schema.json`   |
 | `<tool>.integrity.json` | the integrity of each `<tool>/<version>.json`, same condition | the install                      | `integrity.schema.json` |
-| `<tool>.full.json`      | `<tool>.json` with the files of all versions, internal        | the next build only              | `tool.schema.json`      |
 
 - Every file has its schema url as the first property, `$schema`.
 - The file name of a version is the raw version, so `java/25.0.4+101.0.LTS.json` has a literal `+`. Request it url encoded (`%2B`).
@@ -58,7 +57,7 @@ Optional fields are omitted when unknown.
 | `versions[].version`           | string                        | the exact `install-tool` version                                                                            |
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                                      |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                           |
-| `files`                        | list                          | the files of a version, sorted by name, only in the full and per-version files                              |
+| `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                                       |
 | `files[].name`                 | string                        | the file name                                                                                               |
 | `files[].url`                  | https url                     | where to download it                                                                                        |
 | `files[].checksum`             | string                        | `sha256:`, `sha512:` or `sha1:` and the lowercase hex digest                                                |
@@ -115,7 +114,8 @@ Which versions are listed:
 
 The client files are also attached to each GitHub release as `tool-versions-<version>.tar.xz`, with `tool-versions-<version>.tar.xz.sha512`.
 
-- The archive has the root `index.json`, `formats.schema.json` and the `v1/` folder, with the same paths as on the site. It has no `<tool>.full.json` files.
+- The archive has the root `index.json`, `formats.schema.json` and the `v1/` folder, with the same paths as on the site.
+- The next build starts from it: the `files` of a version are in its `<tool>/<version>.json`.
 - The `.sha512` file has the lowercase hex digest of the archive, like the ones of the containerbase prebuilds.
 - It is meant for embedding the data, like in the containerbase image.
 - The site stays the primary source, it is always the latest data.

@@ -74,15 +74,10 @@ describe('output', () => {
     return await readFile(join(dir, name), 'utf8');
   }
 
-  it('writes the slim, the full and the per-version files of a tool as a hash chain', async () => {
+  it('writes the slim and the per-version files of a tool as a hash chain', async () => {
     const files = await writeToolVersions(dir, java);
 
-    expect((await readdir(dir)).sort()).toEqual([
-      'java',
-      'java.full.json',
-      'java.integrity.json',
-      'java.json',
-    ]);
+    expect((await readdir(dir)).sort()).toEqual(['java', 'java.integrity.json', 'java.json']);
     // the per-version file has a literal `+`, only for versions with files
     expect(await readdir(join(dir, 'java'))).toEqual(['25.0.4+101.0.LTS.json']);
     const versionFile = await read('java/25.0.4+101.0.LTS.json');
@@ -103,11 +98,7 @@ describe('output', () => {
     expect(await read('java.json')).toBe(
       '{"$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json","tool":"java","homepage":"https://adoptium.net","source":{"datasource":"java-version","packageName":"java-jdk","versioning":"npm"},"updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.4+101.0.LTS","lts":true},{"version":"24.0.1+9"}]}\n',
     );
-    expect(JSON.parse(await read('java.full.json'))).toEqual({
-      $schema: `${base}/tool.schema.json`,
-      ...java,
-    });
-    // the index gets the client files with their integrity, not the full file
+    // the index gets the client files with their integrity
     expect(files).toEqual({
       slim: { file: 'java.json', integrity: integrity(await read('java.json')) },
       versionFiles: {
@@ -140,8 +131,7 @@ describe('output', () => {
       versions: [{ version: '10.0.0' }, { version: '10.0.0-rc.1', prerelease: true }],
     });
 
-    expect((await readdir(dir)).sort()).toEqual(['pnpm.full.json', 'pnpm.json']);
-    expect(await read('pnpm.json')).toBe(await read('pnpm.full.json'));
+    expect((await readdir(dir)).sort()).toEqual(['pnpm.json']);
   });
 
   it('leaves out a version which is not safe in a file name', async () => {
