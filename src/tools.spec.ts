@@ -38,6 +38,7 @@ describe('tools', () => {
         composer: prebuild('composer'),
         erlang: prebuild('erlang', 'docker'),
         flutter: prebuild('flutter'),
+        git: prebuild('git'),
         golang: prebuild('golang'),
         maven: prebuild('maven', 'maven'),
         mono: prebuild('mono'),
