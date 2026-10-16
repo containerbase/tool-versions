@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codeChanges, dataChanges, releaseNotes } from './release-notes.ts';
+import { codeChanges, dataChanges, parseReleaseDate, releaseNotes } from './release-notes.ts';
 
 /**
  * A slim tool file with some versions.
@@ -31,6 +31,9 @@ function files(tools: Record<string, string>): Map<string, string> {
   ]);
 }
 
+/** A change without changes of files. */
+const noFiles = { filesAdded: [], filesRemoved: [], filesChanged: [] };
+
 describe('release-notes', () => {
   describe('dataChanges', () => {
     it('lists the added and removed versions, the new and the gone tools, by tool name', () => {
@@ -48,10 +51,60 @@ describe('release-notes', () => {
       });
 
       expect(dataChanges(previous, next)).toEqual([
-        { tool: 'android-sdk-cmdline-tools', status: 'new', added: ['13'], removed: [] },
-        { tool: 'gone', status: 'gone', added: [], removed: ['1.0.0'] },
-        { tool: 'node', status: 'changed', added: ['24.22.0'], removed: [] },
-        { tool: 'python', status: 'changed', added: ['3.14.9'], removed: ['2.7.17'] },
+        {
+          ...noFiles,
+          tool: 'android-sdk-cmdline-tools',
+          status: 'new',
+          added: ['13'],
+          removed: [],
+        },
+        { ...noFiles, tool: 'gone', status: 'gone', added: [], removed: ['1.0.0'] },
+        { ...noFiles, tool: 'node', status: 'changed', added: ['24.22.0'], removed: [] },
+        { ...noFiles, tool: 'python', status: 'changed', added: ['3.14.9'], removed: ['2.7.17'] },
+      ]);
+    });
+
+    it('finds versions which only gained, lost or changed files', () => {
+      /**
+       * The file of a version with one file.
+       * @param version - the version
+       * @param checksum - the checksum of the file
+       */
+      const versionFile = (version: string, checksum = 'a'): [string, string] => [
+        `v1/swift/${version}.json`,
+        JSON.stringify({ tool: 'swift', version, files: [{ name: 'a.tgz', checksum }] }),
+      ];
+      const slim = ['3.0', '4.0', '5.0', '6.0', '7.0'];
+      const previous = new Map([
+        ...files({ swift: tool(...slim, '1.0') }),
+        versionFile('4.0'),
+        versionFile('5.0'),
+        versionFile('6.0'),
+        // gone, so it is a removed version
+        versionFile('1.0'),
+      ]);
+      const next = new Map([
+        ...files({ swift: tool(...slim) }),
+        // gained files
+        versionFile('3.0'),
+        versionFile('7.0'),
+        // the same
+        versionFile('4.0'),
+        // changed
+        versionFile('5.0', 'b'),
+        // lost its files: no file
+      ]);
+
+      expect(dataChanges(previous, next)).toEqual([
+        {
+          tool: 'swift',
+          status: 'changed',
+          added: [],
+          removed: ['1.0'],
+          filesAdded: ['3.0', '7.0'],
+          filesRemoved: ['6.0'],
+          filesChanged: ['5.0'],
+        },
       ]);
     });
 
@@ -90,6 +143,16 @@ describe('release-notes', () => {
     });
   });
 
+  describe('parseReleaseDate', () => {
+    it('reads a date at midnight UTC', () => {
+      expect(parseReleaseDate('2026-10-17').toISOString()).toBe('2026-10-17T00:00:00.000Z');
+    });
+
+    it.each(['2026-13-01', '17.10.2026', '2026-10-17T03:00:00Z', ''])('rejects %s', (value) => {
+      expect(() => parseReleaseDate(value)).toThrow('The date must be YYYY-MM-DD');
+    });
+  });
+
   describe('releaseNotes', () => {
     it('has the header, the data changes and the code changes', () => {
       const previous = files({ node: tool('24.21.0') });
@@ -116,6 +179,35 @@ describe('release-notes', () => {
           '### Features',
           '',
           '- publish swift (#99)',
+          '',
+        ].join('\n'),
+      );
+    });
+
+    it('lists the tools whose versions only gained files, capped like the versions', () => {
+      const versions = Array.from({ length: 12 }, (_, index) => `6.${index}`);
+      const file = (version: string): [string, string] => [
+        `v1/swift/${version}.json`,
+        JSON.stringify({ tool: 'swift', version, files: [{ name: `swift-${version}.tgz` }] }),
+      ];
+      const previous = files({ swift: tool(...versions) });
+      const next = new Map([...files({ swift: tool(...versions) }), ...versions.map(file)]);
+
+      expect(
+        releaseNotes({
+          version: '1.0.1',
+          date: new Date('2026-10-17T03:00:00.000Z'),
+          previous,
+          next,
+          commits: [],
+        }),
+      ).toBe(
+        [
+          '## 1.0.1 (2026-10-17)',
+          '',
+          '### Data changes',
+          '',
+          '- `swift`: files added for 6.0, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9 and 2 more',
           '',
         ].join('\n'),
       );

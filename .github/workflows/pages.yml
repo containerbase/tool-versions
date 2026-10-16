@@ -28,6 +28,8 @@ jobs:
     outputs:
       changed: ${{ steps.pack.outputs.changed }}
       version: ${{ steps.pack.outputs.version }}
+      breaking: ${{ steps.pack.outputs.breaking }}
+      error: ${{ steps.pack.outputs.error }}
 
     steps:
       # the full commit history without the old file contents, which is enough
@@ -139,7 +141,9 @@ jobs:
     needs:
       - build
       - deploy
-    if: github.ref == 'refs/heads/main' && needs.build.outputs.changed == 'true'
+    if: >
+      github.ref == 'refs/heads/main' &&
+      (needs.build.outputs.changed == 'true' || needs.build.outputs.breaking == 'true')
     runs-on: ubuntu-slim
     timeout-minutes: 10
 
@@ -147,6 +151,17 @@ jobs:
       contents: write
 
     steps:
+      # a breaking change needs a new format folder, until then there is no
+      # release, but the site is deployed as usual
+      - name: fail for a breaking change
+        if: needs.build.outputs.breaking == 'true'
+        run: |
+          echo "::error::$ERROR"
+          echo "$ERROR" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        env:
+          ERROR: ${{ needs.build.outputs.error }}
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release

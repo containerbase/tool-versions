@@ -8,8 +8,19 @@ const maxVersions = 10;
 /** The versions of a tool file, the rest of the file is of no interest. */
 const ToolFileVersions = z.object({ versions: z.array(z.object({ version: z.string() })) });
 
+/** The files of a version, the rest of the file is of no interest. */
+const VersionFileFiles = z.object({ files: z.array(z.unknown()) });
+
 /** The files of the format folder which are not the file of a tool. */
-const otherFiles = /(^index|\.(integrity|schema|full))\.json$/;
+const otherFiles = /(^index|\.(integrity|schema))\.json$/;
+
+/** The versions of a tool, with the files of the versions which have some. */
+interface ToolContent {
+  /** the versions, in the order of the file */
+  versions: string[];
+  /** the files of a version as json, by version */
+  files: Map<string, string>;
+}
 
 /** The data changes of one tool. */
 export interface ToolChange {
@@ -21,56 +32,97 @@ export interface ToolChange {
   added: string[];
   /** the versions which are gone */
   removed: string[];
+  /** the versions which are in both releases and gained files */
+  filesAdded: string[];
+  /** the versions which are in both releases and lost their files */
+  filesRemoved: string[];
+  /** the versions which are in both releases and have other files */
+  filesChanged: string[];
 }
 
 /**
- * Reads the versions of each tool from the `<tool>.json` files of a release.
- * @param files - the files of the release
- * @returns the versions by tool name
+ * Parses the content of a file, if it is valid json of the schema.
+ * @param content - the content
+ * @param schema - the schema
  */
-function versionsByTool(files: FileMap): Map<string, string[]> {
-  const tools = new Map<string, string[]>();
+function parseContent<T>(
+  content: string,
+  schema: { safeParse: (data: unknown) => { success: boolean; data?: T } },
+): T | undefined {
+  try {
+    const parsed = schema.safeParse(JSON.parse(content));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    // a file which is no json has no content
+    return undefined;
+  }
+}
+
+/**
+ * Reads the versions of each tool from the `<tool>.json` files of a release,
+ * and the files of the versions from the `<tool>/<version>.json` files.
+ * @param files - the files of the release
+ * @returns the content by tool name
+ */
+function readTools(files: FileMap): Map<string, ToolContent> {
+  const tools = new Map<string, ToolContent>();
   for (const [path, content] of files) {
     const match = new RegExp(`^${formatDir}/([^/]+)\\.json$`).exec(path);
     const tool = match?.[1];
     if (!tool || otherFiles.test(path.slice(formatDir.length + 1))) {
       continue;
     }
-    try {
-      const parsed = ToolFileVersions.safeParse(JSON.parse(content));
-      if (parsed.success) {
-        tools.set(
-          tool,
-          parsed.data.versions.map(({ version }) => version),
-        );
-      }
-    } catch {
-      // a file which is no json has no versions
+    const parsed = parseContent(content, ToolFileVersions);
+    if (parsed) {
+      tools.set(tool, {
+        versions: parsed.versions.map(({ version }) => version),
+        files: new Map(),
+      });
+    }
+  }
+  for (const [path, content] of files) {
+    const match = new RegExp(`^${formatDir}/([^/]+)/(.+)\\.json$`).exec(path);
+    const parsed = match?.[1] && match[2] ? parseContent(content, VersionFileFiles) : undefined;
+    if (match?.[1] && match[2] && parsed) {
+      tools.get(match[1])?.files.set(match[2], JSON.stringify(parsed.files));
     }
   }
   return tools;
 }
 
 /**
- * Finds the versions which were added and removed per tool, and the tools
- * which are new or gone. Only the version lists are compared, so what changes
- * with every build, like the `updatedAt`, is no change.
+ * Finds the versions which were added and removed per tool, the tools which are
+ * new or gone, and the versions which only gained, lost or changed files. Only
+ * the version lists and files are compared, so what changes with every build,
+ * like the `updatedAt`, is no change.
  * @param previous - the files of the previous release
  * @param next - the files of the new release
  * @returns the changes, sorted by tool name
  */
 export function dataChanges(previous: FileMap, next: FileMap): ToolChange[] {
-  const before = versionsByTool(previous);
-  const after = versionsByTool(next);
+  const before = readTools(previous);
+  const after = readTools(next);
   return [...new Set([...before.keys(), ...after.keys()])].sort().flatMap((tool): ToolChange[] => {
     const old = before.get(tool);
     const current = after.get(tool);
-    const added = (current ?? []).filter((version) => !old?.includes(version));
-    const removed = (old ?? []).filter((version) => !current?.includes(version));
+    const added = (current?.versions ?? []).filter((version) => !old?.versions.includes(version));
+    const removed = (old?.versions ?? []).filter((version) => !current?.versions.includes(version));
     const status = old === undefined ? 'new' : current === undefined ? 'gone' : 'changed';
-    return status === 'changed' && !added.length && !removed.length
+    // versions of both releases
+    const kept = (current?.versions ?? []).filter((version) => old?.versions.includes(version));
+    const filesAdded = kept.filter((v) => !old?.files.has(v) && current?.files.has(v));
+    const filesRemoved = kept.filter((v) => old?.files.has(v) && !current?.files.has(v));
+    const filesChanged = kept.filter((v) => {
+      const was = old?.files.get(v);
+      const is = current?.files.get(v);
+      return was !== undefined && is !== undefined && was !== is;
+    });
+    const unchanged = ![added, removed, filesAdded, filesRemoved, filesChanged].some(
+      (list) => list.length,
+    );
+    return status === 'changed' && unchanged
       ? []
-      : [{ tool, status, added, removed }];
+      : [{ tool, status, added, removed, filesAdded, filesRemoved, filesChanged }];
   });
 }
 
@@ -89,7 +141,15 @@ function listVersions(versions: string[]): string {
  * Formats the data changes of a tool as a line of the notes.
  * @param change - the changes of the tool
  */
-function formatChange({ tool, status, added, removed }: ToolChange): string {
+function formatChange({
+  tool,
+  status,
+  added,
+  removed,
+  filesAdded,
+  filesRemoved,
+  filesChanged,
+}: ToolChange): string {
   if (status === 'new') {
     return `- \`${tool}\`: new tool with ${added.length} version${added.length === 1 ? '' : 's'}`;
   }
@@ -99,12 +159,15 @@ function formatChange({ tool, status, added, removed }: ToolChange): string {
   const parts = [
     ...(added.length ? [`added ${listVersions(added)}`] : []),
     ...(removed.length ? [`removed ${listVersions(removed)}`] : []),
+    ...(filesAdded.length ? [`files added for ${listVersions(filesAdded)}`] : []),
+    ...(filesRemoved.length ? [`files removed for ${listVersions(filesRemoved)}`] : []),
+    ...(filesChanged.length ? [`files changed for ${listVersions(filesChanged)}`] : []),
   ];
   return `- \`${tool}\`: ${parts.join('; ')}`;
 }
 
 /** A commit with a conventional subject, like `feat(scope): add it (#123)`. */
-interface Commit {
+export interface Commit {
   type: string;
   scope?: string;
   breaking: boolean;
@@ -113,17 +176,23 @@ interface Commit {
 }
 
 /**
- * Parses a conventional commit subject.
+ * Parses a conventional commit subject. A subject is breaking with a `!` after
+ * the type, or a `BREAKING CHANGE` in it.
  * @param subject - the subject
  * @returns the commit, or `undefined` for a subject which isn't conventional
  */
-function parseCommit(subject: string): Commit | undefined {
+export function parseCommit(subject: string): Commit | undefined {
   const match = /^(?<type>[a-z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?: (?<description>.+)$/.exec(
     subject.trim(),
   );
   const { type, scope, breaking, description } = match?.groups ?? {};
   return type && description
-    ? { type, ...(scope && { scope }), breaking: Boolean(breaking), description }
+    ? {
+        type,
+        ...(scope && { scope }),
+        breaking: Boolean(breaking) || subject.includes('BREAKING CHANGE'),
+        description,
+      }
     : undefined;
 }
 
@@ -165,6 +234,20 @@ export function codeChanges(subjects: readonly string[]): string[] {
       return group.length ? [`### ${heading}\n\n${group.map(formatCommit).join('\n')}`] : [];
     }),
   ];
+}
+
+/**
+ * Parses the date of a release.
+ * @param value - the date as `YYYY-MM-DD`
+ * @returns the date, at midnight UTC
+ * @throws when it is no valid date
+ */
+export function parseReleaseDate(value: string): Date {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(date.getTime())) {
+    throw new Error(`The date must be YYYY-MM-DD, not ${value}`);
+  }
+  return date;
 }
 
 /** The input of the release notes. */

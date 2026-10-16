@@ -4,34 +4,84 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { formatDir } from './formats.ts';
+import { parseCommit } from './release-notes.ts';
 
 /** The files of a release archive by their path relative to its root, with their content. */
 export type FileMap = ReadonlyMap<string, string>;
 
 /**
- * The `major.minor` of the releases, set by hand: a new major version is for a
- * breaking change of the format or the archive, a new minor version for new
- * features like new fields or files. A change of the data is a patch release.
+ * The major version of the releases, the major version of the data format: it
+ * only changes with a new format folder.
  */
-export const releaseBase = '1.0';
+export const releaseMajor = Number(formatDir.slice(1));
+
+/** A breaking change which can't be released with the current major version. */
+export class BreakingChangeError extends Error {}
 
 /**
- * Creates the version of the next release: the latest published patch version
- * of the base `major.minor` plus one, or `<major>.<minor>.0` when there is none
- * yet, for the first release and after a bump of the base.
- * @param base - the `major.minor` of the releases, like `1.0`
- * @param published - the published versions or their tags with a leading `v`,
- * in any order
- * @returns the next version
+ * Plans the version of the next release like `nextVersion`, but a breaking
+ * change is returned as an error message instead of being thrown, so a build can
+ * go on without a release.
+ * @param major - the major version of the releases
+ * @param published - the published versions or their tags
+ * @param commits - the subjects of the commits since the previous release
+ * @returns the version, or an empty version and the message of the error
  */
-export function nextVersion(base: string, published: readonly string[]): string {
-  const prefix = `${base}.`;
-  const patches = published.flatMap((tag) => {
-    const version = tag.replace(/^v/, '');
-    const patch = version.startsWith(prefix) ? version.slice(prefix.length) : '';
-    return /^\d+$/.test(patch) ? [Number(patch)] : [];
+export function planVersion(
+  major: number,
+  published: readonly string[],
+  commits: readonly string[],
+): { version: string; error?: string } {
+  try {
+    return { version: nextVersion(major, published, commits) };
+  } catch (err) {
+    if (err instanceof BreakingChangeError) {
+      return { version: '', error: err.message };
+    }
+    throw err;
+  }
+}
+
+/**
+ * Creates the version of the next release from the commits since the previous
+ * one, like semantic-release: a `feat` commit is a minor release, anything else,
+ * also only a change of the data, a patch release. The previous release is the
+ * highest version of the major version, the first release of a major, also
+ * after a new format folder with a breaking change, is `<major>.0.0`.
+ * @param major - the major version of the releases
+ * @param published - the published versions or their tags with a leading `v`,
+ * in any order, tags of other majors and of no version are ignored
+ * @param commits - the subjects of the commits since the previous release
+ * @returns the next version
+ * @throws a `BreakingChangeError` when a commit is a breaking change and there
+ * is a release of the major version: it needs a new format folder
+ */
+export function nextVersion(
+  major: number,
+  published: readonly string[],
+  commits: readonly string[],
+): string {
+  const parsed = commits.flatMap((subject) => parseCommit(subject) ?? []);
+  const versions = published.flatMap((tag) => {
+    const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag);
+    const [tagMajor, minor, patch] = match?.slice(1).map(Number) ?? [];
+    return tagMajor === major && minor !== undefined && patch !== undefined
+      ? [{ minor, patch }]
+      : [];
   });
-  return `${prefix}${patches.length ? Math.max(...patches) + 1 : 0}`;
+  const latest = versions.sort((a, b) => b.minor - a.minor || b.patch - a.patch)[0];
+  if (!latest) {
+    return `${major}.0.0`;
+  }
+  const breaking = parsed.find((commit) => commit.breaking);
+  if (breaking) {
+    throw new BreakingChangeError(
+      `A breaking change can't be released as ${major}.x.y: the major version is the data format major and only changes with a new format folder, see the versioning policy in docs/format.md: ${breaking.type}${breaking.scope ? `(${breaking.scope})` : ''}: ${breaking.description}`,
+    );
+  }
+  return parsed.some((commit) => commit.type === 'feat')
+    ? `${major}.${latest.minor + 1}.0`
+    : `${major}.${latest.minor}.${latest.patch + 1}`;
 }
 
 /**
@@ -111,12 +161,30 @@ export function isReleaseDue(previous: FileMap | undefined, next: FileMap): bool
 }
 
 /**
- * Creates the lines for the `GITHUB_OUTPUT` file of a workflow step.
- * @param version - the version of the release
- * @param changed - whether a release is due
+ * Creates the lines for the `GITHUB_OUTPUT` file of a workflow step: whether a
+ * release is due, its version, and whether a breaking change blocks the release,
+ * with the message of the error.
+ * @param output - the outputs
+ * @param output.version - the version of the release, empty for a breaking change
+ * @param output.changed - whether a release is due
+ * @param output.error - the message of a breaking change
  */
-export function githubOutput(version: string, changed: boolean): string {
-  return `changed=${changed}\nversion=${version}\n`;
+export function githubOutput({
+  version,
+  changed,
+  error,
+}: {
+  version: string;
+  changed: boolean;
+  error?: string | undefined;
+}): string {
+  return [
+    `changed=${changed}`,
+    `version=${version}`,
+    `breaking=${error !== undefined}`,
+    `error=${error ?? ''}`,
+    '',
+  ].join('\n');
 }
 
 /**
