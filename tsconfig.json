@@ -10,5 +10,5 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["node_modules", "bin", "dist", "coverage", "html"]
+  "exclude": ["node_modules", "bin", "dist", "dist-release", "coverage", "html"]
 }

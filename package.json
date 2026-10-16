@@ -18,6 +18,7 @@
     "oxfmt-fix": "oxfmt",
     "oxlint": "oxlint",
     "oxlint-fix": "oxlint --fix",
+    "pack:release": "node src/pack.ts",
     "prepare": "husky",
     "test": "vitest run"
   },
