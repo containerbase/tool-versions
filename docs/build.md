@@ -1,14 +1,28 @@
 # Build
 
-A workflow builds the files nightly and deploys them to GitHub Pages.
+A workflow builds the files nightly, deploys them to GitHub Pages and creates a release when the data changed.
+
+## Nightly flow
+
+The `pages` workflow runs on every push to `main`, nightly and on demand.
+
+1. **Previous release:** the `build` job gets the tags of all releases. It downloads the archive of the latest release, verifies its `.sha512` and extracts it. It also lists the commit subjects since that tag.
+2. **Build:** `pnpm build --previous-archive <folder>` starts from the extracted archive, see [updates](#updates).
+3. **Pack:** `pnpm pack:release` packs the release archive, see [the release archive](#release-archive), and decides whether a release is due.
+4. **Deploy:** the `deploy` job publishes `dist/` to GitHub Pages.
+5. **Release:** the `release` job creates the release, only when one is due.
+
+Without a release yet, step 1 is skipped and the build doesn't get `--previous-archive`: it starts from the published `v1/<tool>.full.json` files instead.
 
 ## Updates
 
-- **Incremental:** each build starts from the published `v1/<tool>.full.json` files. The deploy replaces the whole site, so the per-version files can't be fetched again.
+- **Incremental:** each build starts from the previous state of every tool.
+- The previous state is the archive of the latest release: the slim `<tool>.json` with the files of each version from `<tool>/<version>.json`. The workflow extracts it and passes it as `--previous-archive <folder>`.
+- Without a release archive, like with a local `pnpm build`, the build starts from the published `v1/<tool>.full.json` files. It prints which source it used.
 - Known versions, files and release times are reused. Only missing ones are fetched.
 - Versions gone upstream stay listed.
 - Paged sources stop at the first known version. A full refresh fills older gaps.
-- **Full refresh:** run the `pages` workflow with the `full` input, or `pnpm build --full`.
+- **Full refresh:** run the `pages` workflow with the `full` input, or `pnpm build --full`. It doesn't use the previous state.
 
 ## Failures
 
@@ -46,19 +60,18 @@ The log lines (`::warning::`, `::error::`, `::notice::`) stay as they are.
 
 The pages workflow runs it after the build and adds the number of files and the packed and unpacked size to the job summary.
 
-- **Previous release:** the `build` job downloads the latest release, verifies its `.sha512`, extracts it and passes it as `--previous`. The tags of all releases are passed as `--published`, and the commit subjects since its tag as `--commits`.
+- **Previous release:** the pack step gets the extracted archive of the previous release as `--previous`. The tags of all releases are passed as `--published`, and the commit subjects since its tag as `--commits`.
 - **When:** a release is due when there is no release yet, or the data changed. The pack step writes `changed` and `version` to the outputs of the job and the `build` job uploads `dist-release/` as the artifact `release`.
 - **Release job:** the `release` job runs on `main` after the `build` and `deploy` jobs, so a release always matches the deployed site. It downloads the artifact and runs `gh release create v<version>` for the commit with the notes and the two archive files. It is the only job with `contents: write`.
 - **First release:** `1.0.0`.
-
 - **Versions:** a data change is a patch release. The base `major.minor` is `releaseBase` in [`src/release.ts`](../src/release.ts), set by hand. A new major version is for a breaking change of the format or the archive, a new minor version for new fields or files.
 - The next version is the latest published patch version of the base plus one, or `<major>.<minor>.0` when there is none yet, like after a bump of the base. `--published <tag>` passes the versions or tags of the existing releases.
-- **Data change:** the new files differ from the previous release in other than the `updatedAt` of the files and the digests which follow from it. `--previous <folder>` has the extracted archive of the previous release.
+- **Data change:** the new files differ from the previous release in other than the `updatedAt` of the files and the digests which follow from it.
 - **Tags:** a release is tagged `v<version>`, like `v1.0.3`.
 - **Release notes:** the header with the version and date, the data changes (versions added and removed per tool, at most 10 listed, new and removed tools on their own line) and the code changes: the conventional commits since the previous tag (`--commits <file>` has their subjects, one per line), as features, bug fixes, performance improvements, reverts, breaking changes and other (`refactor`, `docs`), each with its pull request number. `chore`, `ci`, `test` and `build` commits aren't listed.
 
 ## Environment
 
 - `GITHUB_TOKEN` avoids the GitHub rate limit.
-- `TOOL_VERSIONS_URL` overrides where the previous files come from.
+- `TOOL_VERSIONS_URL` overrides where the previous files come from, when there is no release archive.
 - `TOOL_VERSIONS_DOWNLOAD_BUDGET` sets the download budget, see [sources](./sources.md#download-budget).

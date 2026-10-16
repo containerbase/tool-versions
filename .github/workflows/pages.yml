@@ -44,26 +44,14 @@ jobs:
         with:
           checkout: false
 
-      # a failing tool falls back to its published file with a warning, the
-      # build only fails when a tool has neither fresh nor published versions
-      - name: build
-        run: pnpm build ${{ inputs.full && '--full' || '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # packs the release archive and decides whether a release is due, which
-      # the release job creates once the site is deployed
-      - name: pack the release archive
-        id: pack
+      # the latest release is where the build and the release notes start from:
+      # its archive is verified and extracted, `dir` is empty without a release
+      - name: get the previous release
+        id: previous
         shell: bash
         run: |
           set -euo pipefail
-          args=()
           gh release list --json tagName --jq '.[].tagName' > "$RUNNER_TEMP/tags.txt"
-          while read -r tag; do
-            args+=(--published "$tag")
-          done < "$RUNNER_TEMP/tags.txt"
-
           latest="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
           if [ -n "$latest" ]; then
             previous="$RUNNER_TEMP/previous"
@@ -77,13 +65,43 @@ jobs:
               done
             )
             git log --format=%s "$latest..HEAD" > "$RUNNER_TEMP/commits.txt"
-            args+=(--previous "$previous/files" --commits "$RUNNER_TEMP/commits.txt")
+            echo "dir=$previous/files" >> "$GITHUB_OUTPUT"
           fi
-
-          pnpm pack:release "${args[@]}" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+
+      # a failing tool falls back to its previous data with a warning, the
+      # build only fails when a tool has neither fresh nor previous versions
+      - name: build
+        shell: bash
+        run: |
+          args=()
+          if [ -n "$PREVIOUS_ARCHIVE" ]; then
+            args+=(--previous-archive "$PREVIOUS_ARCHIVE")
+          fi
+          pnpm build ${{ inputs.full && '--full' || '' }} "${args[@]}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_ARCHIVE: ${{ steps.previous.outputs.dir }}
+
+      # packs the release archive and decides whether a release is due, which
+      # the release job creates once the site is deployed
+      - name: pack the release archive
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          while read -r tag; do
+            args+=(--published "$tag")
+          done < "$RUNNER_TEMP/tags.txt"
+          if [ -n "$PREVIOUS_ARCHIVE" ]; then
+            args+=(--previous "$PREVIOUS_ARCHIVE" --commits "$RUNNER_TEMP/commits.txt")
+          fi
+          pnpm pack:release "${args[@]}" --summary "$GITHUB_STEP_SUMMARY" --github-output "$GITHUB_OUTPUT"
+        env:
+          PREVIOUS_ARCHIVE: ${{ steps.previous.outputs.dir }}
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.pack.outputs.changed == 'true'

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stdout } from 'node:process';
@@ -204,6 +204,38 @@ describe('build', () => {
     });
     expect(output).toContain(
       '::warning::pnpm: HttpError: GET https://registry.npmjs.org/pnpm failed with status 500, keeping the versions from 2026-10-07T03:00:00.000Z\n',
+    );
+  });
+
+  it('starts from the extracted archive of the latest release and says so', async () => {
+    const previous = previousPnpm([{ version: '9.0.0', lts: true }]);
+    const archive = join(dir, 'archive');
+    await mkdir(join(archive, 'v1'), { recursive: true });
+    await writeFile(join(archive, 'v1', 'pnpm.json'), JSON.stringify(previous));
+    // an unmocked request of the published file would fail the tool
+    nock(registry).get('/pnpm').times(3).reply(500);
+
+    await expect(
+      build({ dir: join(dir, 'out'), sources: pnpmSource, now, previousArchive: archive }),
+    ).resolves.toEqual([]);
+
+    expect(
+      JSON.parse(await readFile(join(dir, 'out', 'v1', 'pnpm.json'), 'utf8')).versions,
+    ).toEqual([{ version: '9.0.0', lts: true }]);
+    expect(output).toContain(`previous state: the release archive in ${archive}\n`);
+  });
+
+  it('says that it starts from the published files without an archive', async () => {
+    nock(pages).get('/v1/pnpm.full.json').reply(404);
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, { versions: { '10.0.0': {} } });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(output).toContain(
+      'previous state: the published full files, there is no release archive\n',
     );
   });
 
