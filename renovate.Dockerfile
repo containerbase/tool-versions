@@ -240,7 +240,7 @@ ENV PNPM_VERSION=10.34.7
 ENV PNPM_VERSION=11.28.5
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=12.12.1
+ENV PNPM_VERSION=12.13.0
 
 # renovate: datasource=pypi depName=poetry
 ENV POETRY_VERSION=2.5.1
