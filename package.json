@@ -41,7 +41,7 @@
     "lint-staged": "17.6.0",
     "nock": "15.0.1",
     "npm-run-all2": "9.0.3",
-    "oxfmt": "0.72.0",
+    "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
     "typescript": "7.0.2",
