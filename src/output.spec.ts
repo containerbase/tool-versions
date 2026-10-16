@@ -224,6 +224,10 @@ describe('output', () => {
       type: 'object',
       additionalProperties: { type: 'string' },
     });
+    // build information, readers must not rely on it
+    expect(JSON.parse(await read('tool.schema.json')).properties.source).toMatchObject({
+      deprecated: true,
+    });
     expect(JSON.parse(await read('version.schema.json'))).toMatchObject({
       type: 'object',
       required: ['tool', 'version', 'files'],
