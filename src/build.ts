@@ -46,24 +46,31 @@ export interface BuildOptions {
   full?: boolean;
   /** the time in milliseconds, for the duration in the job summary */
   clock?: () => number;
+  /**
+   * the folder with the extracted archive of the latest release, to start from
+   * instead of the published `<tool>.full.json` files
+   */
+  previousArchive?: string | undefined;
 }
 
 /**
- * Loads the previously published file of a tool, unless it is a full build.
- * A file of another source is ignored, its versions can't be merged.
+ * Loads the previous data of a tool, unless it is a full build. Data of another
+ * source is ignored, its versions can't be merged.
  * @param tool - the tool name
  * @param source - the current source of the tool
  * @param full - whether it is a full build
+ * @param archive - the folder with the extracted archive of the latest release
  */
 async function loadPrevious(
   tool: string,
   source: Source,
   full: boolean,
+  archive: string | undefined,
 ): Promise<PreviousToolVersions | undefined> {
   if (full) {
     return undefined;
   }
-  const previous = await fetchPrevious(tool);
+  const previous = await fetchPrevious(tool, archive);
   return previous?.source.datasource === source.datasource &&
     previous.source.packageName === source.packageName
     ? previous
@@ -295,6 +302,7 @@ export async function build({
   now = new Date(),
   full = false,
   clock = () => performance.now(),
+  previousArchive,
 }: BuildOptions): Promise<string[]> {
   const unknown = Object.keys(sources).filter((tool) => !Object.hasOwn(tools, tool));
   if (unknown.length) {
@@ -310,6 +318,14 @@ export async function build({
     }
   }
 
+  if (!full) {
+    stdout.write(
+      previousArchive
+        ? `previous state: the release archive in ${previousArchive}\n`
+        : 'previous state: the published full files, there is no release archive\n',
+    );
+  }
+
   // the budget of downloads for computed checksums is split between the tools
   // which may compute files
   resetDownloadBudget(
@@ -323,7 +339,7 @@ export async function build({
   const report = new BuildReport(full, downloadBudget(), clock());
 
   for (const [tool, source] of Object.entries(sources)) {
-    const loaded = await loadPrevious(tool, source, full);
+    const loaded = await loadPrevious(tool, source, full, previousArchive);
     const previous = loaded && cleanFiles(loaded);
     const logs: LogEntry[] = [];
     let data: ToolVersions | undefined;

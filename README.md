@@ -41,6 +41,6 @@ A workflow builds them nightly from the upstream sources and publishes them on G
 pnpm lint         # pnpm lint-fix to fix
 pnpm test
 jactionlint       # the GitHub workflows
-pnpm build        # writes dist/, --full skips the previous files
+pnpm build        # writes dist/, --previous-archive <folder> starts from a release, --full skips the previous state
 pnpm pack:release # packs the release archive from dist/ into dist-release/
 ```

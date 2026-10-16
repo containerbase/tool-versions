@@ -35,7 +35,7 @@ All tooling runs through `pnpm`:
 - `pnpm lint`: check formatting (oxfmt), lint (oxlint) and types (tsc)
 - `pnpm lint-fix`: fix formatting and lint findings
 - `pnpm test`: run the unit tests
-- `pnpm build`: build the files into `dist/`, `--full` skips the previous files
+- `pnpm build`: build the files into `dist/`, `--previous-archive <folder>` starts from the extracted archive of a release, `--full` skips the previous state
 - `pnpm pack:release`: pack the release archive from `dist/` into `dist-release/`
 
 `jactionlint` lints the GitHub workflows and local actions.
