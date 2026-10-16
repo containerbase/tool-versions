@@ -41,6 +41,17 @@ A workflow builds them nightly from the upstream sources and publishes them on G
 pnpm lint         # pnpm lint-fix to fix
 pnpm test
 jactionlint       # the GitHub workflows
-pnpm build        # writes dist/, --previous-archive <folder> starts from a release, --full skips the previous state
+pnpm build        # writes dist/, starts empty, --previous-archive <folder> starts from a release
 pnpm pack:release # packs the release archive from dist/ into dist-release/
 ```
+
+`pnpm build` without `--previous-archive` starts empty, so it computes all checksums again, limited by the download budget.
+To start from the latest release, like the nightly build, download and extract it first:
+
+```bash
+gh release download --repo containerbase/tool-versions --pattern 'tool-versions-*.tar.xz' --dir tmp
+mkdir -p tmp/previous && tar -xJf tmp/tool-versions-*.tar.xz -C tmp/previous
+pnpm build --previous-archive tmp/previous
+```
+
+`--full` ignores the previous state also with an archive.

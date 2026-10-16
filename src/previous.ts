@@ -1,17 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { env } from 'node:process';
-import { formatDir, siteUrl } from './formats.ts';
-import { request } from './http.ts';
+import { formatDir } from './formats.ts';
 import { PreviousToolVersions, VersionFiles } from './schema.ts';
-
-/** Where the files are published. */
-export const defaultPagesUrl = siteUrl;
-
-/** The published site, `TOOL_VERSIONS_URL` overrides it, e.g. for a fork. */
-export function pagesUrl(): string {
-  return env['TOOL_VERSIONS_URL'] ?? defaultPagesUrl;
-}
 
 /**
  * Reads a json file and validates it.
@@ -34,7 +24,7 @@ async function readJson<T>(
 /**
  * Rebuilds the previous data of a tool from the extracted archive of a release:
  * the slim `<tool>.json` with the `files` of each version from its
- * `<tool>/<version>.json`. That is the content of a `<tool>.full.json`.
+ * `<tool>/<version>.json`.
  * @param dir - the folder with the extracted archive
  * @param tool - the tool name
  * @returns the data, or `undefined` when the archive has no valid file of the tool
@@ -55,29 +45,4 @@ export async function readArchivePrevious(
     }),
   );
   return { ...slim, versions };
-}
-
-/**
- * Loads the previous data of a tool: from the extracted archive of the latest
- * release when there is one, else the previously published `<tool>.full.json`
- * of the current format with the files of the versions.
- * @param tool - the tool name
- * @param archive - the folder with the extracted archive of the latest release
- * @returns the data, or `undefined` when it is missing, can't be loaded or is
- * invalid
- */
-export async function fetchPrevious(
-  tool: string,
-  archive?: string,
-): Promise<PreviousToolVersions | undefined> {
-  if (archive) {
-    return await readArchivePrevious(archive, tool);
-  }
-  try {
-    const res = await request(`${pagesUrl()}/${formatDir}/${tool}.full.json`);
-    const parsed = PreviousToolVersions.safeParse(await res.json());
-    return parsed.success ? parsed.data : undefined;
-  } catch {
-    return undefined;
-  }
 }

@@ -153,7 +153,7 @@ describe('release', () => {
   });
 
   describe('selectFiles', () => {
-    it('keeps the client files and leaves out the full files and others', () => {
+    it('keeps the client files and leaves out others', () => {
       const files = new Map(
         [
           'index.json',
@@ -161,7 +161,6 @@ describe('release', () => {
           'v1/index.json',
           'v1/tool.schema.json',
           'v1/helm.json',
-          'v1/helm.full.json',
           'v1/helm.integrity.json',
           'v1/helm/3.19.0.json',
           'summary.md',
@@ -194,12 +193,7 @@ describe('release', () => {
     it('writes the archive of the client files with the site root as its root, and its sha512', async () => {
       const dist = join(dir, 'dist');
       await mkdir(join(dist, 'v1', 'helm'), { recursive: true });
-      for (const path of [
-        'index.json',
-        'v1/helm.json',
-        'v1/helm.full.json',
-        'v1/helm/3.19.0.json',
-      ]) {
+      for (const path of ['index.json', 'v1/helm.json', 'v1/helm/3.19.0.json']) {
         await writeFile(join(dist, path), '{"a":1}\n');
       }
 

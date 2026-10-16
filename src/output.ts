@@ -53,10 +53,8 @@ async function writeJson(file: string, value: unknown): Promise<string> {
 /**
  * Validates and writes the files of a tool, all from the same data, as a hash
  * chain: first a `<tool>/<version>.json` with the files of each version which
- * has some, then the `<tool>.integrity.json` with
- * the integrity of each of them, the slim `<tool>.json` without the files, and
- * the `<tool>.full.json` with them, which only the next build reads back.
- * Versions which aren't safe in a file name are left out with a warning.
+ * has some, then the `<tool>.integrity.json` with the integrity of each of them,
+ * and the slim `<tool>.json` without the files. Versions which aren't safe in a file name are left out with a warning.
  * @param dir - the output folder
  * @param data - the tool versions, with their files
  * @returns the client files with their integrity, for the index
@@ -108,7 +106,6 @@ export async function writeToolVersions(dir: string, data: ToolVersions): Promis
     versions: full.versions.map(({ files: _files, ...version }) => version),
   });
   const slimIntegrity = await writeJson(join(dir, file), slim);
-  await writeJson(join(dir, `${full.tool}.full.json`), full);
   return {
     slim: { file, integrity: slimIntegrity },
     ...(versionFiles && { versionFiles }),
@@ -142,8 +139,7 @@ export async function writeFormats(dir: string): Promise<void> {
 }
 
 /**
- * Writes the json schemas of the `<tool>.json` (and `<tool>.full.json`),
- * `<tool>/<version>.json`, `<tool>.integrity.json` and `index.json` files, as
+ * Writes the json schemas of the `<tool>.json`, `<tool>/<version>.json`, `<tool>.integrity.json` and `index.json` files, as
  * `tool.schema.json`, `version.schema.json`, `integrity.schema.json` and
  * `index.schema.json`.
  * @param dir - the output folder of the format

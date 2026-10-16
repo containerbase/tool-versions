@@ -19,7 +19,7 @@ import {
   writeSchemas,
   writeToolVersions,
 } from './output.ts';
-import { fetchPrevious } from './previous.ts';
+import { readArchivePrevious } from './previous.ts';
 import type {
   PreviousToolVersions,
   Source,
@@ -42,20 +42,22 @@ export interface BuildOptions {
   sources?: Record<string, Source>;
   /** the time to put into the files */
   now?: Date;
-  /** fetch every version again, without the previously published files */
+  /** fetch every version again, without the previous state */
   full?: boolean;
   /** the time in milliseconds, for the duration in the job summary */
   clock?: () => number;
   /**
-   * the folder with the extracted archive of the latest release, to start from
-   * instead of the published `<tool>.full.json` files
+   * the folder with the extracted archive of the latest release, the previous
+   * state to start from. Without one, like for the first release, the build
+   * starts empty.
    */
   previousArchive?: string | undefined;
 }
 
 /**
- * Loads the previous data of a tool, unless it is a full build. Data of another
- * source is ignored, its versions can't be merged.
+ * Loads the previous data of a tool from the archive of the latest release,
+ * unless it is a full build. Data of another source is ignored, its versions
+ * can't be merged.
  * @param tool - the tool name
  * @param source - the current source of the tool
  * @param full - whether it is a full build
@@ -67,10 +69,10 @@ async function loadPrevious(
   full: boolean,
   archive: string | undefined,
 ): Promise<PreviousToolVersions | undefined> {
-  if (full) {
+  if (full || !archive) {
     return undefined;
   }
-  const previous = await fetchPrevious(tool, archive);
+  const previous = await readArchivePrevious(archive, tool);
   return previous?.source.datasource === source.datasource &&
     previous.source.packageName === source.packageName
     ? previous
@@ -322,7 +324,7 @@ export async function build({
     stdout.write(
       previousArchive
         ? `previous state: the release archive in ${previousArchive}\n`
-        : 'previous state: the published full files, there is no release archive\n',
+        : 'previous state: none, there is no release archive\n',
     );
   }
 

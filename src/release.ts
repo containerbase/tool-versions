@@ -136,8 +136,8 @@ export async function readFiles(dir: string): Promise<Map<string, string>> {
 
 /**
  * Selects the client files of the build output: the root `index.json` and its
- * schema, and everything in the folder of the format except the internal
- * `<tool>.full.json` files. Other files, like a job summary, are left out.
+ * schema, and everything in the folder of the format. Other files, like a job
+ * summary, are left out.
  * @param files - the files of the build output
  * @returns the files of the release archive
  */
@@ -145,9 +145,7 @@ export function selectFiles(files: FileMap): Map<string, string> {
   return new Map(
     [...files].filter(
       ([path]) =>
-        path === 'index.json' ||
-        path === 'formats.schema.json' ||
-        (path.startsWith(`${formatDir}/`) && !path.endsWith('.full.json')),
+        path === 'index.json' || path === 'formats.schema.json' || path.startsWith(`${formatDir}/`),
     ),
   );
 }
