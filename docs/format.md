@@ -111,6 +111,17 @@ Which versions are listed:
 }
 ```
 
+## Release archive
+
+The client files are also attached to each GitHub release as `tool-versions-<version>.tar.xz`, with `tool-versions-<version>.tar.xz.sha512`.
+
+- The archive has the root `index.json`, `formats.schema.json` and the `v1/` folder, with the same paths as on the site. It has no `<tool>.full.json` files.
+- The `.sha512` file has the lowercase hex digest of the archive, like the ones of the containerbase prebuilds.
+- It is meant for embedding the data, like in the containerbase image.
+- The site stays the primary source, it is always the latest data.
+
+How the releases are made is in [the build docs](./build.md#release-archive).
+
 ## Versioning policy
 
 - A breaking change is published in a new folder, like `v2/`, and listed in the root index.

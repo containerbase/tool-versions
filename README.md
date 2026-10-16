@@ -42,4 +42,5 @@ pnpm lint         # pnpm lint-fix to fix
 pnpm test
 jactionlint       # the GitHub workflows
 pnpm build        # writes dist/, --full skips the previous files
+pnpm pack:release # packs the release archive from dist/ into dist-release/
 ```

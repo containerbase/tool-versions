@@ -90,8 +90,9 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-# generated version files
+# generated version files and the release archive
 dist
+dist-release
 
 # Gatsby files
 .cache/
