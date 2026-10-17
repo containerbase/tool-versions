@@ -32,7 +32,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@containerbase/oxlint-plugin": "1.0.0",
+    "@containerbase/oxlint-plugin": "1.0.2",
     "@tsconfig/node24": "24.0.5",
     "@tsconfig/strictest": "2.0.8",
     "@types/node": "24.19.2",
