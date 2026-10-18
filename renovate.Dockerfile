@@ -195,7 +195,7 @@ ENV NODE_VERSION=26.12.0
 ENV NPM_VERSION=10.9.9
 
 # renovate: datasource=npm depName=npm
-ENV NPM_VERSION=11.21.0
+ENV NPM_VERSION=11.21.1
 
 # renovate: datasource=npm depName=npm
 ENV NPM_VERSION=12.2.0
