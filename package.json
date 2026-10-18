@@ -45,7 +45,7 @@
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
     "typescript": "7.0.2",
-    "vitest": "5.0.4"
+    "vitest": "5.0.5"
   },
   "engines": {
     "node": ">=24.10.0",
