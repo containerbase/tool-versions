@@ -32,6 +32,26 @@ describe('datasources/rubygems', () => {
     expect(scope.isDone()).toBe(true);
   });
 
+  it('reads the ruby constraint and skips the one which accepts any ruby', async () => {
+    nock('https://rubygems.org')
+      .get('/api/v1/versions/bundler.json')
+      .reply(200, [
+        { number: '2.6.0', prerelease: false, ruby_version: '>= 3.1.0' },
+        { number: '2.5.0', prerelease: false, ruby_version: '>= 0' },
+        { number: '2.4.0', prerelease: false, ruby_version: null },
+        { number: '2.3.0', prerelease: false, ruby_version: '' },
+        { number: '2.2.0', prerelease: false },
+      ]);
+
+    await expect(fetchRubygemsVersions('bundler')).resolves.toEqual([
+      { version: '2.6.0', constraints: { ruby: '>= 3.1.0' } },
+      { version: '2.5.0' },
+      { version: '2.4.0' },
+      { version: '2.3.0' },
+      { version: '2.2.0' },
+    ]);
+  });
+
   it('fails on an error response', async () => {
     nock('https://rubygems.org').get('/api/v1/versions/bundler.json').reply(404);
 

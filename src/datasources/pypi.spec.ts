@@ -63,6 +63,30 @@ describe('datasources/pypi', () => {
     ]);
   });
 
+  it('reads the python constraint of the first non-yanked file with one', async () => {
+    nock('https://pypi.org')
+      .get('/pypi/poetry/json')
+      .reply(200, {
+        releases: {
+          '2.1.0': [
+            { yanked: true, requires_python: '>=3.1' },
+            { yanked: false, requires_python: null },
+            { yanked: false, requires_python: ' ' },
+            { yanked: false, requires_python: '>=3.9,<4.0' },
+            { yanked: false, requires_python: '>=3.8' },
+          ],
+          '2.0.0': [{ yanked: true, requires_python: '>=3.1' }],
+          '1.0.0': [{ yanked: false }],
+        },
+      });
+
+    await expect(fetchPypiVersions('poetry')).resolves.toEqual([
+      { version: '2.1.0', constraints: { python: '>=3.9,<4.0' } },
+      { version: '2.0.0' },
+      { version: '1.0.0' },
+    ]);
+  });
+
   it('normalizes the package name', async () => {
     const scope = nock('https://pypi.org')
       .get('/pypi/pip-tools/json')

@@ -64,7 +64,7 @@ export const Integrity = z.string().regex(/^sha256-[0-9A-Za-z+/]{43}=$/);
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `files` and `releaseTimestamp` only when known.
+ * `files`, `releaseTimestamp` and `constraints` only when known.
  */
 export const ToolVersion = z.object({
   version: z.string().min(1),
@@ -72,6 +72,11 @@ export const ToolVersion = z.object({
   lts: z.literal(true).optional(),
   /** when the version was released, in UTC */
   releaseTimestamp: z.iso.datetime().optional(),
+  /**
+   * the runtime the version needs, by parent tool (`node`, `python` or `ruby`),
+   * the raw constraint in the syntax of the registry
+   */
+  constraints: z.record(z.string().min(1), z.string().min(1)).optional(),
   /** sorted by name, not in the `<tool>.json` files, but in the `<tool>/<version>.json` ones */
   files: z.array(ToolFile).min(1).optional(),
 });

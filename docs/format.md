@@ -57,6 +57,7 @@ Optional fields are omitted when unknown.
 | `versions[].version`           | string                        | the exact `install-tool` version                                                                   |
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
+| `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
 | `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                              |
 | `files[].name`                 | string                        | the file name                                                                                      |
 | `files[].url`                  | https url                     | where to download it                                                                               |
@@ -67,6 +68,16 @@ Optional fields are omitted when unknown.
 `source` (`datasource`, `packageName`, `versioning`) is deprecated.
 It describes how the build fetches the versions, readers must not rely on it.
 It is removed with the next format major ([#146](https://github.com/containerbase/tool-versions/issues/146)).
+
+`versions[].constraints` is only present when the registry has a constraint for the version:
+
+- Constraints don't change once published, the registry is only read for versions without one.
+- It is keyed by the parent tool, like `node`, `python` or `ruby`, and the value is the raw constraint in the syntax of the registry.
+  Evaluate it with the versioning of the parent tool, like Renovate does.
+- Tools from npm have `engines.node` as the `node` constraint, not `devEngines`.
+- Tools from PyPI have `requires_python` as the `python` constraint.
+  It is the first one of the files which are not yanked.
+- Tools from RubyGems have `required_ruby_version` as the `ruby` constraint, unless it accepts any ruby (`>= 0`).
 
 Which versions are listed:
 
@@ -92,6 +103,25 @@ Which versions are listed:
   },
   "updatedAt": "2026-10-08T03:00:00.000Z",
   "versions": [{ "version": "3.14.8", "releaseTimestamp": "2026-10-02T01:30:20.000Z" }]
+}
+```
+
+`v1/npm.json`, a tool with constraints:
+
+```json
+{
+  "$schema": "https://containerbase.github.io/tool-versions/v1/tool.schema.json",
+  "tool": "npm",
+  "type": "npm",
+  "source": { "datasource": "npm", "packageName": "npm", "versioning": "npm" },
+  "updatedAt": "2026-10-08T03:00:00.000Z",
+  "versions": [
+    {
+      "version": "12.0.0",
+      "releaseTimestamp": "2026-09-30T10:00:00.000Z",
+      "constraints": { "node": "^20.17.0 || >=22.9.0" }
+    }
+  ]
 }
 ```
 

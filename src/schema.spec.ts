@@ -131,6 +131,20 @@ describe('schema', () => {
       },
     );
 
+    it('accepts constraints', () => {
+      const version = { version: '12.0.0', constraints: { node: '^20.17.0 || >=22.9.0' } };
+      expect(ToolVersion.parse(version)).toEqual(version);
+    });
+
+    it('rejects empty constraints', () => {
+      expect(ToolVersion.safeParse({ version: '12.0.0', constraints: { node: '' } }).success).toBe(
+        false,
+      );
+      expect(ToolVersion.safeParse({ version: '12.0.0', constraints: { '': '>=1' } }).success).toBe(
+        false,
+      );
+    });
+
     it('rejects an empty file list', () => {
       expect(ToolVersion.safeParse({ version: '3.14.8', files: [] }).success).toBe(false);
     });

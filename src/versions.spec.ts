@@ -4,6 +4,7 @@ import {
   compareSemver,
   isRubyVersion,
   sortVersions,
+  toConstraints,
   toTimestamp,
   toolVersion,
 } from './versions.ts';
@@ -30,6 +31,28 @@ describe('versions', () => {
         version: '1.0.0',
         releaseTimestamp: '2025-01-01T00:00:00.000Z',
       });
+    });
+
+    it('only keeps known constraints', () => {
+      expect(toolVersion('1.0.0', { constraints: undefined })).toStrictEqual({ version: '1.0.0' });
+      expect(toolVersion('1.0.0', { constraints: { node: '>=20' } })).toEqual({
+        version: '1.0.0',
+        constraints: { node: '>=20' },
+      });
+    });
+  });
+
+  describe('toConstraints', () => {
+    it('keys the trimmed constraint by the parent', () => {
+      expect(toConstraints('node', ' >=20 ')).toEqual({ node: '>=20' });
+    });
+
+    it.each([undefined, null, 18, '', '  ', '*'])('ignores %s', (value) => {
+      expect(toConstraints('node', value, '*')).toBeUndefined();
+    });
+
+    it('keeps `*` unless it is ignored', () => {
+      expect(toConstraints('node', '*')).toEqual({ node: '*' });
     });
   });
 

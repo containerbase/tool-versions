@@ -8,12 +8,19 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
+  toConstraints,
   toTimestamp,
   toolVersion,
 } from '../versions.ts';
 
+const NpmVersion = z.object({
+  // only `engines.node`, not `devEngines`, which isn't checked on install.
+  // Old packages have odd `engines`, like a list, which count as none.
+  engines: z.object({ node: z.unknown() }).optional().catch(undefined),
+});
+
 const NpmPackage = z.object({
-  versions: z.record(z.string(), z.unknown()),
+  versions: z.record(z.string(), NpmVersion.catch({})),
 });
 
 const NpmTimes = z.object({
@@ -63,6 +70,7 @@ async function fetchPackage(
     toolVersion(version, {
       prerelease: isSemverPrerelease(version),
       releaseTimestamp: hasTimestamp.has(version) ? undefined : toTimestamp(times?.[version]),
+      constraints: toConstraints('node', meta.versions[version]?.engines?.node, '*'),
     }),
   );
 }
@@ -72,7 +80,8 @@ async function fetchPackage(
  * containerbase npm resolver. Deprecated versions are kept, `install-tool`
  * still installs them. The abbreviated document has no release times, so the
  * full (much larger) document is only fetched when a version has none yet.
- * The versions of tools with several packages (`yarn`) are merged, see `unions`.
+ * The `engines.node` of a version, which the abbreviated document has, is its
+ * `node` constraint. The versions of tools with several packages (`yarn`) are merged, see `unions`.
  * @param packageName - the npm package name
  * @param _known - unused, the registry lists all versions at once
  * @param _previous - unused, npm tools have no files

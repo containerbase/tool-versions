@@ -223,7 +223,9 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
 /**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
- * files and release times are kept for fresh versions without any.
+ * files and release times are kept for fresh versions without any. The
+ * previous constraints always win, as a published release doesn't change: only
+ * versions without previous constraints take the fresh ones.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param previous - the previously published versions
@@ -245,6 +247,11 @@ async function fetchVersions(
       releaseTimestamp ? [[version, releaseTimestamp] as const] : [],
     ),
   );
+  const constraints = new Map(
+    previous.flatMap(({ version, constraints }) =>
+      constraints ? [[version, constraints] as const] : [],
+    ),
+  );
   const fetched = await fetch(
     source.packageName,
     known,
@@ -258,8 +265,10 @@ async function fetchVersions(
   const fresh = fetched.map((entry) => {
     const keptFiles = files.get(entry.version);
     const keptTimestamp = timestamps.get(entry.version);
+    const keptConstraints = constraints.get(entry.version);
     return {
       ...entry,
+      ...(keptConstraints && { constraints: keptConstraints }),
       ...(!entry.files && keptFiles && { files: keptFiles }),
       ...(!entry.releaseTimestamp && keptTimestamp && { releaseTimestamp: keptTimestamp }),
     };

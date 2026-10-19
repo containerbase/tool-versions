@@ -2,11 +2,12 @@ import { compare, explain } from '@renovatebot/pep440';
 import { z } from 'zod';
 import { getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toConstraints, toTimestamp, toolVersion } from '../versions.ts';
 
 const PypiFile = z.object({
   upload_time_iso_8601: z.string().optional(),
   yanked: z.boolean().optional(),
+  requires_python: z.string().nullish(),
 });
 type PypiFile = z.infer<typeof PypiFile>;
 
@@ -29,6 +30,19 @@ function releaseTimestamp(files: PypiFile[]): string | undefined {
 }
 
 /**
+ * Finds the python versions a release supports: the first `requires_python` of
+ * its files which are not yanked, the files of a release normally agree.
+ * @param files - the files of the release
+ * @returns the constraints, or `undefined` without a `requires_python`
+ */
+function releaseConstraints(files: PypiFile[]): Record<string, string> | undefined {
+  return files
+    .filter(({ yanked }) => !yanked)
+    .map(({ requires_python }) => toConstraints('python', requires_python))
+    .find((constraints) => constraints !== undefined);
+}
+
+/**
  * Normalizes a python package name, eg. `Foo_Bar` to `foo-bar`.
  * @see {@link https://packaging.python.org/en/latest/specifications/name-normalization/}
  * @param name - the package name
@@ -41,7 +55,8 @@ function normalizeName(name: string): string {
  * Fetches all releases of a package from pypi, like the containerbase pip
  * resolver. Releases without files are skipped, they can't be installed.
  * Yanked releases are kept, pip installs them when pinned. Versions which are
- * no valid pep440 version are skipped too.
+ * no valid pep440 version are skipped too. The `requires_python` of a release
+ * is its `python` constraint.
  * @param packageName - the pypi package name
  */
 export async function fetchPypiVersions(packageName: string): Promise<ToolVersion[]> {
@@ -59,6 +74,7 @@ export async function fetchPypiVersions(packageName: string): Promise<ToolVersio
       toolVersion(version, {
         prerelease: parsed.is_prerelease,
         releaseTimestamp: releaseTimestamp(files),
+        constraints: releaseConstraints(files),
       }),
     );
   }

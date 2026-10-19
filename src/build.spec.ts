@@ -611,6 +611,40 @@ describe('build', () => {
     ]);
   });
 
+  it('keeps the previous constraints and takes fresh ones for versions without any', async () => {
+    const previousArchive = await archiveOf(
+      previousPnpm([
+        { version: '10.0.0', constraints: { node: '>=18' } },
+        { version: '9.0.0', constraints: { node: '>=16' } },
+        { version: '8.0.0', constraints: { node: '>=14' } },
+        { version: '7.0.0' },
+      ]),
+    );
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, {
+        versions: {
+          '11.0.0': { engines: { node: '>=20' } },
+          '10.0.0': { engines: { node: '>=20.1' } },
+          '9.0.0': {},
+          '7.0.0': { engines: { node: '>=12' } },
+        },
+        time: {},
+      });
+
+    await build({ dir, sources: pnpmSource, now, previousArchive });
+
+    expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
+      { version: '11.0.0', constraints: { node: '>=20' } },
+      // a changed or missing registry value doesn't replace the previous one
+      { version: '10.0.0', constraints: { node: '>=18' } },
+      { version: '9.0.0', constraints: { node: '>=16' } },
+      { version: '8.0.0', constraints: { node: '>=14' } },
+      { version: '7.0.0', constraints: { node: '>=12' } },
+    ]);
+  });
+
   it('gives each tool which computes checksums a fair share of the download budget', async () => {
     // two tools with two files of 8 bytes: the share of each is 15 bytes
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '30');
