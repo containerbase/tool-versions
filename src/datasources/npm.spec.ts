@@ -95,6 +95,51 @@ describe('datasources/npm', () => {
     expect(fullScope.isDone()).toBe(true);
   });
 
+  it('reads the node constraint from `engines.node` only', async () => {
+    nock(registry, { reqheaders: { accept: abbreviated } })
+      .get('/npm')
+      .reply(200, {
+        versions: {
+          '12.0.0': {
+            engines: { node: '^20.17.0 || >=22.9.0' },
+            devEngines: { runtime: { name: 'node', version: '>=99' } },
+          },
+          '11.0.0': { engines: { node: ' >=20 ' } },
+          '10.0.0': { engines: { node: '*' } },
+          '9.0.0': { engines: { node: '' } },
+          '8.0.0': { engines: { node: 18 } },
+          '7.0.0': { engines: ['node'] },
+          '6.0.0': { engines: { npm: '>=1' } },
+          '5.0.0': { devEngines: { runtime: { name: 'node', version: '>=99' } } },
+          '4.0.0': 'broken',
+        },
+      });
+
+    await expect(
+      fetchVersions('npm', [
+        '12.0.0',
+        '11.0.0',
+        '10.0.0',
+        '9.0.0',
+        '8.0.0',
+        '7.0.0',
+        '6.0.0',
+        '5.0.0',
+        '4.0.0',
+      ]),
+    ).resolves.toEqual([
+      { version: '12.0.0', constraints: { node: '^20.17.0 || >=22.9.0' } },
+      { version: '11.0.0', constraints: { node: '>=20' } },
+      { version: '10.0.0' },
+      { version: '9.0.0' },
+      { version: '8.0.0' },
+      { version: '7.0.0' },
+      { version: '6.0.0' },
+      { version: '5.0.0' },
+      { version: '4.0.0' },
+    ]);
+  });
+
   it('encodes scoped package names', async () => {
     const scope = nock(registry)
       .get('/@scope%2ftool')
@@ -129,6 +174,19 @@ describe('datasources/npm', () => {
       { version: '1.0.0-rc.1', prerelease: true },
     ]);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('keeps the constraints of the merged yarn packages', async () => {
+    nock(registry)
+      .get('/@yarnpkg%2fcli-dist')
+      .reply(200, { versions: { '4.9.2': { engines: { node: '>=18.12.0' } } } })
+      .get('/yarn')
+      .reply(200, { versions: { '1.22.22': { engines: { node: '>=12.22.0' } } } });
+
+    await expect(fetchVersions('@yarnpkg/cli-dist', ['4.9.2', '1.22.22'])).resolves.toEqual([
+      { version: '4.9.2', constraints: { node: '>=18.12.0' } },
+      { version: '1.22.22', constraints: { node: '>=12.22.0' } },
+    ]);
   });
 
   it('takes all versions of `yarn` for yarn-slim', async () => {

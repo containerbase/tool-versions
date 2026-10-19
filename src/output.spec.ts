@@ -74,6 +74,20 @@ describe('output', () => {
     return await readFile(join(dir, name), 'utf8');
   }
 
+  it('writes the constraints of the versions to the tool file', async () => {
+    await writeToolVersions(dir, {
+      tool: 'npm',
+      type: 'npm',
+      source: { datasource: 'npm', packageName: 'npm', versioning: 'npm' },
+      updatedAt,
+      versions: [{ version: '12.0.0', constraints: { node: '^20.17.0 || >=22.9.0' } }],
+    });
+
+    expect(JSON.parse(await read('npm.json')).versions).toEqual([
+      { version: '12.0.0', constraints: { node: '^20.17.0 || >=22.9.0' } },
+    ]);
+  });
+
   it('writes the slim and the per-version files of a tool as a hash chain', async () => {
     const files = await writeToolVersions(dir, java);
 

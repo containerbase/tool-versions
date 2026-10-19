@@ -10,24 +10,42 @@ export interface VersionFlags {
   prerelease?: boolean | undefined;
   lts?: boolean | undefined;
   releaseTimestamp?: string | undefined;
+  constraints?: Record<string, string> | undefined;
 }
 
 /**
- * Creates a version entry which only carries the flags that are true and the
- * release time when it is known.
+ * Creates a version entry which only carries the flags that are true, and the
+ * release time and the constraints when they are known.
  * @param version - the version as `install-tool` accepts it
- * @param flags - the prerelease and lts flags and the release time
+ * @param flags - the prerelease and lts flags, the release time and the constraints
  */
 export function toolVersion(
   version: string,
-  { prerelease, lts, releaseTimestamp }: VersionFlags = {},
+  { prerelease, lts, releaseTimestamp, constraints }: VersionFlags = {},
 ): ToolVersion {
   return {
     version,
     ...(prerelease && { prerelease }),
     ...(lts && { lts }),
     ...(releaseTimestamp && { releaseTimestamp }),
+    ...(constraints && { constraints }),
   };
+}
+
+/**
+ * Creates the constraints of a version from the raw constraint of a registry.
+ * @param parent - the parent tool the constraint is for, like `node`
+ * @param constraint - the raw constraint, anything but a non-empty string is ignored
+ * @param anything - the constraints which accept any version and say nothing
+ * @returns the constraints, or `undefined` without a useful one
+ */
+export function toConstraints(
+  parent: string,
+  constraint: unknown,
+  ...anything: string[]
+): Record<string, string> | undefined {
+  const value = typeof constraint === 'string' ? constraint.trim() : '';
+  return value && !anything.includes(value) ? { [parent]: value } : undefined;
 }
 
 /**
