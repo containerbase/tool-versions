@@ -10,6 +10,7 @@ import {
   createArchive,
   githubOutput,
   hasChanges,
+  hasReleaseCommit,
   isReleaseDue,
   nextVersion,
   planVersion,
@@ -205,6 +206,22 @@ describe('release', () => {
       ]);
 
       expect(isReleaseDue(files, reordered)).toBe(false);
+    });
+  });
+
+  describe('hasReleaseCommit', () => {
+    it('is true for a feature, a fix or a breaking change', () => {
+      expect(hasReleaseCommit(['chore: a', 'feat: b (#1)'])).toBe(true);
+      expect(hasReleaseCommit(['docs: a', 'fix(core): b'])).toBe(true);
+      expect(hasReleaseCommit(['refactor!: a'])).toBe(true);
+    });
+
+    it('is false for other commits and without commits', () => {
+      expect(hasReleaseCommit(['chore: a', 'ci: b', 'docs: c', 'refactor: d', 'test: e'])).toBe(
+        false,
+      );
+      expect(hasReleaseCommit(['not conventional'])).toBe(false);
+      expect(hasReleaseCommit([])).toBe(false);
     });
   });
 

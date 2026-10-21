@@ -6,6 +6,7 @@ import { releaseNotes } from './release-notes.ts';
 import {
   createArchive,
   githubOutput,
+  hasReleaseCommit,
   isReleaseDue,
   planVersion,
   readFiles,
@@ -31,8 +32,15 @@ const { values } = parseArgs({
     // a file to append the outputs of the workflow step to: `changed`, whether a
     // release is due, and the `version`
     'github-output': { type: 'string' },
+    // `code` only releases when the commits have a feature, a fix or a breaking
+    // change, `any` (the default) also releases for a change of the data
+    'release-on': { type: 'string', default: 'any' },
   },
 });
+
+if (values['release-on'] !== 'any' && values['release-on'] !== 'code') {
+  throw new Error(`Unknown --release-on value: ${values['release-on']}`);
+}
 
 const commits = values.commits
   ? (await readFile(values.commits, 'utf8')).split('\n').filter(Boolean)
@@ -59,10 +67,11 @@ if (error === undefined) {
     await appendFile(values.summary, `### Release archive ${version}\n\n${line}\n`);
   }
   if (values['github-output']) {
-    await appendFile(
-      values['github-output'],
-      githubOutput({ version, changed: isReleaseDue(previous, next) }),
-    );
+    const due = isReleaseDue(previous, next);
+    // the first release doesn't wait for a commit
+    const wanted =
+      values['release-on'] === 'any' || previous === undefined || hasReleaseCommit(commits);
+    await appendFile(values['github-output'], githubOutput({ version, changed: due && wanted }));
   }
 } else {
   // a breaking change blocks the release, but not the build: the release job
