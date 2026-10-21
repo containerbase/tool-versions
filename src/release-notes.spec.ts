@@ -108,6 +108,30 @@ describe('release-notes', () => {
       ]);
     });
 
+    it('ignores the key order of the files of a version', () => {
+      const previous = new Map([
+        ...files({ swift: tool('5.0', '6.0') }),
+        ['v1/swift/5.0.json', '{"files":[{"name":"a.tgz","checksum":"a"}]}'],
+        ['v1/swift/6.0.json', '{"files":[{"name":"a.tgz","checksum":"a"}]}'],
+      ]);
+      const next = new Map([
+        ...files({ swift: tool('5.0', '6.0') }),
+        ['v1/swift/5.0.json', '{"files":[{"checksum":"a","name":"a.tgz"}]}'],
+        ['v1/swift/6.0.json', '{"files":[{"checksum":"b","name":"a.tgz"}]}'],
+      ]);
+
+      expect(dataChanges(previous, next)).toEqual([
+        {
+          ...noFiles,
+          tool: 'swift',
+          status: 'changed',
+          added: [],
+          removed: [],
+          filesChanged: ['6.0'],
+        },
+      ]);
+    });
+
     it('ignores the updatedAt and files which are no valid tool files', () => {
       const previous = files({ node: tool('24.21.0'), broken: '{', other: '{"a":1}' });
       const next = files({ node: tool('24.21.0').replace('03:00', '04:00'), broken: '[' });

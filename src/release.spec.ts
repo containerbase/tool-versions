@@ -120,6 +120,33 @@ describe('release', () => {
       expect(hasChanges(previous, next)).toBe(false);
     });
 
+    it('ignores the key order, also of nested objects, but not the order of arrays', () => {
+      const before = new Map([
+        ['v1/a.json', '{"tool":"a","source":{"datasource":"npm","packageName":"a"},"versions":[]}'],
+        [
+          'v1/index.json',
+          '{"tools":[{"tool":"a","slim":{"file":"a.json","integrity":"x"},"versionCount":1}]}',
+        ],
+      ]);
+      const reordered = new Map([
+        ['v1/a.json', '{"versions":[],"source":{"packageName":"a","datasource":"npm"},"tool":"a"}'],
+        [
+          'v1/index.json',
+          '{"tools":[{"versionCount":1,"slim":{"integrity":"y","file":"a.json"},"tool":"a"}]}',
+        ],
+      ]);
+      const changed = new Map(reordered).set(
+        'v1/a.json',
+        '{"versions":[],"source":{"packageName":"b","datasource":"npm"},"tool":"a"}',
+      );
+      const ascending = new Map([['v1/a.json', '{"versions":[{"version":"1"},{"version":"2"}]}']]);
+      const descending = new Map([['v1/a.json', '{"versions":[{"version":"2"},{"version":"1"}]}']]);
+
+      expect(hasChanges(before, reordered)).toBe(false);
+      expect(hasChanges(before, changed)).toBe(true);
+      expect(hasChanges(ascending, descending)).toBe(true);
+    });
+
     it('finds a changed version list', () => {
       const next = new Map(previous).set(
         'v1/helm.json',
@@ -167,6 +194,17 @@ describe('release', () => {
 
       expect(isReleaseDue(files, same)).toBe(false);
       expect(isReleaseDue(files, changed)).toBe(true);
+    });
+
+    it('is not due when only the key order changed', () => {
+      const reordered = new Map([
+        [
+          'v1/helm.json',
+          '{"versions":[{"version":"3.19.0"}],"updatedAt":"2026-10-16T03:00:00.000Z","source":{"versioning":"semver","packageName":"helm/helm","datasource":"github-releases"},"tool":"helm","$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json"}\n',
+        ],
+      ]);
+
+      expect(isReleaseDue(files, reordered)).toBe(false);
     });
   });
 

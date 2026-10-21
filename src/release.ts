@@ -4,7 +4,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { formatDir } from './formats.ts';
-import { parseCommit } from './release-notes.ts';
+import { parseCommit, sortKeys } from './release-notes.ts';
 
 /** The files of a release archive by their path relative to its root, with their content. */
 export type FileMap = ReadonlyMap<string, string>;
@@ -96,7 +96,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Removes what changes with every build without a change of the data from the
  * content of a file: the `updatedAt` and, in the `index.json` of the format,
  * the integrity of the files, which the files themselves are compared for.
- * Other content, like the `$schema`, stays as it is.
+ * Other content, like the `$schema`, stays as it is. The keys of the json are
+ * sorted, so a file which only has another key order is the same.
  * @param path - the path of the file
  * @param content - the content of the file
  * @returns the normalized content
@@ -116,7 +117,7 @@ function normalize(path: string, content: string): string {
   }
   const { updatedAt: _updatedAt, ...rest } = data;
   if (path !== `${formatDir}/index.json` || !Array.isArray(rest['tools'])) {
-    return JSON.stringify(rest);
+    return JSON.stringify(sortKeys(rest));
   }
   const tools = rest['tools'].map((tool: unknown) => {
     if (!isRecord(tool)) {
@@ -131,7 +132,7 @@ function normalize(path: string, content: string): string {
       }),
     };
   });
-  return JSON.stringify({ ...rest, tools });
+  return JSON.stringify(sortKeys({ ...rest, tools }));
 }
 
 /**

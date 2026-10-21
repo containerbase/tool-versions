@@ -300,9 +300,9 @@ describe('build', () => {
       'type',
       'sourceUrl',
       'homepage',
-      'source',
       'updatedAt',
       'versions',
+      'source',
     ]);
   });
 
