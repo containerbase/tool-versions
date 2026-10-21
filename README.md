@@ -35,7 +35,7 @@ A workflow builds them nightly from the upstream sources and publishes them on G
 
 ## Development
 
-`mise install` installs Node.js, pnpm, jactionlint, shellcheck and zizmor (or use `pnpm install` without [mise](https://mise.jdx.dev)).
+`mise install` installs Node.js, pnpm, jactionlint, shellcheck and zizmor, then `pnpm install --frozen-lockfile` installs the dependencies (without [mise](https://mise.jdx.dev), install Node.js and pnpm yourself).
 
 ```bash
 pnpm lint         # pnpm lint-fix to fix
