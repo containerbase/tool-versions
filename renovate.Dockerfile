@@ -183,7 +183,7 @@ ENV MONO_VERSION=6.14.1
 ENV NIX_VERSION=2.35.3
 
 # renovate: datasource=node-version depName=node versioning=node
-ENV NODE_VERSION=22.23.3
+ENV NODE_VERSION=22.23.4
 
 # renovate: datasource=node-version depName=node versioning=node
 ENV NODE_VERSION=24.22.0
