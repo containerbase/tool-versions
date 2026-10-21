@@ -303,7 +303,7 @@ ENV SOPS_VERSION=3.13.3
 ENV SWIFT_VERSION=6.4.1
 
 # renovate: datasource=docker depName=terraform packageName=hashicorp/terraform versioning=docker
-ENV TERRAFORM_VERSION=1.16.6
+ENV TERRAFORM_VERSION=1.17.0
 
 # renovate: datasource=github-releases depName=tofu packageName=opentofu/opentofu
 ENV TOFU_VERSION=1.13.2
