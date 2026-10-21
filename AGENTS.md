@@ -31,7 +31,7 @@ is merged or `main` is needed, and force-push it with `gh stack push`.
 All tooling runs through `pnpm`:
 
 - `mise install`: install Node.js, pnpm, jactionlint, shellcheck and zizmor
-- `pnpm install --frozen-lockfile`: install dependencies
+- `pnpm install --frozen-lockfile`: install dependencies, also after `mise install`
 - `pnpm lint`: check formatting (oxfmt), lint (oxlint) and types (tsc)
 - `pnpm lint-fix`: fix formatting and lint findings
 - `pnpm test`: run the unit tests
