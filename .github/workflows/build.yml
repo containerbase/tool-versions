@@ -30,6 +30,10 @@ jobs:
       - setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # node and pnpm come from the setup action, so `mise exec` must not
+      # install them again
+      MISE_EXEC_AUTO_INSTALL: 'false'
 
     steps:
       - name: ⚙️ Setup
@@ -41,10 +45,18 @@ jobs:
           pnpm oxfmt
           pnpm lint:types
 
-      - name: Check workflow files
-        uses: docker://ghcr.io/jdx/jactionlint:2.2.0@sha256:71191bcf2428450553b54ac084c2b1be5594226b48211c3baf27a9a53955b9e3
+      - name: Install the workflow linters
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
-          args: --color
+          install_args: jactionlint shellcheck zizmor
+
+      - name: Check workflow files
+        run: mise exec -- jactionlint --color
+
+      - name: Run zizmor
+        run: mise exec -- zizmor --format github .github/
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   test:
     needs:

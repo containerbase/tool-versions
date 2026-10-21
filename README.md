@@ -35,12 +35,13 @@ A workflow builds them nightly from the upstream sources and publishes them on G
 
 ## Development
 
-`mise install` installs Node.js, pnpm and jactionlint (or use `pnpm install` without [mise](https://mise.jdx.dev)).
+`mise install` installs Node.js, pnpm, jactionlint, shellcheck and zizmor (or use `pnpm install` without [mise](https://mise.jdx.dev)).
 
 ```bash
 pnpm lint         # pnpm lint-fix to fix
 pnpm test
 jactionlint       # the GitHub workflows
+zizmor .github/   # security audit of the GitHub workflows
 pnpm build        # writes dist/, starts empty, --previous-archive <folder> starts from a release
 pnpm pack:release # packs the release archive from dist/ into dist-release/
 ```
