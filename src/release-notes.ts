@@ -18,7 +18,7 @@ const otherFiles = /(^index|\.(integrity|schema))\.json$/;
 interface ToolContent {
   /** the versions, in the order of the file */
   versions: string[];
-  /** the files of a version as json, by version */
+  /** the files of a version as json with sorted keys, by version */
   files: Map<string, string>;
 }
 
@@ -38,6 +38,26 @@ export interface ToolChange {
   filesRemoved: string[];
   /** the versions which are in both releases and have other files */
   filesChanged: string[];
+}
+
+/**
+ * Sorts the keys of the objects in a value, also of nested ones, so the json of
+ * values which only differ in the key order is the same. Arrays keep their order.
+ * @param value - the value
+ * @returns the value with sorted keys
+ */
+export function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys);
+  }
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([key, entry]) => [key, sortKeys(entry)]),
+  );
 }
 
 /**
@@ -84,7 +104,7 @@ function readTools(files: FileMap): Map<string, ToolContent> {
     const match = new RegExp(`^${formatDir}/([^/]+)/(.+)\\.json$`).exec(path);
     const parsed = match?.[1] && match[2] ? parseContent(content, VersionFileFiles) : undefined;
     if (match?.[1] && match[2] && parsed) {
-      tools.get(match[1])?.files.set(match[2], JSON.stringify(parsed.files));
+      tools.get(match[1])?.files.set(match[2], JSON.stringify(sortKeys(parsed.files)));
     }
   }
   return tools;
