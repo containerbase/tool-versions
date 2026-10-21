@@ -30,7 +30,7 @@ is merged or `main` is needed, and force-push it with `gh stack push`.
 
 All tooling runs through `pnpm`:
 
-- `mise install`: install Node.js, pnpm and jactionlint
+- `mise install`: install Node.js, pnpm, jactionlint, shellcheck and zizmor
 - `pnpm install --frozen-lockfile`: install dependencies
 - `pnpm lint`: check formatting (oxfmt), lint (oxlint) and types (tsc)
 - `pnpm lint-fix`: fix formatting and lint findings
@@ -39,7 +39,8 @@ All tooling runs through `pnpm`:
 - `pnpm pack:release`: pack the release archive from `dist/` into `dist-release/`
 - `pnpm release-notes`: write the notes of a release from two extracted archives
 
-`jactionlint` lints the GitHub workflows and local actions.
+`jactionlint` lints the GitHub workflows and local actions, `zizmor .github/`
+audits them. CI runs both through mise in the `lint` job.
 
 The specs mock all requests with nock, so they need no network. Don't run
 `pnpm build` in a check, it fetches the upstream sources.
