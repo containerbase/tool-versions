@@ -42,7 +42,7 @@ jobs:
           pnpm lint:types
 
       - name: Check workflow files
-        uses: docker://ghcr.io/jdx/jactionlint:1.8.2@sha256:5515b269082f92ee0962ccc236df3300113aedcd4008a2aad5ad0903680b7c67
+        uses: docker://ghcr.io/jdx/jactionlint:2.2.0@sha256:71191bcf2428450553b54ac084c2b1be5594226b48211c3baf27a9a53955b9e3
         with:
           args: --color
 
