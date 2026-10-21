@@ -22,7 +22,7 @@ ENV BAZELISK_VERSION=1.29.0
 ENV BUF_VERSION=1.74.0
 
 # renovate: datasource=github-releases depName=buildx packageName=docker/buildx
-ENV BUILDX_VERSION=0.38.0
+ENV BUILDX_VERSION=0.38.1
 
 # the github tags have a `bun-v` prefix, the npm versions are the same
 # renovate: datasource=npm depName=bun
