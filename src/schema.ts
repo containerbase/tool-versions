@@ -17,6 +17,7 @@ export const DatasourceName = z.enum([
   'nuget-exe',
   'pypi',
   'rubygems',
+  'rust-version',
   'swift-releases',
 ]);
 export type DatasourceName = z.infer<typeof DatasourceName>;
@@ -32,6 +33,7 @@ export const VersioningName = z.enum([
   'pep440',
   'python',
   'ruby',
+  'rust-release-channel',
   'semver',
 ]);
 export type VersioningName = z.infer<typeof VersioningName>;

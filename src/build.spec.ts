@@ -420,6 +420,50 @@ describe('build', () => {
     ]);
   });
 
+  it('drops the rust nightlies older than 90 days from the previous file', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    const rustSource: Source = {
+      datasource: 'rust-version',
+      packageName: 'rust-lang/rust',
+      versioning: 'rust-release-channel',
+    };
+    const files = (version: string): ToolVersions['versions'][number]['files'] => [
+      {
+        name: 'rust-nightly-x86_64-unknown-linux-gnu.tar.xz',
+        url: `https://static.rust-lang.org/dist/${version}/rust-nightly-x86_64-unknown-linux-gnu.tar.xz`,
+        checksum: `sha256:${'a'.repeat(64)}`,
+        arch: 'amd64',
+      },
+    ];
+    const previousArchive = await archiveOf({
+      tool: 'rust',
+      source: rustSource,
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [
+        { version: 'nightly-2026-09-01', prerelease: true, files: files('2026-09-01') },
+        { version: 'nightly-2026-06-01', prerelease: true, files: files('2026-06-01') },
+        { version: '1.89.0', files: files('2026-06-01') },
+      ],
+    });
+    nock('https://api.github.com')
+      .get('/repos/rust-lang/rust/releases')
+      .query({ per_page: '100' })
+      .reply(200, []);
+    nock('https://static.rust-lang.org').get('/manifests.txt').reply(200, '');
+
+    try {
+      await build({ dir, sources: { rust: rustSource }, now, previousArchive });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect((await readBack('rust'))?.versions.map(({ version }) => version)).toEqual([
+      'nightly-2026-09-01',
+      '1.89.0',
+    ]);
+  });
+
   describe('installable versions', () => {
     const sum = `sha512:${'a'.repeat(128)}`;
     const file = (name: string, distro?: string): ToolVersions['versions'][number]['files'] => [

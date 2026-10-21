@@ -14,6 +14,7 @@ import { fetchNugetExeVersions } from './nuget-exe.ts';
 import { fetchNugetVersions } from './nuget.ts';
 import { fetchPypiVersions } from './pypi.ts';
 import { fetchRubygemsVersions } from './rubygems.ts';
+import { fetchRustVersions } from './rust-version.ts';
 import { fetchSwiftReleases } from './swift-releases.ts';
 
 /**
@@ -55,5 +56,6 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'nuget-exe': fetchNugetExeVersions,
   pypi: fetchPypiVersions,
   rubygems: fetchRubygemsVersions,
+  'rust-version': fetchRustVersions,
   'swift-releases': fetchSwiftReleases,
 };

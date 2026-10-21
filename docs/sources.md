@@ -33,6 +33,11 @@ The `index.json` there lists the versions and the zips, and the `SHA256SUMS` of 
 Exceptions:
 
 - `node`: versions and archives from nodejs.org, plus the files of `containerbase/node-prebuild`, which the CLI prefers. The prebuild releases are one paged list. Only versions without prebuild files read their `.sha512`. When the list can't be read, the build warns and keeps the known files.
+- `rust`: the GitHub releases of `rust-lang/rust`, plus the nightlies of the last 90 days from the rust release channel, like Renovate's `rust-version` datasource.
+  - The days with a nightly are read from one request to `static.rust-lang.org/manifests.txt`. Days without a nightly are skipped.
+  - A nightly is the prerelease `nightly-YYYY-MM-DD`, released on its date. The files are `dist/<date>/rust-nightly-<arch>-unknown-linux-gnu.tar.xz` with the checksum from the `.sha256` next to them, the urls of the CLI.
+  - Known files are reused, so a build only requests the two checksum files of each new nightly. Nightlies older than 90 days are removed.
+  - The versions are sorted with the `rust-release-channel` versioning of Renovate: the nightlies by date, above all releases.
 - `java-jdk`, `java-jre`: the Adoptium source of `java`, with the jdk or jre image type.
 - `dotnet`: Microsoft's release metadata has the sha512 of every archive, so nothing is computed. A channel which can't be read is skipped with a warning.
 - `swift`: releases from `swift.org/api/v1/install/releases.json`. The files are the Ubuntu 22.04 (`jammy`), 24.04 (`noble`, from 5.10.1) and 26.04 (`resolute`) archives of the platforms a release lists, with the urls of the CLI. Swift only publishes PGP signatures, so the sha256 is computed.

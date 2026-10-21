@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { env, stdout } from 'node:process';
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { datasources } from './datasources/index.ts';
+import { isExpiredNightly } from './datasources/rust-version.ts';
 import {
   downloadBudget,
   finishToolDownloads,
@@ -228,14 +229,19 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
  * versions without previous constraints take the fresh ones.
  * @param tool - the tool name
  * @param source - the source of the tool
- * @param previous - the previously published versions
+ * @param published - the previously published versions, without the rust
+ * nightlies which are older than the published days
  * @throws when the fetch fails or there are no versions at all
  */
 async function fetchVersions(
   tool: string,
   source: Source,
-  previous: ToolVersion[],
+  published: ToolVersion[],
 ): Promise<ToolVersion[]> {
+  const previous =
+    source.datasource === 'rust-version'
+      ? published.filter(({ version }) => !isExpiredNightly(version))
+      : published;
   const fetch = datasources[source.datasource];
   const { compare } = versionings[source.versioning];
   const known = new Set(previous.map(({ version }) => version));

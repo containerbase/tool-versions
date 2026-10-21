@@ -252,9 +252,9 @@ describe('tools', () => {
         ),
       ).toEqual({
         rust: {
-          datasource: 'github-releases',
+          datasource: 'rust-version',
           packageName: 'rust-lang/rust',
-          versioning: 'semver',
+          versioning: 'rust-release-channel',
         },
         dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
         ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'docker' },
@@ -382,6 +382,32 @@ describe('tools', () => {
       ]);
       expect(typeof rust === 'function' ? rust('1.80.0')[0]?.checksumUrls : undefined).toEqual([
         'https://static.rust-lang.org/dist/rust-1.80.0-x86_64-unknown-linux-gnu.tar.xz.sha256',
+      ]);
+    });
+
+    it('lists the rust nightly archives in the folder of the date', () => {
+      const rust = toolFiles['rust'];
+      const files = typeof rust === 'function' ? rust('nightly-2026-10-20') : [];
+
+      expect(files).toEqual([
+        {
+          name: 'rust-nightly-x86_64-unknown-linux-gnu.tar.xz',
+          url: 'https://static.rust-lang.org/dist/2026-10-20/rust-nightly-x86_64-unknown-linux-gnu.tar.xz',
+          checksumUrls: [
+            'https://static.rust-lang.org/dist/2026-10-20/rust-nightly-x86_64-unknown-linux-gnu.tar.xz.sha256',
+          ],
+          algorithm: 'sha256',
+          arch: 'amd64',
+        },
+        {
+          name: 'rust-nightly-aarch64-unknown-linux-gnu.tar.xz',
+          url: 'https://static.rust-lang.org/dist/2026-10-20/rust-nightly-aarch64-unknown-linux-gnu.tar.xz',
+          checksumUrls: [
+            'https://static.rust-lang.org/dist/2026-10-20/rust-nightly-aarch64-unknown-linux-gnu.tar.xz.sha256',
+          ],
+          algorithm: 'sha256',
+          arch: 'arm64',
+        },
       ]);
     });
 

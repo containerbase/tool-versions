@@ -237,6 +237,34 @@ function isMavenPrerelease(version: string): boolean {
   );
 }
 
+/**
+ * Reads the date of a dated rust nightly version.
+ * @param version - the version, like `nightly-2025-11-24`
+ * @returns the date as `YYYY-MM-DD`, or `undefined` for any other version
+ */
+export function nightlyDate(version: string): string | undefined {
+  return /^nightly-(\d{4}-\d{2}-\d{2})$/.exec(version)?.[1];
+}
+
+/**
+ * Compares two versions like Renovate's `rust-release-channel` versioning: a
+ * dated nightly is newer than any release and nightlies are ordered by date,
+ * the releases are semver.
+ * @param a - the first version
+ * @param b - the second version
+ */
+function compareRust(a: string, b: string): number {
+  const left = nightlyDate(a);
+  const right = nightlyDate(b);
+  if (left && right) {
+    return left < right ? -1 : left > right ? 1 : 0;
+  }
+  if (left || right) {
+    return left ? 1 : -1;
+  }
+  return compareSemver(a, b);
+}
+
 /** The semver based versionings, which Renovate also uses for node, npm and python. */
 const semverVersioning: Versioning = {
   isValid: isSemver,
@@ -294,6 +322,12 @@ export const versionings: Record<VersioningName, Versioning> = {
     isValid: isRubyVersion,
     isPrerelease: (version) => /[a-z]/i.test(version),
     compare: compareRuby,
+  },
+  // the releases are semver, the dated nightlies are prereleases
+  'rust-release-channel': {
+    isValid: (version) => nightlyDate(version) !== undefined || isSemver(version),
+    isPrerelease: (version) => nightlyDate(version) !== undefined || isSemverPrerelease(version),
+    compare: compareRust,
   },
   semver: semverVersioning,
 };
