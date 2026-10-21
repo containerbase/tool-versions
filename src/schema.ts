@@ -46,10 +46,13 @@ export const Source = z.object({
 });
 export type Source = z.infer<typeof Source>;
 
+/** A containerbase arch. */
+const Arch = z.enum(['amd64', 'arm64']);
+
 /** A file of a version: where to download it and how to verify it. */
 export const ToolFile = Base.ToolFile.extend({
   /** the containerbase arch, omitted for arch-independent files */
-  arch: z.enum(['amd64', 'arm64']).optional(),
+  arch: Arch.optional(),
 });
 export type ToolFile = z.infer<typeof ToolFile>;
 
@@ -58,9 +61,19 @@ export const Integrity = Base.FileIntegrity;
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `files`, `releaseTimestamp` and `constraints` only when known.
+ * `files`, `archs`, `distros`, `releaseTimestamp` and `constraints` only when known.
  */
 export const ToolVersion = Base.ToolVersion.extend({
+  /**
+   * sorted, the archs which have a file of the version, only in the
+   * `<tool>.json` files and only for versions with arch-specific files
+   */
+  archs: z.array(Arch).min(1).optional(),
+  /**
+   * sorted, the distro codenames which have a file of the version, only in the
+   * `<tool>.json` files and only for versions with distro-specific files
+   */
+  distros: z.array(z.string().min(1)).min(1).optional(),
   /** sorted by name, not in the `<tool>.json` files, but in the `<tool>/<version>.json` ones */
   files: z.array(ToolFile).min(1).optional(),
 });

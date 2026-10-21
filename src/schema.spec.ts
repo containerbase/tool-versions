@@ -145,6 +145,24 @@ describe('schema', () => {
       );
     });
 
+    it('accepts archs', () => {
+      const version = { version: '3.14.8', archs: ['amd64', 'arm64'] };
+      expect(ToolVersion.parse(version)).toEqual(version);
+    });
+
+    it.each([[[]], [['x86_64']]])('rejects the archs %j', (archs) => {
+      expect(ToolVersion.safeParse({ version: '3.14.8', archs }).success).toBe(false);
+    });
+
+    it('accepts distros', () => {
+      const version = { version: '3.14.8', distros: ['jammy', 'noble'] };
+      expect(ToolVersion.parse(version)).toEqual(version);
+    });
+
+    it.each([[[]], [['']]])('rejects the distros %j', (distros) => {
+      expect(ToolVersion.safeParse({ version: '3.14.8', distros }).success).toBe(false);
+    });
+
     it('rejects an empty file list', () => {
       expect(ToolVersion.safeParse({ version: '3.14.8', files: [] }).success).toBe(false);
     });

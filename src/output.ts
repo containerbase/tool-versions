@@ -5,7 +5,14 @@ import { defaultDistro } from '@containerbase/base';
 import { z } from 'zod';
 import { formats, formatsSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
-import { Formats, ToolIndex, ToolVersions, VersionFiles, VersionIntegrity } from './schema.ts';
+import {
+  Formats,
+  ToolIndex,
+  type ToolVersion,
+  ToolVersions,
+  VersionFiles,
+  VersionIntegrity,
+} from './schema.ts';
 
 /** The characters of a version which are safe in a file name. */
 const safeVersion = /^[0-9A-Za-z.+_-]+$/;
@@ -51,10 +58,32 @@ async function writeJson(file: string, value: unknown): Promise<string> {
 }
 
 /**
+ * The slim entry of a version: without its files, but with the sorted archs
+ * and distros which have a file of it, each only if any file has one.
+ * @param version - the version, with its files
+ * @returns the version without files
+ */
+function slimVersion({
+  files,
+  archs: _archs,
+  distros: _distros,
+  ...version
+}: ToolVersion): ToolVersion {
+  const archs = [...new Set(files?.flatMap(({ arch }) => arch ?? []))].sort();
+  const distros = [...new Set(files?.flatMap(({ distro }) => distro ?? []))].sort();
+  return {
+    ...version,
+    ...(archs.length && { archs }),
+    ...(distros.length && { distros }),
+  };
+}
+
+/**
  * Validates and writes the files of a tool, all from the same data, as a hash
  * chain: first a `<tool>/<version>.json` with the files of each version which
  * has some, then the `<tool>.integrity.json` with the integrity of each of them,
- * and the slim `<tool>.json` without the files. Versions which aren't safe in a file name are left out with a warning.
+ * and the slim `<tool>.json` without the files, but with the archs and
+ * distros of each version. Versions which aren't safe in a file name are left out with a warning.
  * @param dir - the output folder
  * @param data - the tool versions, with their files
  * @returns the client files with their integrity, for the index
@@ -103,7 +132,7 @@ export async function writeToolVersions(dir: string, data: ToolVersions): Promis
   const file = `${full.tool}.json`;
   const slim = ToolVersions.parse({
     ...full,
-    versions: full.versions.map(({ files: _files, ...version }) => version),
+    versions: full.versions.map(slimVersion),
   });
   const slimIntegrity = await writeJson(join(dir, file), slim);
   return {

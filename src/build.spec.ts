@@ -827,7 +827,10 @@ describe('build', () => {
 
       await build({ dir, sources: helmSource, now });
 
-      expect(JSON.parse(await read('helm.json')).versions).toEqual([{ version: '3.19.0' }]);
+      // the arm64 file has no checksum yet
+      expect(JSON.parse(await read('helm.json')).versions).toEqual([
+        { version: '3.19.0', archs: ['amd64'] },
+      ]);
       expect(await readdir(join(dir, 'v1', 'helm'))).toEqual(['3.19.0.json']);
       expect(output.filter((line) => line.startsWith('::warning::'))).toEqual([]);
       expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
@@ -909,7 +912,10 @@ describe('build', () => {
         'distroMinVersion',
       ]);
       expect(slim).toMatchObject({ minVersion: '1.0.0', distroMinVersion: { resolute: '2.0.0' } });
-      expect(slim.versions).toEqual([{ version: '2.1.0' }, { version: '1.5.0' }]);
+      expect(slim.versions).toEqual([
+        { version: '2.1.0', archs: ['amd64'], distros: ['resolute'] },
+        { version: '1.5.0', archs: ['amd64'] },
+      ]);
       // 1.5.0 has no resolute file, 2.1.0 keeps it
       expect((await readBack('distro-test'))?.versions).toEqual([
         {

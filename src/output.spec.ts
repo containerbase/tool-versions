@@ -108,9 +108,9 @@ describe('output', () => {
       tool: 'java',
       versions: { '25.0.4+101.0.LTS': integrity(versionFile) },
     });
-    // compact, with the `$schema` first and a trailing newline, without the files
+    // compact, with the `$schema` first and a trailing newline, with the sorted archs instead of the files
     expect(await read('java.json')).toBe(
-      '{"$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json","tool":"java","homepage":"https://adoptium.net","updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.4+101.0.LTS","lts":true},{"version":"24.0.1+9"}],"source":{"datasource":"java-version","packageName":"java-jdk","versioning":"npm"}}\n',
+      '{"$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json","tool":"java","homepage":"https://adoptium.net","updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.4+101.0.LTS","lts":true,"archs":["amd64","arm64"]},{"version":"24.0.1+9"}],"source":{"datasource":"java-version","packageName":"java-jdk","versioning":"npm"}}\n',
     );
     // the index gets the client files with their integrity
     expect(files).toEqual({
@@ -120,6 +120,43 @@ describe('output', () => {
         integrity: integrity(await read('java.integrity.json')),
       },
     });
+  });
+
+  it('lists the archs and distros of each version once, from its files', async () => {
+    const { arch: _arch, ...anyArch } = file('jdk-noarch.tar.gz', 'amd64');
+    await writeToolVersions(dir, {
+      ...java,
+      versions: [
+        {
+          version: '3.0.0',
+          files: [
+            { ...file('a-noble-arm64.tar.gz', 'arm64'), distro: 'noble' },
+            { ...file('a-noble-x64.tar.gz', 'amd64'), distro: 'noble' },
+            { ...file('a-jammy-x64.tar.gz', 'amd64'), distro: 'jammy' },
+          ],
+        },
+        // the values of a previous file are replaced by the ones of the files
+        {
+          version: '2.0.0',
+          archs: ['amd64', 'arm64'],
+          distros: ['jammy'],
+          files: [file('c-x64.tar.gz', 'amd64')],
+        },
+        // only arch-independent files
+        { version: '1.0.0', files: [anyArch] },
+        { version: '0.1.0', archs: ['amd64'], distros: ['noble'] },
+      ],
+    });
+
+    expect(JSON.parse(await read('java.json')).versions).toEqual([
+      { version: '3.0.0', archs: ['amd64', 'arm64'], distros: ['jammy', 'noble'] },
+      { version: '2.0.0', archs: ['amd64'] },
+      { version: '1.0.0' },
+      { version: '0.1.0' },
+    ]);
+    // the per-version files have neither
+    expect(JSON.parse(await read('java/2.0.0.json'))).not.toHaveProperty('archs');
+    expect(JSON.parse(await read('java/3.0.0.json'))).not.toHaveProperty('distros');
   });
 
   it('removes the per-version files of versions which are gone', async () => {
@@ -158,7 +195,9 @@ describe('output', () => {
     });
 
     expect(await readdir(join(dir, 'java'))).toEqual(['2.0.0.json']);
-    expect(JSON.parse(await read('java.json')).versions).toEqual([{ version: '2.0.0' }]);
+    expect(JSON.parse(await read('java.json')).versions).toEqual([
+      { version: '2.0.0', archs: ['amd64'] },
+    ]);
     expect(output).toEqual([
       '::warning::java: leaving out versions which are not safe in a file name: ../1.0.0\n',
     ]);
@@ -238,6 +277,13 @@ describe('output', () => {
       type: 'object',
       additionalProperties: { type: 'string' },
     });
+    expect(
+      JSON.parse(await read('tool.schema.json')).properties.versions.items.properties.archs,
+    ).toMatchObject({ type: 'array', minItems: 1, items: { enum: ['amd64', 'arm64'] } });
+    // any codename is allowed
+    expect(
+      JSON.parse(await read('tool.schema.json')).properties.versions.items.properties.distros,
+    ).toMatchObject({ type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } });
     // build information, readers must not rely on it
     expect(JSON.parse(await read('tool.schema.json')).properties.source).toMatchObject({
       deprecated: true,
