@@ -74,7 +74,7 @@ ENV DOCKER_VERSION=28.5.2
 ENV DEVBOX_VERSION=0.18.4
 
 # renovate: datasource=github-releases depName=docker-compose packageName=docker/compose
-ENV DOCKER_COMPOSE_VERSION=5.6.0
+ENV DOCKER_COMPOSE_VERSION=5.6.1
 
 # renovate: datasource=github-releases depName=elixir packageName=elixir-lang/elixir
 ENV ELIXIR_VERSION=1.20.4
