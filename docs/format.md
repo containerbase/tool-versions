@@ -58,6 +58,8 @@ Optional fields are omitted when unknown.
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
 | `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
+| `versions[].archs`             | list of `amd64`, `arm64`      | the archs with a file of the version, sorted, only in `<tool>.json`, see below                     |
+| `versions[].distros`           | list of codenames             | the distros with a file of the version, sorted, only in `<tool>.json`, see below                   |
 | `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                              |
 | `files[].name`                 | string                        | the file name                                                                                      |
 | `files[].url`                  | https url                     | where to download it                                                                               |
@@ -78,6 +80,13 @@ It is removed with the next format major ([#146](https://github.com/containerbas
 - Tools from PyPI have `requires_python` as the `python` constraint.
   It is the first one of the files which are not yanked.
 - Tools from RubyGems have `required_ruby_version` as the `ruby` constraint, unless it accepts any ruby (`>= 0`).
+
+`versions[].archs` and `versions[].distros` list the `files[].arch` and `files[].distro` of the version, so a version can be resolved without its files:
+
+- `archs` is omitted for tools with a `type`, which have no files, and for versions whose files all work on every architecture.
+- `distros` is omitted for tools with a `type` and for versions without distro specific files.
+- To pick a version for a host, check that it is listed (so at least `minVersion`), at least the `distroMinVersion` of the host distro, and has the host arch and distro in `archs` and `distros`, or the field is missing.
+  This skips a release whose `arm64` build is still missing, for example.
 
 Which versions are listed:
 
@@ -102,7 +111,14 @@ Which versions are listed:
     "versioning": "python"
   },
   "updatedAt": "2026-10-08T03:00:00.000Z",
-  "versions": [{ "version": "3.14.8", "releaseTimestamp": "2026-10-02T01:30:20.000Z" }]
+  "versions": [
+    {
+      "version": "3.14.8",
+      "releaseTimestamp": "2026-10-02T01:30:20.000Z",
+      "archs": ["amd64"],
+      "distros": ["jammy"]
+    }
+  ]
 }
 ```
 

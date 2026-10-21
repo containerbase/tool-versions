@@ -36,9 +36,9 @@ describe('previous', () => {
       source,
       updatedAt: '2026-10-07T03:00:00.000Z',
       versions: [
-        { version: '4.0.0', releaseTimestamp: '2026-10-01T00:00:00.000Z' },
+        { version: '4.0.0', releaseTimestamp: '2026-10-01T00:00:00.000Z', archs: ['amd64'] },
         { version: '4.0.0-rc.1', prerelease: true },
-        { version: '3.0.0+1' },
+        { version: '3.0.0+1', archs: ['amd64'], distros: ['noble'] },
       ],
     };
     await writeFile(join(dir, 'v1', 'helm.json'), JSON.stringify(slim));
@@ -52,6 +52,7 @@ describe('previous', () => {
     return dir;
   }
 
+  // the archs and distros are left out, the output derives them from the files
   it('rebuilds the previous data from the slim file and the files of the versions', async () => {
     const archive = await extractedArchive();
 

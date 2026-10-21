@@ -24,7 +24,8 @@ async function readJson<T>(
 /**
  * Rebuilds the previous data of a tool from the extracted archive of a release:
  * the slim `<tool>.json` with the `files` of each version from its
- * `<tool>/<version>.json`.
+ * `<tool>/<version>.json`, without the `archs` and `distros`, which the output
+ * derives from the files.
  * @param dir - the folder with the extracted archive
  * @param tool - the tool name
  * @returns the data, or `undefined` when the archive has no valid file of the tool
@@ -39,7 +40,7 @@ export async function readArchivePrevious(
     return undefined;
   }
   const versions = await Promise.all(
-    slim.versions.map(async (entry) => {
+    slim.versions.map(async ({ archs: _archs, distros: _distros, ...entry }) => {
       const files = await readJson(join(folder, tool, `${entry.version}.json`), VersionFiles);
       return files ? { ...entry, files: files.files } : entry;
     }),
