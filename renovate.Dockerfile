@@ -95,7 +95,7 @@ ENV FLUTTER_VERSION=3.47.7
 ENV FLUX_VERSION=2.9.6
 
 # renovate: datasource=github-releases depName=gh packageName=cli/cli
-ENV GH_VERSION=2.102.1
+ENV GH_VERSION=2.103.0
 
 # renovate: datasource=github-releases depName=git packageName=containerbase/git-prebuild
 ENV GIT_VERSION=2.56.0
