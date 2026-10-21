@@ -7,6 +7,7 @@ import {
   computed,
 } from './files.ts';
 import type { Source } from './schema.ts';
+import { nightlyDate } from './versioning.ts';
 
 /**
  * The source of a tool which containerbase publishes as the assets of the
@@ -101,7 +102,11 @@ export const toolSources: Record<string, Source> = {
   python: prebuild('python', 'python'),
   renovate: { datasource: 'npm', packageName: 'renovate', versioning: 'npm' },
   ruby: prebuild('ruby', 'ruby'),
-  rust: github('rust-lang/rust'),
+  rust: {
+    datasource: 'rust-version',
+    packageName: 'rust-lang/rust',
+    versioning: 'rust-release-channel',
+  },
   sbt: github('sbt/sbt'),
   scala: github('scala/scala'),
   skopeo: prebuild('skopeo'),
@@ -482,11 +487,15 @@ export const toolFiles: Record<string, ToolFiles> = {
       };
     }),
   rust: (version) => {
-    // `.tar.xz` since 1.19.0, the `.tar.gz` ones before
-    const ext = semver.gte(version, '1.19.0') ? 'xz' : 'gz';
+    // a nightly is `nightly-YYYY-MM-DD`, its files are in the folder of the date
+    const date = nightlyDate(version);
+    // `.tar.xz` since 1.19.0, the `.tar.gz` ones before, the published nightlies
+    // are all `.tar.xz`
+    const ext = date || semver.gte(version, '1.19.0') ? 'xz' : 'gz';
     return (['amd64', 'arm64'] as const).map((arch) => {
-      const name = `rust-${version}-${arch === 'amd64' ? 'x86_64' : 'aarch64'}-unknown-linux-gnu.tar.${ext}`;
-      const url = `https://static.rust-lang.org/dist/${name}`;
+      const target = `${arch === 'amd64' ? 'x86_64' : 'aarch64'}-unknown-linux-gnu`;
+      const name = `rust-${date ? 'nightly' : version}-${target}.tar.${ext}`;
+      const url = `https://static.rust-lang.org/dist/${date ? `${date}/` : ''}${name}`;
       return { name, url, checksumUrls: [`${url}.sha256`], algorithm: 'sha256', arch };
     });
   },

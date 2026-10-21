@@ -112,6 +112,24 @@ describe('versioning', () => {
     });
   });
 
+  describe('rust-release-channel', () => {
+    it('sorts the nightlies by date above the releases', () => {
+      const { compare } = versionings['rust-release-channel'];
+
+      expect(
+        ['1.9.0', 'nightly-2026-10-19', '1.10.0', 'nightly-2026-10-20', '1.10.0']
+          .sort(compare)
+          .reverse(),
+      ).toEqual(['nightly-2026-10-20', 'nightly-2026-10-19', '1.10.0', '1.10.0', '1.9.0']);
+      expect(compare('nightly-2026-10-19', 'nightly-2026-10-19')).toBe(0);
+    });
+
+    it('does not leave out nightlies below a release as minimum version', () => {
+      expect(belowMinimum('rust-release-channel', '1.19.0')('nightly-2026-10-20')).toBe(false);
+      expect(belowMinimum('rust-release-channel', '1.19.0')('1.18.0')).toBe(true);
+    });
+  });
+
   describe('belowMinimum', () => {
     it('finds the versions older than the minimum in the versioning', () => {
       const semver = belowMinimum('semver', '3.1.0');
@@ -161,6 +179,10 @@ describe('versioning', () => {
       ['ruby', '3.4.1', true, false],
       ['ruby', '3.5.0.preview1', true, true],
       ['ruby', 'x', false, false],
+      ['rust-release-channel', '1.90.0', true, false],
+      ['rust-release-channel', 'nightly-2026-10-20', true, true],
+      ['rust-release-channel', 'nightly', false, false],
+      ['rust-release-channel', 'nightly-2026-10', false, false],
       ['pep440', '2.1.0b1', true, true],
       ['pep440', '2.1.0', true, false],
     ] as const)('%s %s: valid %s, prerelease %s', (name, version, valid, prerelease) => {
