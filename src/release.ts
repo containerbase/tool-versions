@@ -162,6 +162,18 @@ export function isReleaseDue(previous: FileMap | undefined, next: FileMap): bool
 }
 
 /**
+ * Decides whether the commits since the previous release warrant a release of
+ * their own: a feature, a fix or a breaking change. Other commits and changes of
+ * the data only wait for the next scheduled release.
+ * @param commits - the subjects of the commits since the previous release
+ */
+export function hasReleaseCommit(commits: readonly string[]): boolean {
+  return commits
+    .flatMap((subject) => parseCommit(subject) ?? [])
+    .some((commit) => commit.breaking || commit.type === 'feat' || commit.type === 'fix');
+}
+
+/**
  * Creates the lines for the `GITHUB_OUTPUT` file of a workflow step: whether a
  * release is due, its version, and whether a breaking change blocks the release,
  * with the message of the error.

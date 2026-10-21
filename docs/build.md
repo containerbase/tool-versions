@@ -1,6 +1,6 @@
 # Build
 
-A workflow builds the files nightly, deploys them to GitHub Pages and creates a release when the data changed.
+A workflow builds the files nightly, deploys them to GitHub Pages and creates a release when the data changed. A push to `main` only deploys, unless its commits warrant a release, see [the release archive](#release-archive).
 
 ## Nightly flow
 
@@ -61,7 +61,7 @@ The log lines (`::warning::`, `::error::`, `::notice::`) stay as they are.
 The pages workflow runs it after the build and adds the number of files and the packed and unpacked size to the job summary.
 
 - **Previous release:** the pack step gets the extracted archive of the previous release as `--previous`. The tags of all releases are passed as `--published`, and the commit subjects since its tag as `--commits`.
-- **When:** a release is due when there is no release yet, or the data changed. The pack step writes `changed` and `version` to the outputs of the job and the `build` job uploads `dist-release/` as the artifact `release`.
+- **When:** a release is due when there is no release yet, or the data changed. A build for a push to `main` only releases when the commits since the previous release have a `feat`, a `fix` or a breaking change (`--release-on code`); it still deploys the site. Data changes and `chore`, `ci`, `docs`, `refactor`, `test` and `build` commits wait for the daily build or a manual run, which release as soon as the data changed (`--release-on any`, the default). The pack step writes `changed` and `version` to the outputs of the job and the `build` job uploads `dist-release/` as the artifact `release`.
 - **Release job:** the `release` job runs on `main` after the `build` and `deploy` jobs, so a release always matches the deployed site. It downloads the artifact and runs `gh release create v<version>` for the commit with the notes and the two archive files. It is the only job with `contents: write`.
 - **First release:** `1.0.0`.
 - **Versions:** the version follows the conventional commits since the previous release, like semantic-release. `--published <tag>` passes the tags of the existing releases, `--commits <file>` the subjects.
