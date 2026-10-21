@@ -16,7 +16,7 @@ ENV APKO_VERSION=1.4.12
 ENV APM_VERSION=0.34.0
 
 # renovate: datasource=github-releases depName=bazelisk packageName=bazelbuild/bazelisk
-ENV BAZELISK_VERSION=1.29.0
+ENV BAZELISK_VERSION=1.30.0
 
 # renovate: datasource=github-releases depName=buf packageName=bufbuild/buf
 ENV BUF_VERSION=1.74.0
