@@ -56,7 +56,7 @@ ENV COPIER_VERSION=9.19.1
 ENV COREPACK_VERSION=0.36.0
 
 # renovate: datasource=github-releases depName=deno packageName=denoland/deno
-ENV DENO_VERSION=2.9.7
+ENV DENO_VERSION=2.9.8
 
 # renovate: datasource=dotnet-version depName=dotnet packageName=dotnet-sdk
 ENV DOTNET_VERSION=8.0.426
