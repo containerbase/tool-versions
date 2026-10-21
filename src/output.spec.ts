@@ -110,7 +110,7 @@ describe('output', () => {
     });
     // compact, with the `$schema` first and a trailing newline, without the files
     expect(await read('java.json')).toBe(
-      '{"$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json","tool":"java","homepage":"https://adoptium.net","source":{"datasource":"java-version","packageName":"java-jdk","versioning":"npm"},"updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.4+101.0.LTS","lts":true},{"version":"24.0.1+9"}]}\n',
+      '{"$schema":"https://containerbase.github.io/tool-versions/v1/tool.schema.json","tool":"java","homepage":"https://adoptium.net","updatedAt":"2026-10-08T12:00:00.000Z","versions":[{"version":"25.0.4+101.0.LTS","lts":true},{"version":"24.0.1+9"}],"source":{"datasource":"java-version","packageName":"java-jdk","versioning":"npm"}}\n',
     );
     // the index gets the client files with their integrity
     expect(files).toEqual({
@@ -231,7 +231,7 @@ describe('output', () => {
 
     expect(JSON.parse(await read('tool.schema.json'))).toMatchObject({
       type: 'object',
-      required: ['tool', 'source', 'updatedAt', 'versions'],
+      required: ['tool', 'updatedAt', 'versions', 'source'],
     });
     // any codename is allowed, not a list of known ones
     expect(JSON.parse(await read('tool.schema.json')).properties.distroMinVersion).toMatchObject({
