@@ -133,8 +133,8 @@ ENV HELM_VERSION=3.22.1
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
 ENV HELM_VERSION=4.3.1
 
-# renovate: datasource=github-releases depName=jb packageName=jsonnet-bundler/jsonnet-bundler
-ENV JB_VERSION=0.6.0
+# renovate: datasource=github-releases depName=jb packageName=containerbase/jb-prebuild versioning=loose
+ENV JB_VERSION=0.6.0.1
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
 ENV HELMFILE_VERSION=1.8.2

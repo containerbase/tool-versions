@@ -73,7 +73,7 @@ export const toolSources: Record<string, Source> = {
   gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
   hashin: { datasource: 'pypi', packageName: 'hashin', versioning: 'pep440' },
   helm: github('helm/helm'),
-  jb: github('jsonnet-bundler/jsonnet-bundler'),
+  jb: prebuild('jb', 'loose'),
   protoc: github('protocolbuffers/protobuf', 'docker'),
   helmfile: github('helmfile/helmfile'),
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
@@ -421,11 +421,6 @@ export const toolFiles: Record<string, ToolFiles> = {
   scala: {
     files: (v) => [{ name: `scala-${v}.tgz` }],
     // neither GitHub nor lightbend publish checksums
-    checksum: { compute: true },
-  },
-  jb: {
-    files: perArch(goArch, (arch) => `jb-linux-${arch}`),
-    // the releases have no checksums
     checksum: { compute: true },
   },
   powershell: {

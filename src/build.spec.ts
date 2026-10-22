@@ -694,28 +694,32 @@ describe('build', () => {
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '30');
     const github = nock('https://api.github.com');
     const download = nock('https://github.com');
-    for (const [repo, name] of [
-      ['bazelbuild/bazelisk', 'bazelisk'],
-      ['jsonnet-bundler/jsonnet-bundler', 'jb'],
+    for (const [repo, tag, names] of [
+      ['bazelbuild/bazelisk', 'v1.0.0', ['bazelisk-linux-amd64', 'bazelisk-linux-arm64']],
+      [
+        'protocolbuffers/protobuf',
+        'v25.1',
+        ['protoc-25.1-linux-x86_64.zip', 'protoc-25.1-linux-aarch_64.zip'],
+      ],
     ] as const) {
-      const base = `https://github.com/${repo}/releases/download/v1.0.0`;
+      const base = `https://github.com/${repo}/releases/download/${tag}`;
       github
         .get(`/repos/${repo}/releases`)
         .query({ per_page: '100' })
         .reply(200, [
           {
-            tag_name: 'v1.0.0',
+            tag_name: tag,
             draft: false,
             prerelease: false,
-            assets: ['amd64', 'arm64'].map((arch) => ({
-              name: `${name}-linux-${arch}`,
-              browser_download_url: `${base}/${name}-linux-${arch}`,
+            assets: names.map((name) => ({
+              name,
+              browser_download_url: `${base}/${name}`,
             })),
           },
         ]);
-      for (const arch of ['amd64', 'arm64']) {
+      for (const name of names) {
         download
-          .get(`/${repo}/releases/download/v1.0.0/${name}-linux-${arch}`)
+          .get(`/${repo}/releases/download/${tag}/${name}`)
           .reply(200, 'x'.repeat(8), { 'content-length': '8' });
       }
     }
@@ -728,17 +732,17 @@ describe('build', () => {
           packageName: 'bazelbuild/bazelisk',
           versioning: 'semver',
         },
-        jb: {
+        protoc: {
           datasource: 'github-releases',
-          packageName: 'jsonnet-bundler/jsonnet-bundler',
-          versioning: 'semver',
+          packageName: 'protocolbuffers/protobuf',
+          versioning: 'docker',
         },
       },
       now,
     });
 
-    // bazelisk only fits one of its files, and the unused rest goes to jb
-    expect((await readBack('jb'))?.versions[0]?.files).toHaveLength(2);
+    // bazelisk only fits one of its files, and the unused rest goes to protoc
+    expect((await readBack('protoc'))?.versions[0]?.files).toHaveLength(2);
     expect(output.filter((line) => line.startsWith('::notice::'))).toEqual([
       '::notice::bazelbuild/bazelisk: download budget of the tool used up, the checksums of 1 files will be computed by the next builds\n',
     ]);
