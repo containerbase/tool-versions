@@ -276,7 +276,7 @@ ENV RUBY_VERSION=3.3.12
 ENV RUBY_VERSION=3.4.11
 
 # renovate: datasource=github-releases depName=ruby packageName=containerbase/ruby-prebuild versioning=ruby
-ENV RUBY_VERSION=4.0.7
+ENV RUBY_VERSION=4.0.8
 
 # renovate: datasource=github-releases depName=rust packageName=rust-lang/rust
 ENV RUST_VERSION=1.99.1
