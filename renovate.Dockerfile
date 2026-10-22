@@ -19,7 +19,7 @@ ENV APM_VERSION=0.34.0
 ENV BAZELISK_VERSION=1.30.0
 
 # renovate: datasource=github-releases depName=buf packageName=bufbuild/buf
-ENV BUF_VERSION=1.74.0
+ENV BUF_VERSION=1.75.0
 
 # renovate: datasource=github-releases depName=buildx packageName=docker/buildx
 ENV BUILDX_VERSION=0.38.1
