@@ -101,7 +101,7 @@ ENV GH_VERSION=2.103.0
 ENV GIT_VERSION=2.56.0
 
 # renovate: datasource=github-releases depName=git-lfs packageName=git-lfs/git-lfs
-ENV GIT_LFS_VERSION=3.8.0
+ENV GIT_LFS_VERSION=3.8.1
 
 # renovate: datasource=github-releases depName=gleam packageName=gleam-lang/gleam
 ENV GLEAM_VERSION=1.19.2
