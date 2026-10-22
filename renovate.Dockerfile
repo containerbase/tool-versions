@@ -149,7 +149,7 @@ ENV JAVA_VERSION=11.0.32+101
 ENV JAVA_VERSION=17.0.20+101
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
-ENV JAVA_VERSION=21.0.12+101.0.LTS
+ENV JAVA_VERSION=21.0.13+9.0.LTS
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=25.0.5+8.0.LTS
