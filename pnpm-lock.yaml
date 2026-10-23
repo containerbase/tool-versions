@@ -213,8 +213,8 @@ importers:
         specifier: 17.6.0
         version: 17.6.0
       nock:
-        specifier: 15.0.4
-        version: 15.0.4(supports-color@7.2.0)
+        specifier: 15.0.5
+        version: 15.0.5(supports-color@7.2.0)
       npm-run-all2:
         specifier: 9.0.3
         version: 9.0.3
@@ -2633,8 +2633,8 @@ packages:
     resolution: {integrity: sha512-WmmLty1YWwJl9yZi77v2dVIV6X2kuYV8YYBI/G3LWGKdGHmHUvL1z7FW0iDvEvGAwNEoc5x1tOOOyDnf5jJw/w==}
     engines: {node: '>= 10'}
 
-  nock@15.0.4:
-    resolution: {integrity: sha512-quP113SfbjFQCvYCE8eKjEFYqFuHoNTnz+JOfwUnTbqwvH7bB/Z1yLS6xxfI0s+7x86V+EptbHv22CxH065FYw==}
+  nock@15.0.5:
+    resolution: {integrity: sha512-nVeuZGS2we1PyvqbW082Qj0EB4bd//6pZk/zOPDlaTPU72qcWrqfHg3kx9JcBcH1fJxwJHjmsfuQ4mss42su4w==}
     engines: {node: '>=22.20.0'}
 
   node-domexception@1.0.0:
@@ -5979,7 +5979,7 @@ snapshots:
 
   neotraverse@1.0.1: {}
 
-  nock@15.0.4(supports-color@7.2.0):
+  nock@15.0.5(supports-color@7.2.0):
     dependencies:
       '@mswjs/interceptors': 0.44.0(supports-color@7.2.0)
     transitivePeerDependencies:
