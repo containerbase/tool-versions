@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { defaultDistro } from '@containerbase/base';
+import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
 import { formats, formatsSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
@@ -70,7 +71,9 @@ function slimVersion({
   ...version
 }: ToolVersion): ToolVersion {
   const archs = [...new Set(files?.flatMap(({ arch }) => arch ?? []))].sort();
-  const distros = [...new Set(files?.flatMap(({ distro }) => distro ?? []))].sort();
+  const distros = z
+    .array(Base.DistroCode)
+    .parse([...new Set(files?.flatMap(({ distro }) => distro ?? []))].sort());
   return {
     ...version,
     ...(archs.length && { archs }),
