@@ -156,6 +156,10 @@ describe('versioning', () => {
     it('finds nothing too old with a minimum which is no valid version of the versioning', () => {
       expect(belowMinimum('semver', '18.09.0')('1.0.0')).toBe(false);
     });
+
+    it('finds a version which is no valid version of the versioning not too old', () => {
+      expect(belowMinimum('node', '8.7.0')('2.0.0~rc1')).toBe(false);
+    });
   });
 
   describe('versionings', () => {

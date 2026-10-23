@@ -474,12 +474,12 @@ describe('build', () => {
       const previousArchive = await archiveOf({
         ...previousPnpm(
           [
-            { version: '3.0.0', files: file('a.tar.xz', 'bionic') },
+            { version: '30.0.0', files: file('a.tar.xz', 'bionic') },
             {
-              version: '2.0.0',
+              version: '20.0.0',
               files: [...(file('b.tar.xz', 'focal') ?? []), ...(file('c.tar.xz', 'jammy') ?? [])],
             },
-            { version: '1.0.0', files: file('d.tar.xz') },
+            { version: '10.0.0', files: file('d.tar.xz') },
           ],
           'node',
         ),
@@ -495,8 +495,8 @@ describe('build', () => {
       });
 
       expect((await readBack('node'))?.versions).toEqual([
-        { version: '2.0.0', files: file('c.tar.xz', 'jammy') },
-        { version: '1.0.0', files: file('d.tar.xz') },
+        { version: '20.0.0', files: file('c.tar.xz', 'jammy') },
+        { version: '10.0.0', files: file('d.tar.xz') },
       ]);
       expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
         await indexEntry('node', 2, true),
@@ -507,7 +507,7 @@ describe('build', () => {
       const previousArchive = await archiveOf(
         {
           ...previousPnpm(
-            [{ version: '2.0.0' }, { version: '1.0.0', files: file('d.tar.xz') }],
+            [{ version: '20.0.0' }, { version: '10.0.0', files: file('d.tar.xz') }],
             'node',
           ),
           tool: 'node',
@@ -527,7 +527,7 @@ describe('build', () => {
       });
 
       expect((await readBack('node'))?.versions).toEqual([
-        { version: '1.0.0', files: file('d.tar.xz') },
+        { version: '10.0.0', files: file('d.tar.xz') },
       ]);
       expect(JSON.parse(await read('pnpm.json')).versions).toEqual([
         { version: '2.0.0' },
@@ -543,8 +543,8 @@ describe('build', () => {
       const previousArchive = await archiveOf({
         ...previousPnpm(
           [
-            { version: '2.0.0~rc1', files: file('a.tar.xz') },
-            { version: '1.0.0', files: file('b.tar.xz') },
+            { version: '20.0.0~rc1', files: file('a.tar.xz') },
+            { version: '10.0.0', files: file('b.tar.xz') },
           ],
           'node',
         ),
@@ -561,12 +561,12 @@ describe('build', () => {
         }),
       ).resolves.toEqual([]);
 
-      expect(JSON.parse(await read('node.json')).versions).toEqual([{ version: '1.0.0' }]);
+      expect(JSON.parse(await read('node.json')).versions).toEqual([{ version: '10.0.0' }]);
       expect(ToolIndex.parse(JSON.parse(await read('index.json'))).tools).toEqual([
         await indexEntry('node', 1, true),
       ]);
       expect(output).toContain(
-        '::warning::node: leaving out versions which are not safe in a file name: 2.0.0~rc1\n',
+        '::warning::node: leaving out versions which are not safe in a file name: 20.0.0~rc1\n',
       );
     });
 
@@ -582,9 +582,9 @@ describe('build', () => {
       const previousArchive = await archiveOf({
         ...previousPnpm(
           [
-            { version: '3.0.0', files: [arm] },
-            { version: '2.0.0', files: [amd, arm] },
-            { version: '1.0.0', files: file('any.tar.xz') },
+            { version: '30.0.0', files: [arm] },
+            { version: '20.0.0', files: [amd, arm] },
+            { version: '10.0.0', files: file('any.tar.xz') },
           ],
           'node',
         ),
@@ -600,8 +600,8 @@ describe('build', () => {
       });
 
       expect((await readBack('node'))?.versions).toEqual([
-        { version: '2.0.0', files: [amd, arm] },
-        { version: '1.0.0', files: file('any.tar.xz') },
+        { version: '20.0.0', files: [amd, arm] },
+        { version: '10.0.0', files: file('any.tar.xz') },
       ]);
     });
   });
