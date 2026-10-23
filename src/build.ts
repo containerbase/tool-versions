@@ -93,11 +93,13 @@ function hasFiles(tool: string): boolean {
 
 /**
  * Sets the `type`, `minVersion` and `distroMinVersion` of a tool from
- * `@containerbase/base` and its links from the mapping, and removes them when
- * the tool has none, so a previously published file gets the current ones.
+ * `@containerbase/base`, its links from the mapping and the `minCb` ranges
+ * resolved to its published versions, and removes them when the tool has none,
+ * so a previously published file gets the current ones.
  * @param data - the tool versions
+ * @param source - the source of the tool
  */
-function withMetadata(data: ToolVersions): ToolVersions {
+function withMetadata(data: ToolVersions, source: ToolSource): ToolVersions {
   const {
     tool,
     type: _type,
@@ -105,8 +107,10 @@ function withMetadata(data: ToolVersions): ToolVersions {
     homepage: _homepage,
     minVersion: _minVersion,
     distroMinVersion: _distroMinVersion,
+    minCb: _minCb,
     ...rest
   } = data;
+  const minCb = resolveMinCb(source, data.versions);
   const type = metadata[tool]?.type;
   const { sourceUrl, homepage } = toolLinks[tool] ?? {};
   const minVersion = minVersionOf(tool);
@@ -118,6 +122,7 @@ function withMetadata(data: ToolVersions): ToolVersions {
     ...(homepage && { homepage }),
     ...(minVersion && { minVersion }),
     ...(Object.keys(distroMinVersion).length && { distroMinVersion }),
+    ...(minCb.length && { minCb }),
     ...rest,
   };
 }
@@ -238,44 +243,51 @@ export function assertMinCb(tool: string, { versioning, minCb = [] }: ToolSource
 }
 
 /**
- * Sets the `minCb` of the versions from the first version of a range on, the
- * highest matching range wins. Versions below every range, or which are no
- * valid version of the versioning, get none, so a stale `minCb` of a previously
- * published version is removed.
+ * Resolves the configured `minCb` ranges to the published versions: each range
+ * starts at the oldest published version which is at least its `from` in the
+ * versioning of the tool, prereleases included: the last listed one, which is
+ * the lowest listed of versions which compare equal. A range without such a
+ * version yet is left out. Two ranges which start at the same version leave the
+ * one with the higher `from`, which has the higher `cb` as {@link assertMinCb}
+ * checks.
  * @param source - the source of the tool
- * @param versions - the versions of the tool
+ * @param versions - the published versions, newest first
+ * @returns the ranges, newest version first
  */
-function withMinCb({ versioning, minCb = [] }: ToolSource, versions: ToolVersion[]): ToolVersion[] {
-  const { isValid, compare } = versionings[versioning];
-  const ranges = [...minCb].sort((a, b) => compare(b.from, a.from));
-  return versions.map(({ minCb: _minCb, ...entry }) => {
-    const range = isValid(entry.version)
-      ? ranges.find(({ from }) => compare(entry.version, from) >= 0)
-      : undefined;
-    return range ? { ...entry, minCb: range.cb } : entry;
+function resolveMinCb(
+  { versioning, minCb = [] }: ToolSource,
+  versions: ToolVersion[],
+): NonNullable<ToolVersions['minCb']> {
+  const { compare } = versionings[versioning];
+  const resolved = new Map<string, string>();
+  for (const { from, cb } of [...minCb].sort((a, b) => compare(a.from, b.from))) {
+    const oldest = versions.findLast(({ version }) => compare(version, from) >= 0);
+    if (oldest) {
+      resolved.set(oldest.version, cb);
+    }
+  }
+  return versions.flatMap(({ version }) => {
+    const cb = resolved.get(version);
+    return cb === undefined ? [] : [{ version, cb }];
   });
 }
 
 /**
  * Leaves out the versions older than the minimum version of the tool, in the
  * versioning of its source, the files of a distro for versions older than its
- * minimum, and the versions which can't be installed. The remaining versions
- * get their `minCb`.
+ * minimum, and the versions which can't be installed.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param versions - the versions of the tool
  */
-function publishable(tool: string, source: ToolSource, versions: ToolVersion[]): ToolVersion[] {
+function publishable(tool: string, source: Source, versions: ToolVersion[]): ToolVersion[] {
   const isTooOld = belowMinimum(source.versioning, minVersionOf(tool));
-  return withMinCb(
-    source,
-    installable(
+  return installable(
+    tool,
+    withoutBelowDistroMinimum(
       tool,
-      withoutBelowDistroMinimum(
-        tool,
-        source,
-        versions.filter(({ version }) => !isTooOld(version)),
-      ),
+      source,
+      versions.filter(({ version }) => !isTooOld(version)),
     ),
   );
 }
@@ -469,7 +481,7 @@ export async function build({
     if (!data) {
       continue;
     }
-    const files = await writeToolVersions(formatFolder, withMetadata(data));
+    const files = await writeToolVersions(formatFolder, withMetadata(data, source));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });
   }
 

@@ -36,7 +36,9 @@ function github(repository: string, versioning: Source['versioning'] = 'semver')
  * need a newer containerbase: the releases from `from` on, in the versioning of
  * the tool, need at least the containerbase version `cb`. A `from` names the
  * first release of the new scheme including its prereleases, like `3.0.0-rc.1`
- * and not `3.0.0`, as prereleases sort below the release.
+ * and not `3.0.0`, as prereleases sort below the release. It can be configured
+ * before upstream releases it: the range is published once a matching release
+ * exists, starting at the oldest one.
  */
 export const toolSources: Record<string, ToolSource> = {
   'android-sdk-cmdline-tools': {

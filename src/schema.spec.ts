@@ -73,6 +73,23 @@ describe('schema', () => {
       );
     });
 
+    it('accepts the minCb ranges', () => {
+      const minCb = [{ version: '0.6.0.1', cb: '14.51.0' }];
+      expect(ToolVersions.parse({ ...data, minCb })).toEqual({ ...data, minCb });
+    });
+
+    it.each([
+      [[]],
+      [[{ version: '', cb: '14.51.0' }]],
+      [[{ version: '1.0.0', cb: 'v14.51.0' }]],
+      [[{ version: '1.0.0', cb: '14' }]],
+      [[{ version: '1.0.0', cb: ' 14.51.0' }]],
+      [[{ version: '1.0.0', cb: 'latest' }]],
+      [[{ version: '1.0.0', cb: '14.51.0+build' }]],
+    ])('rejects the minCb %j', (minCb) => {
+      expect(ToolVersions.safeParse({ ...data, minCb }).success).toBe(false);
+    });
+
     it.each(['sourceUrl', 'homepage'])('rejects a non-https %s', (field) => {
       expect(ToolVersions.safeParse({ ...data, [field]: 'http://example.com' }).success).toBe(
         false,
@@ -144,18 +161,6 @@ describe('schema', () => {
         false,
       );
     });
-
-    it('accepts a plain semver minCb', () => {
-      const version = { version: '0.6.0.1', minCb: '14.51.0' };
-      expect(ToolVersion.parse(version)).toEqual(version);
-    });
-
-    it.each(['v14.51.0', '14', ' 14.51.0', 'latest', '14.51.0+build'])(
-      'rejects the minCb %j',
-      (minCb) => {
-        expect(ToolVersion.safeParse({ version: '3.14.8', minCb }).success).toBe(false);
-      },
-    );
 
     it('accepts archs', () => {
       const version = { version: '3.14.8', archs: ['amd64', 'arm64'] };

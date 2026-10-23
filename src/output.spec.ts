@@ -288,9 +288,11 @@ describe('output', () => {
       items: { enum: ['jammy', 'noble', 'resolute'] },
     });
     // the plain semver rule of the containerbase version is published as a pattern
-    expect(
-      JSON.parse(await read('tool.schema.json')).properties.versions.items.properties.minCb,
-    ).toMatchObject({ type: 'string', pattern: expect.any(String) });
+    expect(JSON.parse(await read('tool.schema.json')).properties.minCb).toMatchObject({
+      type: 'array',
+      minItems: 1,
+      items: { properties: { cb: { type: 'string', pattern: expect.any(String) } } },
+    });
     // build information, readers must not rely on it
     expect(JSON.parse(await read('tool.schema.json')).properties.source).toMatchObject({
       deprecated: true,

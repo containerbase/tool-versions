@@ -984,8 +984,9 @@ describe('build', () => {
     /**
      * Builds `distro-test` from a previous file, as the fetch fails.
      * @param source - the source of the tool
+     * @param extra - more versions of the previous file
      */
-    async function buildMinCb(source: ToolSource): Promise<void> {
+    async function buildMinCb(source: ToolSource, extra: string[] = []): Promise<void> {
       const previous: ToolVersions = {
         tool: 'distro-test',
         source: {
@@ -994,12 +995,16 @@ describe('build', () => {
           versioning: 'semver',
         },
         updatedAt: '2026-10-07T03:00:00.000Z',
+        // a stale range of the previous file is replaced
+        minCb: [{ version: '1.5.0', cb: '9.9.9' }],
         versions: [
           { version: '3.1.0' },
           { version: '3.0.0' },
-          { version: '2.5.0', minCb: '9.9.9' },
+          { version: '3.0.0-rc.1' },
+          { version: '2.5.0' },
           { version: '2.0.0' },
           { version: '1.5.0' },
+          ...extra.map((version) => ({ version })),
         ].map((entry) => ({
           ...entry,
           files: [
@@ -1022,18 +1027,63 @@ describe('build', () => {
       await build({ dir, sources: { 'distro-test': source }, now, previousArchive });
     }
 
-    it('sets the highest matching range from its first version on, and none below', async () => {
+    /**
+     * Builds `distro-test` with some ranges and reads the published ranges.
+     * @param minCb - the configured ranges
+     */
+    async function publishedMinCb(minCb: ToolSource['minCb']): Promise<unknown> {
+      await buildMinCb({ ...minCbSource, minCb });
+      return JSON.parse(await read('distro-test.json')).minCb;
+    }
+
+    it('resolves the ranges to the oldest published version, newest first', async () => {
+      // 3.0.0-rc.1 is the first release of the new scheme, 2.0.0 is published
+      expect(
+        await publishedMinCb([
+          { from: '2.0.0', cb: '14.0.0' },
+          { from: '3.0.0-rc.1', cb: '15.1.0' },
+        ]),
+      ).toEqual([
+        { version: '3.0.0-rc.1', cb: '15.1.0' },
+        { version: '2.0.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('resolves a range which starts before a published version to the next one', async () => {
+      expect(await publishedMinCb([{ from: '2.2.0', cb: '14.0.0' }])).toEqual([
+        { version: '2.5.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('starts the range of a release after its prereleases', async () => {
+      expect(await publishedMinCb([{ from: '3.0.0', cb: '14.0.0' }])).toEqual([
+        { version: '3.0.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('starts the range at the lowest listed of versions which compare equal', async () => {
+      // semver ignores the build metadata, so both compare equal
+      await buildMinCb({ ...minCbSource, minCb: [{ from: '2.0.0', cb: '14.0.0' }] }, [
+        '2.0.0+build',
+      ]);
+
+      expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
+        { version: '2.0.0+build', cb: '14.0.0' },
+      ]);
+    });
+
+    it('leaves out a range without a published version yet, and the stale ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [{ from: '9.0.0', cb: '20.0.0' }] });
+
+      expect(JSON.parse(await read('distro-test.json'))).not.toHaveProperty('minCb');
+    });
+
+    it('publishes no minCb on the versions', async () => {
       await buildMinCb(minCbSource);
 
-      const archs = ['amd64'];
-      expect(JSON.parse(await read('distro-test.json')).versions).toEqual([
-        { version: '3.1.0', minCb: '15.1.0', archs },
-        { version: '3.0.0', minCb: '15.1.0', archs },
-        // the stale value of the previous file is replaced
-        { version: '2.5.0', minCb: '14.0.0', archs },
-        { version: '2.0.0', minCb: '14.0.0', archs },
-        { version: '1.5.0', archs },
-      ]);
+      const { versions } = JSON.parse(await read('distro-test.json'));
+      expect(versions).toHaveLength(6);
+      expect(versions.some((version: object) => 'minCb' in version)).toBe(false);
     });
 
     it('does not publish the ranges in the source', async () => {
@@ -1046,17 +1096,10 @@ describe('build', () => {
       });
     });
 
-    it('removes a stale minCb of a tool without ranges', async () => {
+    it('removes the stale ranges of a tool without ranges', async () => {
       await buildMinCb({ ...minCbSource, minCb: [] });
 
-      const archs = ['amd64'];
-      expect(JSON.parse(await read('distro-test.json')).versions).toEqual([
-        { version: '3.1.0', archs },
-        { version: '3.0.0', archs },
-        { version: '2.5.0', archs },
-        { version: '2.0.0', archs },
-        { version: '1.5.0', archs },
-      ]);
+      expect(JSON.parse(await read('distro-test.json'))).not.toHaveProperty('minCb');
     });
 
     it.each([

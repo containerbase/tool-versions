@@ -50,7 +50,8 @@ export type Source = z.infer<typeof Source>;
 
 /**
  * The oldest containerbase version which can install the releases from a
- * version of the tool on, in the versioning of the tool.
+ * version of the tool on, in the versioning of the tool. It is configured, and
+ * resolved to a published version for the `<tool>.json` files.
  */
 export const MinCb = z.object({
   /** the first version of the range, in the versioning of the tool */
@@ -79,14 +80,9 @@ export const Integrity = Base.FileIntegrity;
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `files`, `archs`, `distros`, `releaseTimestamp`, `constraints` and `minCb` only when known.
+ * `files`, `archs`, `distros`, `releaseTimestamp` and `constraints` only when known.
  */
 export const ToolVersion = Base.ToolVersion.extend({
-  /**
-   * the oldest containerbase version which can install the version, only set
-   * when it needs a newer one than the others
-   */
-  minCb: z.string().regex(plainSemver, 'Invalid semver version').optional(),
   /**
    * sorted, the archs which have a file of the version, only in the
    * `<tool>.json` files and only for versions with arch-specific files
@@ -104,6 +100,22 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 
 /** The content of a `<tool>.json` file. */
 export const ToolVersions = Base.ToolVersions.extend({
+  /**
+   * the containerbase version a release and the releases above it need, newest
+   * version first, only for tools with releases which an older containerbase
+   * can't install
+   */
+  minCb: z
+    .array(
+      z.object({
+        /** the oldest listed version of the range, it applies to every version listed above it too */
+        version: z.string().min(1),
+        /** the oldest containerbase version which can install them, plain semver */
+        cb: z.string().regex(plainSemver, 'Invalid semver version'),
+      }),
+    )
+    .min(1)
+    .optional(),
   /**
    * build information, deprecated: readers must not rely on it, it is removed
    * with the next format major (#146)
