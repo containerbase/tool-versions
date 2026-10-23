@@ -177,10 +177,12 @@ describe('datasources/github-releases', () => {
         'docker',
       ),
     ).resolves.toEqual([
-      { version: '29.0-rc1', prerelease: true },
+      // a docker `-suffix` is no prerelease, a shorter version is newer than the
+      // longer ones it is a prefix of
+      { version: '29.0-rc1' },
+      { version: '28.5.0' },
       { version: '28.5.0.10' },
       { version: '28.5.0.7' },
-      { version: '28.5.0' },
       { version: '27.3.4.9' },
     ]);
   });

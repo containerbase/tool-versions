@@ -1061,11 +1061,11 @@ describe('build', () => {
     });
 
     it('starts the range at the lowest listed of versions which compare equal', async () => {
-      // docker versions have missing numbers count as 0, so `1.0` and `1.0.0` are equal
+      // maven versions have missing numbers count as 0, so `1.0` and `1.0.0` are equal
       await buildMinCb(
         {
           ...minCbSource,
-          versioning: 'docker',
+          versioning: 'maven',
           minCb: [{ from: '1.0', cb: '14.0.0' }],
         },
         ['1.1', '1.0', '1.0.0', '0.9'],
@@ -1080,10 +1080,10 @@ describe('build', () => {
       '::warning::distro-test: not every version is a valid docker version, keeping the previous minCb ranges\n';
 
     it('keeps the previous order and ranges for versions which are invalid in the versioning', async () => {
-      // `v1.2.3` is no docker version, the range of `0.1.0` is no longer listed
+      // `1.2.x` is no docker version, the range of `0.1.0` is no longer listed
       await buildMinCb(
         { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
-        ['1.5.0', 'v1.2.3'],
+        ['1.5.0', '1.2.x'],
         [
           { version: '1.5.0', cb: '9.9.9' },
           { version: '0.1.0', cb: '9.0.0' },
@@ -1093,7 +1093,7 @@ describe('build', () => {
       const published = JSON.parse(await read('distro-test.json'));
       expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
         '1.5.0',
-        'v1.2.3',
+        '1.2.x',
       ]);
       expect(published.minCb).toEqual([{ version: '1.5.0', cb: '9.9.9' }]);
       expect(output).toContain(invalidWarning);
@@ -1102,27 +1102,27 @@ describe('build', () => {
     it('keeps the previous ranges for a single invalid version', async () => {
       await buildMinCb(
         { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
-        ['v1.2.3'],
-        [{ version: 'v1.2.3', cb: '9.9.9' }],
+        ['1.2.x'],
+        [{ version: '1.2.x', cb: '9.9.9' }],
       );
 
       expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
-        { version: 'v1.2.3', cb: '9.9.9' },
+        { version: '1.2.x', cb: '9.9.9' },
       ]);
       expect(output).toContain(invalidWarning);
     });
 
     it('keeps the previous order and ranges for an invalid maven version', async () => {
-      // the maven compare doesn't throw, it would sort `1.0` above `abc`
+      // `latest` is no maven version, it would sort below `1.0`
       await buildMinCb(
         { ...minCbSource, versioning: 'maven', minCb: [{ from: '1.0', cb: '14.0.0' }] },
-        ['abc', '1.0'],
+        ['latest', '1.0'],
         [{ version: '1.0', cb: '9.9.9' }],
       );
 
       const published = JSON.parse(await read('distro-test.json'));
       expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
-        'abc',
+        'latest',
         '1.0',
       ]);
       expect(published.minCb).toEqual([{ version: '1.0', cb: '9.9.9' }]);

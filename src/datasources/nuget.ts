@@ -1,12 +1,15 @@
 import { z } from 'zod';
 import { getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
-import { compareNuget, isNugetPrerelease, isNugetVersion } from '../versioning.ts';
+import { versionings } from '../versioning.ts';
 import { sortVersions, toolVersion } from '../versions.ts';
 
 const NugetVersions = z.object({
   versions: z.array(z.string()),
 });
+
+/** The nuget versioning, which validates, flags and sorts the versions. */
+const { isValid, isPrerelease, compare } = versionings.nuget;
 
 /**
  * Fetches all versions of a package from nuget.org, like the containerbase
@@ -23,8 +26,8 @@ export async function fetchNugetVersions(packageName: string): Promise<ToolVersi
   );
   return sortVersions(
     versions
-      .filter(isNugetVersion)
-      .map((version) => toolVersion(version, { prerelease: isNugetPrerelease(version) })),
-    compareNuget,
+      .filter(isValid)
+      .map((version) => toolVersion(version, { prerelease: isPrerelease(version) })),
+    compare,
   );
 }

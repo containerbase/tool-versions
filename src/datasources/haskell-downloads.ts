@@ -9,7 +9,7 @@ import {
 } from '../files.ts';
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
-import { belowMinimum, compareDocker, versionings } from '../versioning.ts';
+import { belowMinimum, versionings } from '../versioning.ts';
 import { sortVersions, toolVersion } from '../versions.ts';
 
 /** A product of downloads.haskell.org with a folder per release. */
@@ -25,7 +25,7 @@ interface Product {
 }
 
 /** The cabal version from which only a generic linux build is published. */
-const cabalGeneric = '3.18.0';
+const cabalGeneric = '3.18.0.0';
 
 /** The products by package name. */
 const products: Record<string, Product> = {
@@ -45,7 +45,8 @@ const products: Record<string, Product> = {
     releaseUrl: (version) => `https://downloads.haskell.org/~cabal/cabal-install-${version}/`,
     files: (version) => {
       // the generic linux build since 3.18, the static deb10 one before
-      const os = compareDocker(version, cabalGeneric) >= 0 ? 'linux-unknown' : 'linux-deb10';
+      const os =
+        versionings.docker.compare(version, cabalGeneric) >= 0 ? 'linux-unknown' : 'linux-deb10';
       return {
         amd64: `cabal-install-${version}-x86_64-${os}.tar.xz`,
         arm64: `cabal-install-${version}-aarch64-${os}.tar.xz`,
