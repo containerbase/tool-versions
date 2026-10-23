@@ -23,6 +23,12 @@
       "matchPackageNames": ["pnpm"],
       "groupName": "pnpm",
       "separateMinorPatch": false
+    },
+    {
+      "description": "Update the renovate dependency, which provides the versionings, once a week instead of on each of its frequent releases",
+      "matchFileNames": ["package.json"],
+      "matchPackageNames": ["renovate"],
+      "extends": ["schedule:weekly"]
     }
   ]
 }

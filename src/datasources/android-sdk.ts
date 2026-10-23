@@ -122,7 +122,7 @@ function linuxFile(archives: z.output<typeof Archive>[]): ToolFile | undefined {
  * @param _template - unused, the repository lists the files
  * @param fetchFiles - whether to publish the files at all
  * @param _hasTimestamp - unused, there are no release times
- * @param versioning - how the versions are validated and sorted, `docker` by default
+ * @param versioning - how the versions are validated and sorted, `semver-coerced` by default
  */
 export async function fetchAndroidSdkVersions(
   _packageName: string,
@@ -131,7 +131,7 @@ export async function fetchAndroidSdkVersions(
   _template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
-  versioning: VersioningName = 'docker',
+  versioning: VersioningName = 'semver-coerced',
 ): Promise<ToolVersion[]> {
   const { isValid, compare } = versionings[versioning];
   const xml = await (await request(repositoryUrl)).text();

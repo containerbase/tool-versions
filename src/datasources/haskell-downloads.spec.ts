@@ -79,7 +79,7 @@ describe('datasources/haskell-downloads', () => {
         undefined,
         true,
         undefined,
-        'docker',
+        'pvp',
         '8.10.1',
       ),
     ).resolves.toEqual([{ version: '9.8.2' }]);

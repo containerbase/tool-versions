@@ -32,9 +32,11 @@ function github(repository: string, versioning: Source['versioning'] = 'semver')
 /**
  * The tools to publish and the upstream source of their versions, the same one
  * the containerbase cli resolves and installs them from. The versioning is the
- * one Renovate uses for the tool. A `minCb` lists the ranges of releases which
- * need a newer containerbase: the releases from `from` on, in the versioning of
- * the tool, need at least the containerbase version `cb`. A `from` names the
+ * one Renovate uses for the tool: the one of its containerbase tool config, else
+ * the one of its datasource or the Renovate versioning made for it. A `minCb`
+ * lists the ranges of releases which need a newer containerbase: the releases
+ * from `from` on, in the versioning of the tool, need at least the containerbase
+ * version `cb`. A `from` names the
  * first release of the new scheme including its prereleases, like `3.0.0-rc.1`
  * and not `3.0.0`, as prereleases sort below the release. It can be configured
  * before upstream releases it: the range is published once a matching release
@@ -44,43 +46,43 @@ export const toolSources: Record<string, ToolSource> = {
   'android-sdk-cmdline-tools': {
     datasource: 'android-sdk',
     packageName: 'cmdline-tools',
-    versioning: 'docker',
+    versioning: 'semver-coerced',
   },
   apko: github('chainguard-dev/apko'),
   apm: github('microsoft/apm'),
   buf: github('bufbuild/buf'),
   buildx: github('docker/buildx'),
   bazelisk: github('bazelbuild/bazelisk'),
-  bun: github('oven-sh/bun'),
+  bun: github('oven-sh/bun', 'npm'),
   bundler: { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' },
-  cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'docker' },
+  cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'pvp' },
   checkov: { datasource: 'pypi', packageName: 'checkov', versioning: 'pep440' },
   cocoapods: { datasource: 'rubygems', packageName: 'cocoapods', versioning: 'ruby' },
-  composer: prebuild('composer'),
+  composer: prebuild('composer', 'composer'),
   conan: { datasource: 'pypi', packageName: 'conan', versioning: 'pep440' },
   copier: { datasource: 'pypi', packageName: 'copier', versioning: 'pep440' },
   corepack: { datasource: 'npm', packageName: 'corepack', versioning: 'npm' },
-  dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
-  deno: github('denoland/deno'),
+  dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'npm' },
+  deno: github('denoland/deno', 'deno'),
   devbox: github('jetify-com/devbox'),
   docker: github('moby/moby'),
   dotnet: { datasource: 'dotnet-version', packageName: 'dotnet-sdk', versioning: 'semver' },
   'docker-compose': github('docker/compose'),
   elixir: github('elixir-lang/elixir'),
   erlang: prebuild('erlang', 'docker'),
-  flutter: prebuild('flutter'),
+  flutter: prebuild('flutter', 'npm'),
   flux: github('fluxcd/flux2'),
   gh: github('cli/cli'),
   git: prebuild('git'),
   'git-lfs': github('git-lfs/git-lfs'),
   gleam: github('gleam-lang/gleam'),
-  ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'docker' },
-  golang: prebuild('golang'),
+  ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'pvp' },
+  golang: prebuild('golang', 'npm'),
   gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
   hashin: { datasource: 'pypi', packageName: 'hashin', versioning: 'pep440' },
   helm: github('helm/helm'),
   jb: prebuild('jb', 'loose'),
-  protoc: github('protocolbuffers/protobuf', 'docker'),
+  protoc: github('protocolbuffers/protobuf', 'semver-coerced'),
   helmfile: github('helmfile/helmfile'),
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
@@ -89,7 +91,7 @@ export const toolSources: Record<string, ToolSource> = {
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
   maven: prebuild('maven', 'maven'),
-  mise: github('jdx/mise'),
+  mise: github('jdx/mise', 'npm'),
   mono: prebuild('mono'),
   nix: prebuild('nix'),
   node: { datasource: 'node-version', packageName: 'node', versioning: 'node' },
@@ -98,10 +100,10 @@ export const toolSources: Record<string, ToolSource> = {
   nub: github('nubjs/nub'),
   paket: { datasource: 'nuget', packageName: 'Paket', versioning: 'nuget' },
   pdm: { datasource: 'pypi', packageName: 'pdm', versioning: 'pep440' },
-  php: prebuild('php'),
+  php: prebuild('php', 'composer'),
   'pip-tools': { datasource: 'pypi', packageName: 'pip-tools', versioning: 'pep440' },
   pipenv: { datasource: 'pypi', packageName: 'pipenv', versioning: 'pep440' },
-  pixi: github('prefix-dev/pixi'),
+  pixi: github('prefix-dev/pixi', 'conda'),
   pnpm: { datasource: 'npm', packageName: 'pnpm', versioning: 'npm' },
   poetry: { datasource: 'pypi', packageName: 'poetry', versioning: 'pep440' },
   powershell: github('PowerShell/PowerShell'),
@@ -117,8 +119,12 @@ export const toolSources: Record<string, ToolSource> = {
   scala: github('scala/scala'),
   skopeo: prebuild('skopeo'),
   sops: github('getsops/sops'),
-  swift: { datasource: 'swift-releases', packageName: 'swift', versioning: 'docker' },
-  terraform: { datasource: 'hashicorp-releases', packageName: 'terraform', versioning: 'semver' },
+  swift: { datasource: 'swift-releases', packageName: 'swift', versioning: 'semver-coerced' },
+  terraform: {
+    datasource: 'hashicorp-releases',
+    packageName: 'terraform',
+    versioning: 'hashicorp',
+  },
   tofu: github('opentofu/opentofu'),
   uv: { datasource: 'pypi', packageName: 'uv', versioning: 'pep440' },
   vendir: github('vmware-tanzu/carvel-vendir'),

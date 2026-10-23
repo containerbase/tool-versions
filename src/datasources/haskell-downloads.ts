@@ -9,7 +9,7 @@ import {
 } from '../files.ts';
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
-import { belowMinimum, compareDocker, versionings } from '../versioning.ts';
+import { belowMinimum, versionings } from '../versioning.ts';
 import { sortVersions, toolVersion } from '../versions.ts';
 
 /** A product of downloads.haskell.org with a folder per release. */
@@ -45,7 +45,8 @@ const products: Record<string, Product> = {
     releaseUrl: (version) => `https://downloads.haskell.org/~cabal/cabal-install-${version}/`,
     files: (version) => {
       // the generic linux build since 3.18, the static deb10 one before
-      const os = compareDocker(version, cabalGeneric) >= 0 ? 'linux-unknown' : 'linux-deb10';
+      const os =
+        versionings.pvp.compare(version, cabalGeneric) >= 0 ? 'linux-unknown' : 'linux-deb10';
       return {
         amd64: `cabal-install-${version}-x86_64-${os}.tar.xz`,
         arm64: `cabal-install-${version}-aarch64-${os}.tar.xz`,
@@ -78,7 +79,7 @@ function folders(html: string): string[] {
  * @param _template - unused, the product lists its files
  * @param fetchFiles - whether to fetch the files at all
  * @param _hasTimestamp - unused, there are no release times
- * @param versioning - which versions are valid and prereleases, `docker` by default
+ * @param versioning - which versions are valid and prereleases, `pvp` by default
  * @param minVersion - the oldest version to read, older releases are skipped
  * @throws for an unknown package name
  */
@@ -89,7 +90,7 @@ export async function fetchHaskellDownloads(
   _template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
-  versioning: VersioningName = 'docker',
+  versioning: VersioningName = 'pvp',
   minVersion?: string,
 ): Promise<ToolVersion[]> {
   const product = products[packageName];

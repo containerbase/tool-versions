@@ -25,18 +25,24 @@ export type DatasourceName = z.infer<typeof DatasourceName>;
 
 /** The Renovate versioning to compare and match the versions of a tool with. */
 export const VersioningName = z.enum([
+  'composer',
+  'conda',
+  'deno',
   'docker',
   'gradle',
+  'hashicorp',
   'loose',
   'maven',
   'node',
   'npm',
   'nuget',
   'pep440',
+  'pvp',
   'python',
   'ruby',
   'rust-release-channel',
   'semver',
+  'semver-coerced',
 ]);
 export type VersioningName = z.infer<typeof VersioningName>;
 

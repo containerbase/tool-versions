@@ -47,7 +47,7 @@ const archs: Record<string, Arch> = { amd64: 'amd64', arm64: 'arm64' };
  * @param _template - unused, the builds list the files
  * @param fetchFiles - whether to fetch the files at all
  * @param _hasTimestamp - unused, there are no release times
- * @param versioning - which versions are valid and prereleases, `semver` by default
+ * @param versioning - which versions are valid and prereleases, `hashicorp` by default
  */
 export async function fetchHashicorpReleases(
   packageName: string,
@@ -56,7 +56,7 @@ export async function fetchHashicorpReleases(
   _template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
-  versioning: VersioningName = 'semver',
+  versioning: VersioningName = 'hashicorp',
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];
   const { versions: releases } = await getJson(

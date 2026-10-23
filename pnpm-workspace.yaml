@@ -4,6 +4,15 @@ savePrefix: ''
 shellEmulator: true
 strictPeerDependencies: true
 
+# renovate's optional native and postinstall builds aren't needed for its versionings
+allowBuilds:
+  core-js-pure: false
+  protobufjs: false
+  re2: false
+
+overrides:
+  dtrace-provider: '-'
+
 # our own packages are used right after their release
 minimumReleaseAgeExclude:
   - '@containerbase/base'
