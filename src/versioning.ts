@@ -65,6 +65,55 @@ export function compareDocker(a: string, b: string): number {
 }
 
 /**
+ * Splits a version like Renovate's `loose` versioning does: an optional `v`, up
+ * to six numeric segments and a free suffix: `v0.6.0.1-beta` is
+ * `[0, 6, 0, 1]` and `-beta`.
+ * @param version - the version
+ * @returns the parts, or `undefined` when it isn't a loose version or is a commit hash
+ */
+function parseLoose(version: string): { segments: number[]; suffix: string } | undefined {
+  if (/^[a-f0-9]{7,40}$/.test(version) && !/^\d+$/.test(version)) {
+    return undefined;
+  }
+  const match = /^[vV]?(?<numbers>\d+(?:\.\d+)*)(?<suffix>.*)$/.exec(version);
+  const segments = match?.groups?.['numbers']?.split('.').map(Number);
+  if (!match?.groups || !segments || segments.length > 6) {
+    return undefined;
+  }
+  return { segments, suffix: match.groups['suffix'] ?? '' };
+}
+
+/**
+ * Compares two versions like Renovate's `loose` versioning: the numeric
+ * segments are compared one by one and a missing one makes the version
+ * smaller, so `2.1` is older than `2.1.0`. With equal numbers a version with a
+ * suffix is older than one without, and two suffixes are compared naturally.
+ * @param a - the first version
+ * @param b - the second version
+ */
+export function compareLoose(a: string, b: string): number {
+  const left = parseLoose(a);
+  const right = parseLoose(b);
+  if (!left || !right) {
+    throw new Error(`Invalid loose version ${left ? b : a}`);
+  }
+  for (let i = 0; i < Math.max(left.segments.length, right.segments.length); i++) {
+    const x = left.segments[i];
+    const y = right.segments[i];
+    if (x === undefined || y === undefined) {
+      return x === undefined ? -1 : 1;
+    }
+    if (x !== y) {
+      return x - y;
+    }
+  }
+  if (left.suffix && right.suffix) {
+    return left.suffix.localeCompare(right.suffix, undefined, { numeric: true });
+  }
+  return left.suffix ? -1 : right.suffix ? 1 : 0;
+}
+
+/**
  * Splits a NuGet version into its numeric parts (one to four), its prerelease
  * identifiers and drops the build metadata: `1.2.3.4-beta.2+abc` is
  * `[1, 2, 3, 4]` and `['beta', '2']`.
@@ -309,6 +358,11 @@ export const versionings: Record<VersioningName, Versioning> = {
   // gradle versions are numbers with an optional `-rc-1` or `-milestone-1`
   // qualifier, which the maven compare orders like gradle does
   gradle: mavenVersioning,
+  loose: {
+    isValid: (version) => parseLoose(version) !== undefined,
+    isPrerelease: (version) => Boolean(parseLoose(version)?.suffix),
+    compare: compareLoose,
+  },
   maven: mavenVersioning,
   node: semverVersioning,
   npm: semverVersioning,

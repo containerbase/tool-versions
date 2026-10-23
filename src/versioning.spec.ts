@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   belowMinimum,
   compareDocker,
+  compareLoose,
   compareMaven,
   compareNuget,
   versionings,
@@ -26,6 +27,25 @@ describe('versioning', () => {
 
     it('throws for an invalid version', () => {
       expect(() => compareDocker('1.2', 'x')).toThrow('Invalid docker version x');
+    });
+  });
+
+  describe('compareLoose', () => {
+    it('compares the numeric parts and sorts a missing part first', () => {
+      const sorted = ['0.7.0', '0.6.0.2', '2.1.0', '0.6.0.1', '2.1', '0.6.0'].sort(compareLoose);
+
+      expect(sorted).toEqual(['0.6.0', '0.6.0.1', '0.6.0.2', '0.7.0', '2.1', '2.1.0']);
+    });
+
+    it('sorts a suffix before the release and compares suffixes naturally', () => {
+      const sorted = ['1.0.0', '1.0.0-beta.10', '1.0.0-beta.2'].sort(compareLoose);
+
+      expect(sorted).toEqual(['1.0.0-beta.2', '1.0.0-beta.10', '1.0.0']);
+      expect(compareLoose('v1.0.0', '1.0.0')).toBe(0);
+    });
+
+    it('throws for an invalid version', () => {
+      expect(() => compareLoose('1.0.0', 'abcdef1')).toThrow('Invalid loose version abcdef1');
     });
   });
 
@@ -170,6 +190,11 @@ describe('versioning', () => {
       ['docker', '28.5.0.7', true, false],
       ['docker', '1.2-rc1', true, true],
       ['docker', 'v1.2', false, false],
+      ['loose', '0.6.0.1', true, false],
+      ['loose', 'v1.2.3', true, false],
+      ['loose', '1.0.0-beta', true, true],
+      ['loose', '1.2.3.4.5.6.7', false, false],
+      ['loose', 'abcdef1', false, false],
       ['nuget', '5.257.0.1', true, false],
       ['nuget', '10.0.0-beta.2', true, true],
       ['nuget', '1.2.3.4.5', false, false],

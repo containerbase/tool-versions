@@ -26,6 +26,7 @@ export type DatasourceName = z.infer<typeof DatasourceName>;
 export const VersioningName = z.enum([
   'docker',
   'gradle',
+  'loose',
   'maven',
   'node',
   'npm',
