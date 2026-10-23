@@ -985,10 +985,12 @@ describe('build', () => {
      * Builds `distro-test` from a previous file, as the fetch fails.
      * @param source - the source of the tool
      * @param versions - the versions of the previous file, in its order
+     * @param previousMinCb - the ranges of the previous file, a stale one by default
      */
     async function buildMinCb(
       source: ToolSource,
       versions = ['3.1.0', '3.0.0', '3.0.0-rc.1', '2.5.0', '2.0.0', '1.5.0'],
+      previousMinCb = [{ version: '1.5.0', cb: '9.9.9' }],
     ): Promise<void> {
       const previous: ToolVersions = {
         tool: 'distro-test',
@@ -999,7 +1001,7 @@ describe('build', () => {
         },
         updatedAt: '2026-10-07T03:00:00.000Z',
         // a stale range of the previous file is replaced
-        minCb: [{ version: '1.5.0', cb: '9.9.9' }],
+        minCb: previousMinCb,
         versions: versions
           .map((version) => ({ version }))
           .map((entry) => ({
@@ -1074,11 +1076,18 @@ describe('build', () => {
       ]);
     });
 
-    it('keeps the previous versions when they can not be sorted, without minCb ranges', async () => {
-      // `v1.2.3` is no docker version
+    const invalidWarning =
+      '::warning::distro-test: not every version is a valid docker version, keeping the previous minCb ranges\n';
+
+    it('keeps the previous order and ranges for versions which are invalid in the versioning', async () => {
+      // `v1.2.3` is no docker version, the range of `0.1.0` is no longer listed
       await buildMinCb(
         { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
         ['1.5.0', 'v1.2.3'],
+        [
+          { version: '1.5.0', cb: '9.9.9' },
+          { version: '0.1.0', cb: '9.0.0' },
+        ],
       );
 
       const published = JSON.parse(await read('distro-test.json'));
@@ -1086,10 +1095,37 @@ describe('build', () => {
         '1.5.0',
         'v1.2.3',
       ]);
-      expect(published).not.toHaveProperty('minCb');
-      expect(output).toContain(
-        '::warning::distro-test: Error: Invalid docker version v1.2.3, keeping the previous order and leaving out the minCb ranges\n',
+      expect(published.minCb).toEqual([{ version: '1.5.0', cb: '9.9.9' }]);
+      expect(output).toContain(invalidWarning);
+    });
+
+    it('keeps the previous ranges for a single invalid version', async () => {
+      await buildMinCb(
+        { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['v1.2.3'],
+        [{ version: 'v1.2.3', cb: '9.9.9' }],
       );
+
+      expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
+        { version: 'v1.2.3', cb: '9.9.9' },
+      ]);
+      expect(output).toContain(invalidWarning);
+    });
+
+    it('keeps the previous order and ranges for an invalid maven version', async () => {
+      // the maven compare doesn't throw, it would sort `1.0` above `abc`
+      await buildMinCb(
+        { ...minCbSource, versioning: 'maven', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['abc', '1.0'],
+        [{ version: '1.0', cb: '9.9.9' }],
+      );
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        'abc',
+        '1.0',
+      ]);
+      expect(published.minCb).toEqual([{ version: '1.0', cb: '9.9.9' }]);
     });
 
     it('sorts the kept versions with the current versioning before resolving the ranges', async () => {

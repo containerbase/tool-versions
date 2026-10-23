@@ -93,13 +93,13 @@ function hasFiles(tool: string): boolean {
 
 /**
  * Sets the `type`, `minVersion` and `distroMinVersion` of a tool from
- * `@containerbase/base`, its links from the mapping and the `minCb` ranges
- * resolved to its published versions, and removes them when the tool has none,
- * so a previously published file gets the current ones.
+ * `@containerbase/base`, its links from the mapping and the given `minCb`
+ * ranges, and removes them when the tool has none, so a previously published
+ * file gets the current ones.
  * @param data - the tool versions
- * @param source - the source of the tool
+ * @param minCb - the published ranges of the tool
  */
-function withMetadata(data: ToolVersions, source: ToolSource): ToolVersions {
+function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb']>): ToolVersions {
   const {
     tool,
     type: _type,
@@ -110,7 +110,6 @@ function withMetadata(data: ToolVersions, source: ToolSource): ToolVersions {
     minCb: _minCb,
     ...rest
   } = data;
-  const minCb = resolveMinCb(source, data.versions);
   const type = metadata[tool]?.type;
   const { sourceUrl, homepage } = toolLinks[tool] ?? {};
   const minVersion = minVersionOf(tool);
@@ -270,6 +269,36 @@ function resolveMinCb(
     const cb = resolved.get(version);
     return cb === undefined ? [] : [{ version, cb }];
   });
+}
+
+/**
+ * The `minCb` ranges to publish for the versions of a tool. Without configured
+ * ranges there are none. When a version is no valid version of the versioning
+ * of the tool, the versions can't be compared: the previously published ranges
+ * are kept for the versions which are still listed, with a warning.
+ * @param tool - the tool name
+ * @param source - the source of the tool
+ * @param versions - the published versions, newest first
+ * @param previous - the previously published ranges
+ */
+function minCbRanges(
+  tool: string,
+  source: ToolSource,
+  versions: ToolVersion[],
+  previous: ToolVersions['minCb'] = [],
+): NonNullable<ToolVersions['minCb']> {
+  if (!source.minCb?.length) {
+    return [];
+  }
+  const { isValid } = versionings[source.versioning];
+  if (versions.every(({ version }) => isValid(version))) {
+    return resolveMinCb(source, versions);
+  }
+  logWarning(
+    `${tool}: not every version is a valid ${source.versioning} version, keeping the previous minCb ranges`,
+  );
+  const listed = new Set(versions.map(({ version }) => version));
+  return previous.filter(({ version }) => listed.has(version));
 }
 
 /**
@@ -433,8 +462,7 @@ export async function build({
     const logs: LogEntry[] = [];
     let data: ToolVersions | undefined;
     let status: ToolStatus = 'updated';
-    // the source to resolve the minCb ranges with
-    let rangesSource = source;
+    let minCb: NonNullable<ToolVersions['minCb']> = [];
     startToolDownloads(computesChecksums(tool, source));
     collectLogs(logs);
     try {
@@ -444,21 +472,19 @@ export async function build({
         updatedAt,
         versions: await fetchVersions(tool, source, previous?.versions ?? []),
       };
+      minCb = minCbRanges(tool, source, data.versions, previous?.minCb);
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {
       if (previous) {
-        let versions = fileNameSafe(tool, publishable(tool, source, previous.versions));
-        try {
-          // sorted with the current versioning, the minCb ranges rely on the
-          // order, after the versions which are not safe in a file name are gone
-          versions = sortVersions(versions, versionings[source.versioning].compare);
-        } catch (sortErr) {
-          // versions of another versioning can't be sorted or resolved to ranges
-          rangesSource = { ...source, minCb: [] };
-          logWarning(
-            `${tool}: ${String(sortErr)}, keeping the previous order and leaving out the minCb ranges`,
-          );
-        }
+        const kept = fileNameSafe(tool, publishable(tool, source, previous.versions));
+        const { isValid, compare } = versionings[source.versioning];
+        // sorted with the current versioning, the minCb ranges rely on the
+        // order, after the versions which are not safe in a file name are gone.
+        // Versions which are no valid version of it can't be sorted.
+        const versions = kept.every(({ version }) => isValid(version))
+          ? sortVersions(kept, compare)
+          : kept;
+        minCb = minCbRanges(tool, source, versions, previous.minCb);
         // with the current source, so it gets the current versioning
         data = { ...previous, source, versions };
         status = 'kept previous';
@@ -491,7 +517,7 @@ export async function build({
     if (!data) {
       continue;
     }
-    const files = await writeToolVersions(formatFolder, withMetadata(data, rangesSource));
+    const files = await writeToolVersions(formatFolder, withMetadata(data, minCb));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });
   }
 
