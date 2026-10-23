@@ -13,6 +13,7 @@ import {
   type Source,
   type ToolFile,
   ToolIndex,
+  type ToolSource,
   type ToolVersions,
 } from './schema.ts';
 import { toolSources } from './tools.ts';
@@ -966,6 +967,112 @@ describe('build', () => {
         .map(([tool]) => tool);
 
       expect(invalid).toEqual([]);
+    });
+  });
+
+  describe('minCb', () => {
+    const minCbSource: ToolSource = {
+      datasource: 'github-releases',
+      packageName: 'example/distro-test',
+      versioning: 'semver',
+      minCb: [
+        { from: '2.0.0', cb: '14.0.0' },
+        { from: '3.0.0', cb: '15.1.0' },
+      ],
+    };
+
+    /**
+     * Builds `distro-test` from a previous file, as the fetch fails.
+     * @param source - the source of the tool
+     */
+    async function buildMinCb(source: ToolSource): Promise<void> {
+      const previous: ToolVersions = {
+        tool: 'distro-test',
+        source: {
+          datasource: 'github-releases',
+          packageName: 'example/distro-test',
+          versioning: 'semver',
+        },
+        updatedAt: '2026-10-07T03:00:00.000Z',
+        versions: [
+          { version: '3.1.0' },
+          { version: '3.0.0' },
+          { version: '2.5.0', minCb: '9.9.9' },
+          { version: '2.0.0' },
+          { version: '1.5.0' },
+        ].map((entry) => ({
+          ...entry,
+          files: [
+            {
+              name: `a-${entry.version}.tgz`,
+              url: `https://example.com/a-${entry.version}.tgz`,
+              checksum: `sha256:${'e'.repeat(64)}`,
+              arch: 'amd64' as const,
+            },
+          ],
+        })),
+      };
+      const previousArchive = await archiveOf(previous);
+      nock('https://api.github.com')
+        .get('/repos/example/distro-test/releases')
+        .query({ per_page: '100' })
+        .times(3)
+        .reply(500);
+
+      await build({ dir, sources: { 'distro-test': source }, now, previousArchive });
+    }
+
+    it('sets the highest matching range from its first version on, and none below', async () => {
+      await buildMinCb(minCbSource);
+
+      const archs = ['amd64'];
+      expect(JSON.parse(await read('distro-test.json')).versions).toEqual([
+        { version: '3.1.0', minCb: '15.1.0', archs },
+        { version: '3.0.0', minCb: '15.1.0', archs },
+        // the stale value of the previous file is replaced
+        { version: '2.5.0', minCb: '14.0.0', archs },
+        { version: '2.0.0', minCb: '14.0.0', archs },
+        { version: '1.5.0', archs },
+      ]);
+    });
+
+    it('does not publish the ranges in the source', async () => {
+      await buildMinCb(minCbSource);
+
+      expect(JSON.parse(await read('distro-test.json')).source).toEqual({
+        datasource: 'github-releases',
+        packageName: 'example/distro-test',
+        versioning: 'semver',
+      });
+    });
+
+    it('removes a stale minCb of a tool without ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [] });
+
+      const archs = ['amd64'];
+      expect(JSON.parse(await read('distro-test.json')).versions).toEqual([
+        { version: '3.1.0', archs },
+        { version: '3.0.0', archs },
+        { version: '2.5.0', archs },
+        { version: '2.0.0', archs },
+        { version: '1.5.0', archs },
+      ]);
+    });
+
+    it.each([
+      [
+        [{ from: 'latest', cb: '14.0.0' }],
+        'distro-test: minCb from latest is not a valid semver version',
+      ],
+      [[{ from: '2.0.0', cb: '14' }], 'distro-test: minCb 14 is not a valid semver version'],
+      [
+        [{ from: '2.0.0', cb: 'v14.51.0' }],
+        'distro-test: minCb v14.51.0 is not a valid semver version',
+      ],
+    ])('throws for an invalid range', async (minCb, message) => {
+      await expect(
+        build({ dir, sources: { 'distro-test': { ...minCbSource, minCb } }, now }),
+      ).rejects.toThrow(message);
     });
   });
 

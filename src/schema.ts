@@ -1,5 +1,6 @@
 import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
+import { isPlainSemver } from './versions.ts';
 
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
@@ -47,6 +48,25 @@ export const Source = z.object({
 });
 export type Source = z.infer<typeof Source>;
 
+/**
+ * The oldest containerbase version which can install the releases from a
+ * version of the tool on, in the versioning of the tool.
+ */
+export const MinCb = z.object({
+  /** the first version of the range, in the versioning of the tool */
+  from: z.string(),
+  /** the oldest containerbase version, semver */
+  cb: z.string(),
+});
+export type MinCb = z.infer<typeof MinCb>;
+
+/** The source of a tool in the build, with the containerbase versions it needs. */
+export const ToolSource = Source.extend({
+  /** the ranges of releases which need a newer containerbase, not published in `source` */
+  minCb: z.array(MinCb).optional(),
+});
+export type ToolSource = z.infer<typeof ToolSource>;
+
 /** A file of a version: where to download it and how to verify it. */
 export const ToolFile = Base.ToolFile.extend({
   /** the containerbase arch, omitted for arch-independent files */
@@ -59,9 +79,14 @@ export const Integrity = Base.FileIntegrity;
 
 /**
  * A version `install-tool` can install, the flags are only set when true and
- * `files`, `archs`, `distros`, `releaseTimestamp` and `constraints` only when known.
+ * `files`, `archs`, `distros`, `releaseTimestamp`, `constraints` and `minCb` only when known.
  */
 export const ToolVersion = Base.ToolVersion.extend({
+  /**
+   * the oldest containerbase version which can install the version, only set
+   * when it needs a newer one than the others
+   */
+  minCb: z.string().refine(isPlainSemver, 'Invalid semver version').optional(),
   /**
    * sorted, the archs which have a file of the version, only in the
    * `<tool>.json` files and only for versions with arch-specific files

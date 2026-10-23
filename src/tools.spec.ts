@@ -2,6 +2,8 @@ import { type ToolMetadata, tools } from '@containerbase/base';
 import { describe, expect, it } from 'vitest';
 import { type AssetTemplate, mayCompute } from './files.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
+import { versionings } from './versioning.ts';
+import { isPlainSemver } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
 
@@ -17,6 +19,16 @@ describe('tools', () => {
           .filter((tool) => metadata[tool]?.type)
           .sort(),
       );
+    });
+
+    it('has minCb ranges with a version of the tool and a semver containerbase version', () => {
+      const invalid = Object.entries(toolSources).flatMap(([tool, { versioning, minCb = [] }]) =>
+        minCb
+          .filter(({ from, cb }) => !versionings[versioning].isValid(from) || !isPlainSemver(cb))
+          .map(({ from, cb }) => `${tool}: ${from} ${cb}`),
+      );
+
+      expect(invalid).toEqual([]);
     });
 
     it('maps the containerbase prebuild tools with their versioning', () => {

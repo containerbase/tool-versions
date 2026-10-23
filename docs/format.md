@@ -58,6 +58,7 @@ Optional fields are omitted when unknown.
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
 | `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
+| `versions[].minCb`             | semver                        | the oldest containerbase version which can install the version, only set when needed, see below    |
 | `versions[].archs`             | list of `amd64`, `arm64`      | the archs with a file of the version, sorted, only in `<tool>.json`, see below                     |
 | `versions[].distros`           | list of codenames             | the distros with a file of the version, sorted, only in `<tool>.json`, see below                   |
 | `files`                        | list                          | the files of a version, sorted by name, only in the per-version files                              |
@@ -80,6 +81,12 @@ It is removed with the next format major ([#146](https://github.com/containerbas
 - Tools from PyPI have `requires_python` as the `python` constraint.
   It is the first one of the files which are not yanked.
 - Tools from RubyGems have `required_ruby_version` as the `ruby` constraint, unless it accepts any ruby (`>= 0`).
+
+`versions[].minCb` is only set on releases which an older containerbase can't install, like a new version scheme:
+
+- Readers skip releases whose `minCb` is above their containerbase version.
+  `dev` builds of containerbase don't filter.
+- Readers which don't know the field ignore it.
 
 `versions[].archs` and `versions[].distros` list the `files[].arch` and `files[].distro` of the version, so a version can be resolved without its files:
 

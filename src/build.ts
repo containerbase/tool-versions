@@ -25,13 +25,14 @@ import type {
   PreviousToolVersions,
   Source,
   ToolIndex,
+  ToolSource,
   ToolVersion,
   ToolVersions,
 } from './schema.ts';
 import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { belowMinimum, versionings } from './versioning.ts';
-import { sortVersions } from './versions.ts';
+import { isPlainSemver, sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
 
@@ -40,7 +41,7 @@ export interface BuildOptions {
   /** the output folder */
   dir: string;
   /** the tools to build and their sources */
-  sources?: Record<string, Source>;
+  sources?: Record<string, ToolSource>;
   /** the time to put into the files */
   now?: Date;
   /** fetch every version again, without the previous state */
@@ -202,21 +203,63 @@ function withoutBelowDistroMinimum(
 }
 
 /**
+ * Checks the `minCb` ranges of a tool: every `from` must be a valid version in
+ * the versioning of the tool and every `cb` a plain semver version.
+ * @param tool - the tool name
+ * @param source - the source of the tool
+ * @throws when a range is invalid
+ */
+function assertMinCb(tool: string, { versioning, minCb = [] }: ToolSource): void {
+  const { isValid } = versionings[versioning];
+  for (const { from, cb } of minCb) {
+    if (!isValid(from)) {
+      throw new Error(`${tool}: minCb from ${from} is not a valid ${versioning} version`);
+    }
+    if (!isPlainSemver(cb)) {
+      throw new Error(`${tool}: minCb ${cb} is not a valid semver version`);
+    }
+  }
+}
+
+/**
+ * Sets the `minCb` of the versions from the first version of a range on, the
+ * highest matching range wins. Versions below every range, or which are no
+ * valid version of the versioning, get none, so a stale `minCb` of a previously
+ * published version is removed.
+ * @param source - the source of the tool
+ * @param versions - the versions of the tool
+ */
+function withMinCb({ versioning, minCb = [] }: ToolSource, versions: ToolVersion[]): ToolVersion[] {
+  const { isValid, compare } = versionings[versioning];
+  const ranges = [...minCb].sort((a, b) => compare(b.from, a.from));
+  return versions.map(({ minCb: _minCb, ...entry }) => {
+    const range = isValid(entry.version)
+      ? ranges.find(({ from }) => compare(entry.version, from) >= 0)
+      : undefined;
+    return range ? { ...entry, minCb: range.cb } : entry;
+  });
+}
+
+/**
  * Leaves out the versions older than the minimum version of the tool, in the
  * versioning of its source, the files of a distro for versions older than its
- * minimum, and the versions which can't be installed.
+ * minimum, and the versions which can't be installed. The remaining versions
+ * get their `minCb`.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param versions - the versions of the tool
  */
-function publishable(tool: string, source: Source, versions: ToolVersion[]): ToolVersion[] {
+function publishable(tool: string, source: ToolSource, versions: ToolVersion[]): ToolVersion[] {
   const isTooOld = belowMinimum(source.versioning, minVersionOf(tool));
-  return installable(
-    tool,
-    withoutBelowDistroMinimum(
+  return withMinCb(
+    source,
+    installable(
       tool,
-      source,
-      versions.filter(({ version }) => !isTooOld(version)),
+      withoutBelowDistroMinimum(
+        tool,
+        source,
+        versions.filter(({ version }) => !isTooOld(version)),
+      ),
     ),
   );
 }
@@ -235,7 +278,7 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
  */
 async function fetchVersions(
   tool: string,
-  source: Source,
+  source: ToolSource,
   published: ToolVersion[],
 ): Promise<ToolVersion[]> {
   const previous =
@@ -311,7 +354,7 @@ function computesChecksums(tool: string, source: Source): boolean {
  * previous file is left out, the other tools are still written.
  * @param options - the build options
  * @returns the tools which failed without a previous file
- * @throws when a mapped tool is unknown to `@containerbase/base`
+ * @throws when a mapped tool is unknown to `@containerbase/base`, or has an invalid `minCb`
  */
 export async function build({
   dir,
@@ -327,6 +370,7 @@ export async function build({
   }
 
   for (const [tool, source] of Object.entries(sources)) {
+    assertMinCb(tool, source);
     const minVersion = minVersionOf(tool);
     if (minVersion !== undefined && !versionings[source.versioning].isValid(minVersion)) {
       logWarning(

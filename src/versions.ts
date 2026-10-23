@@ -127,3 +127,12 @@ export function isSemverPrerelease(version: string): boolean {
 export function isSemver(version: string): boolean {
   return semver.valid(version) !== null;
 }
+
+/**
+ * Checks if a version is a plain semver version, as it is written: without a
+ * `v` prefix, spaces or any other normalisation.
+ * @param version - the version to check
+ */
+export function isPlainSemver(version: string): boolean {
+  return semver.valid(version) === version;
+}

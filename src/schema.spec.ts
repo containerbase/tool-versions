@@ -145,6 +145,15 @@ describe('schema', () => {
       );
     });
 
+    it('accepts a plain semver minCb', () => {
+      const version = { version: '0.6.0.1', minCb: '14.51.0' };
+      expect(ToolVersion.parse(version)).toEqual(version);
+    });
+
+    it.each(['v14.51.0', '14', ' 14.51.0', 'latest'])('rejects the minCb %j', (minCb) => {
+      expect(ToolVersion.safeParse({ version: '3.14.8', minCb }).success).toBe(false);
+    });
+
     it('accepts archs', () => {
       const version = { version: '3.14.8', archs: ['amd64', 'arm64'] };
       expect(ToolVersion.parse(version)).toEqual(version);
