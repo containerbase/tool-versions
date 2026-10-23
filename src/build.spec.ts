@@ -984,9 +984,12 @@ describe('build', () => {
     /**
      * Builds `distro-test` from a previous file, as the fetch fails.
      * @param source - the source of the tool
-     * @param extra - more versions of the previous file
+     * @param versions - the versions of the previous file, in its order
      */
-    async function buildMinCb(source: ToolSource, extra: string[] = []): Promise<void> {
+    async function buildMinCb(
+      source: ToolSource,
+      versions = ['3.1.0', '3.0.0', '3.0.0-rc.1', '2.5.0', '2.0.0', '1.5.0'],
+    ): Promise<void> {
       const previous: ToolVersions = {
         tool: 'distro-test',
         source: {
@@ -997,25 +1000,19 @@ describe('build', () => {
         updatedAt: '2026-10-07T03:00:00.000Z',
         // a stale range of the previous file is replaced
         minCb: [{ version: '1.5.0', cb: '9.9.9' }],
-        versions: [
-          { version: '3.1.0' },
-          { version: '3.0.0' },
-          { version: '3.0.0-rc.1' },
-          { version: '2.5.0' },
-          { version: '2.0.0' },
-          { version: '1.5.0' },
-          ...extra.map((version) => ({ version })),
-        ].map((entry) => ({
-          ...entry,
-          files: [
-            {
-              name: `a-${entry.version}.tgz`,
-              url: `https://example.com/a-${entry.version}.tgz`,
-              checksum: `sha256:${'e'.repeat(64)}`,
-              arch: 'amd64' as const,
-            },
-          ],
-        })),
+        versions: versions
+          .map((version) => ({ version }))
+          .map((entry) => ({
+            ...entry,
+            files: [
+              {
+                name: `a-${entry.version}.tgz`,
+                url: `https://example.com/a-${entry.version}.tgz`,
+                checksum: `sha256:${'e'.repeat(64)}`,
+                arch: 'amd64' as const,
+              },
+            ],
+          })),
       };
       const previousArchive = await archiveOf(previous);
       nock('https://api.github.com')
@@ -1062,14 +1059,35 @@ describe('build', () => {
     });
 
     it('starts the range at the lowest listed of versions which compare equal', async () => {
-      // semver ignores the build metadata, so both compare equal
-      await buildMinCb({ ...minCbSource, minCb: [{ from: '2.0.0', cb: '14.0.0' }] }, [
-        '2.0.0+build',
-      ]);
+      // docker versions have missing numbers count as 0, so `1.0` and `1.0.0` are equal
+      await buildMinCb(
+        {
+          ...minCbSource,
+          versioning: 'docker',
+          minCb: [{ from: '1.0', cb: '14.0.0' }],
+        },
+        ['1.1', '1.0', '1.0.0', '0.9'],
+      );
 
       expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
-        { version: '2.0.0+build', cb: '14.0.0' },
+        { version: '1.0.0', cb: '14.0.0' },
       ]);
+    });
+
+    it('sorts the kept versions with the current versioning before resolving the ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [{ from: '2.0.0', cb: '14.0.0' }] }, [
+        '2.0.0',
+        '3.0.0',
+        '1.5.0',
+      ]);
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        '3.0.0',
+        '2.0.0',
+        '1.5.0',
+      ]);
+      expect(published.minCb).toEqual([{ version: '2.0.0', cb: '14.0.0' }]);
     });
 
     it('leaves out a range without a published version yet, and the stale ranges', async () => {

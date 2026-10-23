@@ -449,7 +449,12 @@ export async function build({
         data = {
           ...previous,
           source,
-          versions: fileNameSafe(tool, publishable(tool, source, previous.versions)),
+          // sorted with the current versioning, the minCb ranges rely on the
+          // order, after the versions which are not safe in a file name are gone
+          versions: sortVersions(
+            fileNameSafe(tool, publishable(tool, source, previous.versions)),
+            versionings[source.versioning].compare,
+          ),
         };
         status = 'kept previous';
         logWarning(`${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}`);
