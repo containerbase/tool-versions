@@ -280,10 +280,13 @@ describe('output', () => {
     expect(
       JSON.parse(await read('tool.schema.json')).properties.versions.items.properties.archs,
     ).toMatchObject({ type: 'array', minItems: 1, items: { enum: ['amd64', 'arm64'] } });
-    // any codename is allowed
     expect(
       JSON.parse(await read('tool.schema.json')).properties.versions.items.properties.distros,
-    ).toMatchObject({ type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } });
+    ).toMatchObject({
+      type: 'array',
+      minItems: 1,
+      items: { enum: ['jammy', 'noble', 'resolute'] },
+    });
     // build information, readers must not rely on it
     expect(JSON.parse(await read('tool.schema.json')).properties.source).toMatchObject({
       deprecated: true,
