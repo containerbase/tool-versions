@@ -119,7 +119,7 @@ ENV GRADLE_VERSION=8.14.6
 ENV GRADLE_VERSION=9.8.2
 
 # renovate: datasource=dart-version depName=dart
-ENV DART_VERSION=3.13.6
+ENV DART_VERSION=3.13.7
 
 # renovate: datasource=docker depName=ghc packageName=haskell versioning=docker
 ENV GHC_VERSION=9.14.1
