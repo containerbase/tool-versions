@@ -127,3 +127,20 @@ export function isSemverPrerelease(version: string): boolean {
 export function isSemver(version: string): boolean {
   return semver.valid(version) !== null;
 }
+
+/**
+ * A plain semver version, as it is written: `major.minor.patch` without a `v`
+ * prefix, spaces, leading zeros or build metadata, with an optional prerelease.
+ */
+export const plainSemver =
+  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$/;
+
+/**
+ * Checks if a version is a plain semver version, see {@link plainSemver}, which
+ * the semver package accepts too: it rejects parts above the largest safe
+ * integer and versions of more than 256 characters.
+ * @param version - the version to check
+ */
+export function isPlainSemver(version: string): boolean {
+  return plainSemver.test(version) && semver.valid(version) !== null;
+}

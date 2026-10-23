@@ -51,6 +51,7 @@ Optional fields are omitted when unknown.
 | `homepage`                     | url                           | the homepage                                                                                       |
 | `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                 |
 | `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key |
+| `minCb`                        | list of `version` and `cb`    | the oldest containerbase version which can install a version and the ones above it, see below      |
 | `source`                       | object                        | deprecated build information, don't use it, see below                                              |
 | `updatedAt`                    | UTC time                      | when the build ran                                                                                 |
 | `versions`                     | list                          | the versions, newest first, prereleases included                                                   |
@@ -80,6 +81,15 @@ It is removed with the next format major ([#146](https://github.com/containerbas
 - Tools from PyPI have `requires_python` as the `python` constraint.
   It is the first one of the files which are not yanked.
 - Tools from RubyGems have `required_ruby_version` as the `ruby` constraint, unless it accepts any ruby (`>= 0`).
+
+`minCb` is only present for tools with releases which an older containerbase can't install, like a new version scheme.
+Each entry is a `version` and the oldest containerbase version `cb` which can install it:
+
+- The range of an entry starts at its `version`: it applies to that version and to every version listed above it, as `versions` is sorted newest first.
+  Readers only need the list positions, not the versioning of the tool.
+- Readers skip the versions of an entry whose `cb` is above their containerbase version.
+  `dev` builds of containerbase don't filter.
+- Readers which don't know the field ignore it.
 
 `versions[].archs` and `versions[].distros` list the `files[].arch` and `files[].distro` of the version, so a version can be resolved without its files:
 

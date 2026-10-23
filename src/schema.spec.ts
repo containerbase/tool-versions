@@ -73,6 +73,23 @@ describe('schema', () => {
       );
     });
 
+    it('accepts the minCb ranges', () => {
+      const minCb = [{ version: '0.6.0.1', cb: '14.51.0' }];
+      expect(ToolVersions.parse({ ...data, minCb })).toEqual({ ...data, minCb });
+    });
+
+    it.each([
+      [[]],
+      [[{ version: '', cb: '14.51.0' }]],
+      [[{ version: '1.0.0', cb: 'v14.51.0' }]],
+      [[{ version: '1.0.0', cb: '14' }]],
+      [[{ version: '1.0.0', cb: ' 14.51.0' }]],
+      [[{ version: '1.0.0', cb: 'latest' }]],
+      [[{ version: '1.0.0', cb: '14.51.0+build' }]],
+    ])('rejects the minCb %j', (minCb) => {
+      expect(ToolVersions.safeParse({ ...data, minCb }).success).toBe(false);
+    });
+
     it.each(['sourceUrl', 'homepage'])('rejects a non-https %s', (field) => {
       expect(ToolVersions.safeParse({ ...data, [field]: 'http://example.com' }).success).toBe(
         false,

@@ -1,5 +1,6 @@
 import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
+import { plainSemver } from './versions.ts';
 
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
@@ -47,6 +48,26 @@ export const Source = z.object({
 });
 export type Source = z.infer<typeof Source>;
 
+/**
+ * The oldest containerbase version which can install the releases from a
+ * version of the tool on, in the versioning of the tool. It is configured, and
+ * resolved to a published version for the `<tool>.json` files.
+ */
+export const MinCb = z.object({
+  /** the first version of the range, in the versioning of the tool */
+  from: z.string(),
+  /** the oldest containerbase version, semver */
+  cb: z.string(),
+});
+export type MinCb = z.infer<typeof MinCb>;
+
+/** The source of a tool in the build, with the containerbase versions it needs. */
+export const ToolSource = Source.extend({
+  /** the ranges of releases which need a newer containerbase, not published in `source` */
+  minCb: z.array(MinCb).optional(),
+});
+export type ToolSource = z.infer<typeof ToolSource>;
+
 /** A file of a version: where to download it and how to verify it. */
 export const ToolFile = Base.ToolFile.extend({
   /** the containerbase arch, omitted for arch-independent files */
@@ -79,6 +100,22 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 
 /** The content of a `<tool>.json` file. */
 export const ToolVersions = Base.ToolVersions.extend({
+  /**
+   * the containerbase version a release and the releases above it need, newest
+   * version first, only for tools with releases which an older containerbase
+   * can't install
+   */
+  minCb: z
+    .array(
+      z.object({
+        /** the oldest listed version of the range, it applies to every version listed above it too */
+        version: z.string().min(1),
+        /** the oldest containerbase version which can install them, plain semver */
+        cb: z.string().regex(plainSemver, 'Invalid semver version'),
+      }),
+    )
+    .min(1)
+    .optional(),
   /**
    * build information, deprecated: readers must not rely on it, it is removed
    * with the next format major (#146)

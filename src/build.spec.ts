@@ -13,6 +13,7 @@ import {
   type Source,
   type ToolFile,
   ToolIndex,
+  type ToolSource,
   type ToolVersions,
 } from './schema.ts';
 import { toolSources } from './tools.ts';
@@ -966,6 +967,241 @@ describe('build', () => {
         .map(([tool]) => tool);
 
       expect(invalid).toEqual([]);
+    });
+  });
+
+  describe('minCb', () => {
+    const minCbSource: ToolSource = {
+      datasource: 'github-releases',
+      packageName: 'example/distro-test',
+      versioning: 'semver',
+      minCb: [
+        { from: '2.0.0', cb: '14.0.0' },
+        { from: '3.0.0', cb: '15.1.0' },
+      ],
+    };
+
+    /**
+     * Builds `distro-test` from a previous file, as the fetch fails.
+     * @param source - the source of the tool
+     * @param versions - the versions of the previous file, in its order
+     * @param previousMinCb - the ranges of the previous file, a stale one by default
+     */
+    async function buildMinCb(
+      source: ToolSource,
+      versions = ['3.1.0', '3.0.0', '3.0.0-rc.1', '2.5.0', '2.0.0', '1.5.0'],
+      previousMinCb = [{ version: '1.5.0', cb: '9.9.9' }],
+    ): Promise<void> {
+      const previous: ToolVersions = {
+        tool: 'distro-test',
+        source: {
+          datasource: 'github-releases',
+          packageName: 'example/distro-test',
+          versioning: 'semver',
+        },
+        updatedAt: '2026-10-07T03:00:00.000Z',
+        // a stale range of the previous file is replaced
+        minCb: previousMinCb,
+        versions: versions
+          .map((version) => ({ version }))
+          .map((entry) => ({
+            ...entry,
+            files: [
+              {
+                name: `a-${entry.version}.tgz`,
+                url: `https://example.com/a-${entry.version}.tgz`,
+                checksum: `sha256:${'e'.repeat(64)}`,
+                arch: 'amd64' as const,
+              },
+            ],
+          })),
+      };
+      const previousArchive = await archiveOf(previous);
+      nock('https://api.github.com')
+        .get('/repos/example/distro-test/releases')
+        .query({ per_page: '100' })
+        .times(3)
+        .reply(500);
+
+      await build({ dir, sources: { 'distro-test': source }, now, previousArchive });
+    }
+
+    /**
+     * Builds `distro-test` with some ranges and reads the published ranges.
+     * @param minCb - the configured ranges
+     */
+    async function publishedMinCb(minCb: ToolSource['minCb']): Promise<unknown> {
+      await buildMinCb({ ...minCbSource, minCb });
+      return JSON.parse(await read('distro-test.json')).minCb;
+    }
+
+    it('resolves the ranges to the oldest published version, newest first', async () => {
+      // 3.0.0-rc.1 is the first release of the new scheme, 2.0.0 is published
+      expect(
+        await publishedMinCb([
+          { from: '2.0.0', cb: '14.0.0' },
+          { from: '3.0.0-rc.1', cb: '15.1.0' },
+        ]),
+      ).toEqual([
+        { version: '3.0.0-rc.1', cb: '15.1.0' },
+        { version: '2.0.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('resolves a range which starts before a published version to the next one', async () => {
+      expect(await publishedMinCb([{ from: '2.2.0', cb: '14.0.0' }])).toEqual([
+        { version: '2.5.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('starts the range of a release after its prereleases', async () => {
+      expect(await publishedMinCb([{ from: '3.0.0', cb: '14.0.0' }])).toEqual([
+        { version: '3.0.0', cb: '14.0.0' },
+      ]);
+    });
+
+    it('starts the range at the lowest listed of versions which compare equal', async () => {
+      // docker versions have missing numbers count as 0, so `1.0` and `1.0.0` are equal
+      await buildMinCb(
+        {
+          ...minCbSource,
+          versioning: 'docker',
+          minCb: [{ from: '1.0', cb: '14.0.0' }],
+        },
+        ['1.1', '1.0', '1.0.0', '0.9'],
+      );
+
+      expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
+        { version: '1.0.0', cb: '14.0.0' },
+      ]);
+    });
+
+    const invalidWarning =
+      '::warning::distro-test: not every version is a valid docker version, keeping the previous minCb ranges\n';
+
+    it('keeps the previous order and ranges for versions which are invalid in the versioning', async () => {
+      // `v1.2.3` is no docker version, the range of `0.1.0` is no longer listed
+      await buildMinCb(
+        { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['1.5.0', 'v1.2.3'],
+        [
+          { version: '1.5.0', cb: '9.9.9' },
+          { version: '0.1.0', cb: '9.0.0' },
+        ],
+      );
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        '1.5.0',
+        'v1.2.3',
+      ]);
+      expect(published.minCb).toEqual([{ version: '1.5.0', cb: '9.9.9' }]);
+      expect(output).toContain(invalidWarning);
+    });
+
+    it('keeps the previous ranges for a single invalid version', async () => {
+      await buildMinCb(
+        { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['v1.2.3'],
+        [{ version: 'v1.2.3', cb: '9.9.9' }],
+      );
+
+      expect(JSON.parse(await read('distro-test.json')).minCb).toEqual([
+        { version: 'v1.2.3', cb: '9.9.9' },
+      ]);
+      expect(output).toContain(invalidWarning);
+    });
+
+    it('keeps the previous order and ranges for an invalid maven version', async () => {
+      // the maven compare doesn't throw, it would sort `1.0` above `abc`
+      await buildMinCb(
+        { ...minCbSource, versioning: 'maven', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['abc', '1.0'],
+        [{ version: '1.0', cb: '9.9.9' }],
+      );
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        'abc',
+        '1.0',
+      ]);
+      expect(published.minCb).toEqual([{ version: '1.0', cb: '9.9.9' }]);
+    });
+
+    it('sorts the kept versions with the current versioning before resolving the ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [{ from: '2.0.0', cb: '14.0.0' }] }, [
+        '2.0.0',
+        '3.0.0',
+        '1.5.0',
+      ]);
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        '3.0.0',
+        '2.0.0',
+        '1.5.0',
+      ]);
+      expect(published.minCb).toEqual([{ version: '2.0.0', cb: '14.0.0' }]);
+    });
+
+    it('leaves out a range without a published version yet, and the stale ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [{ from: '9.0.0', cb: '20.0.0' }] });
+
+      expect(JSON.parse(await read('distro-test.json'))).not.toHaveProperty('minCb');
+    });
+
+    it('publishes no minCb on the versions', async () => {
+      await buildMinCb(minCbSource);
+
+      const { versions } = JSON.parse(await read('distro-test.json'));
+      expect(versions).toHaveLength(6);
+      expect(versions.some((version: object) => 'minCb' in version)).toBe(false);
+    });
+
+    it('does not publish the ranges in the source', async () => {
+      await buildMinCb(minCbSource);
+
+      expect(JSON.parse(await read('distro-test.json')).source).toEqual({
+        datasource: 'github-releases',
+        packageName: 'example/distro-test',
+        versioning: 'semver',
+      });
+    });
+
+    it('removes the stale ranges of a tool without ranges', async () => {
+      await buildMinCb({ ...minCbSource, minCb: [] });
+
+      expect(JSON.parse(await read('distro-test.json'))).not.toHaveProperty('minCb');
+    });
+
+    it.each([
+      [
+        [{ from: 'latest', cb: '14.0.0' }],
+        'distro-test: minCb from latest is not a valid semver version',
+      ],
+      [[{ from: '2.0.0', cb: '14' }], 'distro-test: minCb 14 is not a valid semver version'],
+      [
+        [{ from: '2.0.0', cb: 'v14.51.0' }],
+        'distro-test: minCb v14.51.0 is not a valid semver version',
+      ],
+      [
+        [
+          { from: '2.0.0', cb: '14.0.0' },
+          { from: '2.0.0', cb: '15.0.0' },
+        ],
+        'distro-test: minCb from 2.0.0 is listed more than once',
+      ],
+      [
+        [
+          { from: '3.0.0', cb: '14.0.0' },
+          { from: '2.0.0', cb: '15.0.0' },
+        ],
+        'distro-test: minCb 14.0.0 from 3.0.0 is older than 15.0.0 from 2.0.0',
+      ],
+    ])('throws for an invalid range', async (minCb, message) => {
+      await expect(
+        build({ dir, sources: { 'distro-test': { ...minCbSource, minCb } }, now }),
+      ).rejects.toThrow(message);
     });
   });
 

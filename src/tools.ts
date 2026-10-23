@@ -6,7 +6,7 @@ import {
   type ToolFiles,
   computed,
 } from './files.ts';
-import type { Source } from './schema.ts';
+import type { Source, ToolSource } from './schema.ts';
 import { nightlyDate } from './versioning.ts';
 
 /**
@@ -32,9 +32,15 @@ function github(repository: string, versioning: Source['versioning'] = 'semver')
 /**
  * The tools to publish and the upstream source of their versions, the same one
  * the containerbase cli resolves and installs them from. The versioning is the
- * one Renovate uses for the tool.
+ * one Renovate uses for the tool. A `minCb` lists the ranges of releases which
+ * need a newer containerbase: the releases from `from` on, in the versioning of
+ * the tool, need at least the containerbase version `cb`. A `from` names the
+ * first release of the new scheme including its prereleases, like `3.0.0-rc.1`
+ * and not `3.0.0`, as prereleases sort below the release. It can be configured
+ * before upstream releases it: the range is published once a matching release
+ * exists, starting at the oldest one.
  */
-export const toolSources: Record<string, Source> = {
+export const toolSources: Record<string, ToolSource> = {
   'android-sdk-cmdline-tools': {
     datasource: 'android-sdk',
     packageName: 'cmdline-tools',
