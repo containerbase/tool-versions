@@ -40,16 +40,16 @@ describe('tools', () => {
         versioning,
       ];
       expect(prebuilds).toEqual({
-        composer: prebuild('composer'),
+        composer: prebuild('composer', 'composer'),
         erlang: prebuild('erlang', 'docker'),
-        flutter: prebuild('flutter'),
+        flutter: prebuild('flutter', 'npm'),
         git: prebuild('git'),
-        golang: prebuild('golang'),
+        golang: prebuild('golang', 'npm'),
         jb: prebuild('jb', 'loose'),
         maven: prebuild('maven', 'maven'),
         mono: prebuild('mono'),
         nix: prebuild('nix'),
-        php: prebuild('php'),
+        php: prebuild('php', 'composer'),
         python: prebuild('python', 'python'),
         ruby: prebuild('ruby', 'ruby'),
         skopeo: prebuild('skopeo'),
@@ -242,7 +242,7 @@ describe('tools', () => {
         terraform: {
           datasource: 'hashicorp-releases',
           packageName: 'terraform',
-          versioning: 'semver',
+          versioning: 'hashicorp',
         },
         gradle: { datasource: 'gradle-version', packageName: 'gradle', versioning: 'gradle' },
       });
@@ -262,9 +262,9 @@ describe('tools', () => {
           packageName: 'rust-lang/rust',
           versioning: 'rust-release-channel',
         },
-        dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'semver' },
-        ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'docker' },
-        cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'docker' },
+        dart: { datasource: 'dart-version', packageName: 'dart', versioning: 'npm' },
+        ghc: { datasource: 'haskell-downloads', packageName: 'ghc', versioning: 'pvp' },
+        cabal: { datasource: 'haskell-downloads', packageName: 'cabal', versioning: 'pvp' },
         java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
         'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
         'java-jre': { datasource: 'java-version', packageName: 'java-jre', versioning: 'npm' },
@@ -304,7 +304,7 @@ describe('tools', () => {
       expect(toolSources['protoc']).toEqual({
         datasource: 'github-releases',
         packageName: 'protocolbuffers/protobuf',
-        versioning: 'docker',
+        versioning: 'semver-coerced',
       });
     });
 
@@ -363,7 +363,7 @@ describe('tools', () => {
       expect(toolSources['android-sdk-cmdline-tools']).toEqual({
         datasource: 'android-sdk',
         packageName: 'cmdline-tools',
-        versioning: 'docker',
+        versioning: 'semver-coerced',
       });
       expect(toolLinks['android-sdk-cmdline-tools']).toEqual({
         homepage: 'https://developer.android.com/tools',

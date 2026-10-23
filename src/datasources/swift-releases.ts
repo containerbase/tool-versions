@@ -91,7 +91,7 @@ function releaseFiles(
  * @param _template - unused, the files are listed here
  * @param fetchFiles - whether to fetch the files at all
  * @param _hasTimestamp - unused, the release date is part of the list
- * @param versioning - which versions are valid and prereleases, `docker` by default
+ * @param versioning - which versions are valid and prereleases, `semver-coerced` by default
  * @param minVersion - the oldest version to read
  */
 export async function fetchSwiftReleases(
@@ -101,7 +101,7 @@ export async function fetchSwiftReleases(
   _template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
-  versioning: VersioningName = 'docker',
+  versioning: VersioningName = 'semver-coerced',
   minVersion?: string,
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];

@@ -57,16 +57,22 @@ export function belowMinimum(
 
 /** The versioning of each name, Renovate's versioning of the same name. */
 export const versionings: Record<VersioningName, Versioning> = {
+  composer: renovateVersioning('composer'),
+  conda: renovateVersioning('conda'),
+  deno: renovateVersioning('deno'),
   docker: renovateVersioning('docker'),
   gradle: renovateVersioning('gradle'),
+  hashicorp: renovateVersioning('hashicorp'),
   loose: renovateVersioning('loose'),
   maven: renovateVersioning('maven'),
   node: renovateVersioning('node'),
   npm: renovateVersioning('npm'),
   nuget: renovateVersioning('nuget'),
   pep440: renovateVersioning('pep440'),
+  pvp: renovateVersioning('pvp'),
   python: renovateVersioning('python'),
   ruby: renovateVersioning('ruby'),
   'rust-release-channel': renovateVersioning('rust-release-channel'),
   semver: renovateVersioning('semver'),
+  'semver-coerced': renovateVersioning('semver-coerced'),
 };

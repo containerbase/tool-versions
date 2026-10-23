@@ -216,7 +216,7 @@ describe('datasources/swift-releases', () => {
       undefined,
       true,
       undefined,
-      'docker',
+      'semver-coerced',
       '5.7',
     );
 

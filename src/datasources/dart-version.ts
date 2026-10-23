@@ -47,7 +47,7 @@ async function listVersions(): Promise<string[]> {
  * @param template - lists the files of a version
  * @param fetchFiles - whether to fetch the files at all
  * @param _hasTimestamp - unused, there are no release times
- * @param versioning - which versions are valid and prereleases, `semver` by default
+ * @param versioning - which versions are valid and prereleases, `npm` by default
  * @param minVersion - the oldest version to read, older releases are skipped so
  * their checksums aren't requested
  */
@@ -58,7 +58,7 @@ export async function fetchDartVersions(
   template?: ToolFiles,
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
-  versioning: VersioningName = 'semver',
+  versioning: VersioningName = 'npm',
   minVersion?: string,
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];

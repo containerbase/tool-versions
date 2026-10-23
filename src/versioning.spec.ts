@@ -104,6 +104,94 @@ describe('versioning', () => {
     });
   });
 
+  describe('versionings of the tools', () => {
+    it.each([
+      // swift
+      [
+        'semver-coerced',
+        ['6.1', '6.0.3', '6.0', '5.10.1', '6.0.1', '5.10'],
+        ['5.10', '5.10.1', '6.0', '6.0.1', '6.0.3', '6.1'],
+      ],
+      // protoc
+      ['semver-coerced', ['29.0', '3.21.12', '28.3', '25.1'], ['3.21.12', '25.1', '28.3', '29.0']],
+      // android-sdk-cmdline-tools
+      ['semver-coerced', ['13', '9', '14.1', '12.1.2', '11'], ['9', '11', '12.1.2', '13', '14.1']],
+      // ghc and cabal
+      [
+        'pvp',
+        ['9.8.2', '9.6.0.20230210', '9.10.1', '9.8.1'],
+        ['9.6.0.20230210', '9.8.1', '9.8.2', '9.10.1'],
+      ],
+      [
+        'pvp',
+        ['3.18.0.0', '3.10.3.0', '3.14.1.1', '3.14.1.0'],
+        ['3.10.3.0', '3.14.1.0', '3.14.1.1', '3.18.0.0'],
+      ],
+      // composer and php
+      [
+        'composer',
+        ['8.3.10', '8.3.9', '2.9.0-RC1', '2.8.12'],
+        ['2.8.12', '2.9.0-RC1', '8.3.9', '8.3.10'],
+      ],
+      // pixi
+      ['conda', ['0.40.0', '0.9.1', '0.40.1'], ['0.9.1', '0.40.0', '0.40.1']],
+      // terraform
+      [
+        'hashicorp',
+        ['1.10.0', '1.10.0-rc1', '1.9.8', '1.10.0-beta1'],
+        ['1.9.8', '1.10.0-beta1', '1.10.0-rc1', '1.10.0'],
+      ],
+    ] as const)('sorts %s versions', (name, versions, sorted) => {
+      expect([...versions].sort(versionings[name].compare)).toEqual(sorted);
+    });
+
+    it.each([
+      ['semver-coerced', '29.0-rc1', true, true],
+      ['semver-coerced', '6.0', true, false],
+      // a fourth part makes it no stable semver version
+      ['semver-coerced', '28.5.0.10', true, true],
+      ['semver-coerced', 'foo', false, false],
+      ['pvp', '9.6.0.20230210', true, false],
+      ['composer', '2.9.0-RC1', true, true],
+      ['composer', '8.3.10', true, false],
+      ['deno', '2.1.0', true, false],
+      ['deno', '2.1.0-rc.1', true, true],
+      ['conda', '0.40.0', true, false],
+      ['hashicorp', '1.10.0-rc1', true, true],
+      ['hashicorp', '1.9.8', true, false],
+      ['npm', '3.6.0-216.1.beta', true, true],
+    ] as const)('%s %s: valid %s, prerelease %s', (name, version, valid, prerelease) => {
+      const { isValid, isPrerelease } = versionings[name];
+
+      expect([isValid(version), valid && isPrerelease(version)]).toEqual([valid, prerelease]);
+    });
+
+    it('compares a prerelease equal to its release once coerced', () => {
+      expect(versionings['semver-coerced'].compare('29.0-rc1', '29.0')).toBe(0);
+      expect(versionings['semver-coerced'].compare('28.5.0.7', '28.5.0.10')).toBe(0);
+    });
+
+    it.each([
+      // swift, also the resolute minimum `6.4.0`
+      ['semver-coerced', '5.7', ['5.7', '5.7.1', '5.7.3', '5.8'], ['5.6.3']],
+      ['semver-coerced', '6.4.0', ['6.4', '6.4.1'], ['6.3.1']],
+      // protoc
+      ['semver-coerced', '3.0.0', ['3.0.0', '3.21.12', '25.1'], ['2.6.1']],
+      // ghc
+      ['pvp', '8.10.1', ['8.10.1', '8.10.7', '9.8.2'], ['8.8.4']],
+      // cabal
+      ['pvp', '3.4.1.0', ['3.4.1.0', '3.10.3.0', '3.18.0.0'], ['3.4.0.0', '3.2.0.0']],
+    ] as const)('keeps the %s versions from the minimum %s', (name, min, kept, dropped) => {
+      const isTooOld = belowMinimum(name, min);
+
+      expect(versionings[name].isValid(min)).toBe(true);
+      expect([...kept, ...dropped].map(isTooOld)).toEqual([
+        ...kept.map(() => false),
+        ...dropped.map(() => true),
+      ]);
+    });
+  });
+
   describe('belowMinimum', () => {
     it('finds the versions older than the minimum in the versioning', () => {
       const semver = belowMinimum('semver', '3.1.0');
