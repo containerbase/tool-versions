@@ -1069,6 +1069,20 @@ describe('build', () => {
         [{ from: '2.0.0', cb: 'v14.51.0' }],
         'distro-test: minCb v14.51.0 is not a valid semver version',
       ],
+      [
+        [
+          { from: '2.0.0', cb: '14.0.0' },
+          { from: '2.0.0', cb: '15.0.0' },
+        ],
+        'distro-test: minCb from 2.0.0 is listed more than once',
+      ],
+      [
+        [
+          { from: '3.0.0', cb: '14.0.0' },
+          { from: '2.0.0', cb: '15.0.0' },
+        ],
+        'distro-test: minCb 14.0.0 from 3.0.0 is older than 15.0.0 from 2.0.0',
+      ],
     ])('throws for an invalid range', async (minCb, message) => {
       await expect(
         build({ dir, sources: { 'distro-test': { ...minCbSource, minCb } }, now }),

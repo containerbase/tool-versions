@@ -87,6 +87,7 @@ It is removed with the next format major ([#146](https://github.com/containerbas
 - Readers skip releases whose `minCb` is above their containerbase version.
   `dev` builds of containerbase don't filter.
 - Readers which don't know the field ignore it.
+- Releases from the first prerelease of the new scheme on, like `3.0.0-rc.1`, get `minCb`.
 
 `versions[].archs` and `versions[].distros` list the `files[].arch` and `files[].distro` of the version, so a version can be resolved without its files:
 

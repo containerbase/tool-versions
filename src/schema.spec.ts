@@ -150,9 +150,12 @@ describe('schema', () => {
       expect(ToolVersion.parse(version)).toEqual(version);
     });
 
-    it.each(['v14.51.0', '14', ' 14.51.0', 'latest'])('rejects the minCb %j', (minCb) => {
-      expect(ToolVersion.safeParse({ version: '3.14.8', minCb }).success).toBe(false);
-    });
+    it.each(['v14.51.0', '14', ' 14.51.0', 'latest', '14.51.0+build'])(
+      'rejects the minCb %j',
+      (minCb) => {
+        expect(ToolVersion.safeParse({ version: '3.14.8', minCb }).success).toBe(false);
+      },
+    );
 
     it('accepts archs', () => {
       const version = { version: '3.14.8', archs: ['amd64', 'arm64'] };

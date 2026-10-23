@@ -32,7 +32,7 @@ import type {
 import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { belowMinimum, versionings } from './versioning.ts';
-import { isPlainSemver, sortVersions } from './versions.ts';
+import { compareSemver, isPlainSemver, sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
 
@@ -204,19 +204,35 @@ function withoutBelowDistroMinimum(
 
 /**
  * Checks the `minCb` ranges of a tool: every `from` must be a valid version in
- * the versioning of the tool and every `cb` a plain semver version.
+ * the versioning of the tool and every `cb` a plain semver version. No `from`
+ * may be listed twice, and with a growing `from` the `cb` must not go down.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @throws when a range is invalid
  */
-function assertMinCb(tool: string, { versioning, minCb = [] }: ToolSource): void {
-  const { isValid } = versionings[versioning];
+export function assertMinCb(tool: string, { versioning, minCb = [] }: ToolSource): void {
+  const { isValid, compare } = versionings[versioning];
   for (const { from, cb } of minCb) {
     if (!isValid(from)) {
       throw new Error(`${tool}: minCb from ${from} is not a valid ${versioning} version`);
     }
     if (!isPlainSemver(cb)) {
       throw new Error(`${tool}: minCb ${cb} is not a valid semver version`);
+    }
+  }
+  const ranges = [...minCb].sort((a, b) => compare(a.from, b.from));
+  for (const [i, { from, cb }] of ranges.entries()) {
+    const previous = ranges[i - 1];
+    if (!previous) {
+      continue;
+    }
+    if (compare(previous.from, from) === 0) {
+      throw new Error(`${tool}: minCb from ${from} is listed more than once`);
+    }
+    if (compareSemver(previous.cb, cb) > 0) {
+      throw new Error(
+        `${tool}: minCb ${cb} from ${from} is older than ${previous.cb} from ${previous.from}`,
+      );
     }
   }
 }

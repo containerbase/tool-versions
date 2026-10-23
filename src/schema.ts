@@ -1,6 +1,6 @@
 import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
-import { isPlainSemver } from './versions.ts';
+import { plainSemver } from './versions.ts';
 
 /** The upstream sources versions are fetched from. */
 export const DatasourceName = z.enum([
@@ -86,7 +86,7 @@ export const ToolVersion = Base.ToolVersion.extend({
    * the oldest containerbase version which can install the version, only set
    * when it needs a newer one than the others
    */
-  minCb: z.string().refine(isPlainSemver, 'Invalid semver version').optional(),
+  minCb: z.string().regex(plainSemver, 'Invalid semver version').optional(),
   /**
    * sorted, the archs which have a file of the version, only in the
    * `<tool>.json` files and only for versions with arch-specific files
