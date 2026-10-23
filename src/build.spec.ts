@@ -1074,6 +1074,24 @@ describe('build', () => {
       ]);
     });
 
+    it('keeps the previous versions when they can not be sorted, without minCb ranges', async () => {
+      // `v1.2.3` is no docker version
+      await buildMinCb(
+        { ...minCbSource, versioning: 'docker', minCb: [{ from: '1.0', cb: '14.0.0' }] },
+        ['1.5.0', 'v1.2.3'],
+      );
+
+      const published = JSON.parse(await read('distro-test.json'));
+      expect(published.versions.map(({ version }: { version: string }) => version)).toEqual([
+        '1.5.0',
+        'v1.2.3',
+      ]);
+      expect(published).not.toHaveProperty('minCb');
+      expect(output).toContain(
+        '::warning::distro-test: Error: Invalid docker version v1.2.3, keeping the previous order and leaving out the minCb ranges\n',
+      );
+    });
+
     it('sorts the kept versions with the current versioning before resolving the ranges', async () => {
       await buildMinCb({ ...minCbSource, minCb: [{ from: '2.0.0', cb: '14.0.0' }] }, [
         '2.0.0',

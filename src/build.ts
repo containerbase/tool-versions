@@ -433,6 +433,8 @@ export async function build({
     const logs: LogEntry[] = [];
     let data: ToolVersions | undefined;
     let status: ToolStatus = 'updated';
+    // the source to resolve the minCb ranges with
+    let rangesSource = source;
     startToolDownloads(computesChecksums(tool, source));
     collectLogs(logs);
     try {
@@ -445,17 +447,20 @@ export async function build({
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {
       if (previous) {
-        // with the current source, so it gets the current versioning
-        data = {
-          ...previous,
-          source,
+        let versions = fileNameSafe(tool, publishable(tool, source, previous.versions));
+        try {
           // sorted with the current versioning, the minCb ranges rely on the
           // order, after the versions which are not safe in a file name are gone
-          versions: sortVersions(
-            fileNameSafe(tool, publishable(tool, source, previous.versions)),
-            versionings[source.versioning].compare,
-          ),
-        };
+          versions = sortVersions(versions, versionings[source.versioning].compare);
+        } catch (sortErr) {
+          // versions of another versioning can't be sorted or resolved to ranges
+          rangesSource = { ...source, minCb: [] };
+          logWarning(
+            `${tool}: ${String(sortErr)}, keeping the previous order and leaving out the minCb ranges`,
+          );
+        }
+        // with the current source, so it gets the current versioning
+        data = { ...previous, source, versions };
         status = 'kept previous';
         logWarning(`${tool}: ${String(err)}, keeping the versions from ${previous.updatedAt}`);
       } else {
@@ -486,7 +491,7 @@ export async function build({
     if (!data) {
       continue;
     }
-    const files = await writeToolVersions(formatFolder, withMetadata(data, source));
+    const files = await writeToolVersions(formatFolder, withMetadata(data, rangesSource));
     index.tools.push({ tool, versionCount: data.versions.length, ...files });
   }
 
