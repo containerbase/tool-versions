@@ -282,7 +282,8 @@ const mavenVersioning: Versioning = {
 /**
  * Creates the check for versions older than the minimum a tool supports, in the
  * versioning of the tool. Without a minimum, or with one which is no valid
- * version of the versioning and can't be compared, nothing is too old.
+ * version of the versioning and can't be compared, nothing is too old. A version
+ * which isn't valid can't be compared either and isn't too old.
  * @param versioning - the versioning of the tool
  * @param minVersion - the oldest supported version, if the tool has one
  * @returns whether a valid version is older than the minimum
@@ -295,7 +296,7 @@ export function belowMinimum(
   if (minVersion === undefined || !isValid(minVersion)) {
     return () => false;
   }
-  return (version) => compare(version, minVersion) < 0;
+  return (version) => isValid(version) && compare(version, minVersion) < 0;
 }
 
 /** The versioning of each name. */
