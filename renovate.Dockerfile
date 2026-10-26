@@ -92,7 +92,7 @@ ENV ERLANG_VERSION=29.1.2.0
 ENV FLUTTER_VERSION=3.47.8
 
 # renovate: datasource=github-releases depName=flux packageName=fluxcd/flux2
-ENV FLUX_VERSION=2.9.6
+ENV FLUX_VERSION=2.10.0
 
 # renovate: datasource=github-releases depName=gh packageName=cli/cli
 ENV GH_VERSION=2.103.2
