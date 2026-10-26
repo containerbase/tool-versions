@@ -76,6 +76,8 @@ export type ToolSource = z.infer<typeof ToolSource>;
 
 /** A file of a version: where to download it and how to verify it. */
 export const ToolFile = Base.ToolFile.extend({
+  /** `<algorithm>:<lowercase hex>`, the readers' schema is lenient for unknown algorithms */
+  checksum: z.string().regex(/^(?:sha1:[0-9a-f]{40}|sha256:[0-9a-f]{64}|sha512:[0-9a-f]{128})$/),
   /** the containerbase arch, omitted for arch-independent files */
   arch: Base.Arch.optional(),
 });
