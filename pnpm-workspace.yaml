@@ -13,7 +13,9 @@ allowBuilds:
 overrides:
   dtrace-provider: '-'
 
-# our own packages are used right after their release
+# our own and renovate's packages are used right after their release, like in the renovate config
 minimumReleaseAgeExclude:
   - '@containerbase/base'
   - '@containerbase/oxlint-plugin'
+  - '@renovatebot/*'
+  - renovate
