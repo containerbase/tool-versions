@@ -234,7 +234,7 @@ ENV PIPENV_VERSION=2026.10.3
 ENV PIXI_VERSION=0.83.0
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=10.34.7
+ENV PNPM_VERSION=10.34.8
 
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=11.28.8
