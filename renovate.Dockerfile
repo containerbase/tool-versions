@@ -71,7 +71,7 @@ ENV DOTNET_VERSION=10.0.402
 ENV DOCKER_VERSION=28.5.2
 
 # renovate: datasource=github-releases depName=devbox packageName=jetify-com/devbox
-ENV DEVBOX_VERSION=0.18.4
+ENV DEVBOX_VERSION=0.18.5
 
 # renovate: datasource=github-releases depName=docker-compose packageName=docker/compose
 ENV DOCKER_COMPOSE_VERSION=5.6.1
