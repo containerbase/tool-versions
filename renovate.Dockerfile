@@ -92,7 +92,7 @@ ENV ERLANG_VERSION=29.1.2.0
 ENV FLUTTER_VERSION=3.47.8
 
 # renovate: datasource=github-releases depName=flux packageName=fluxcd/flux2
-ENV FLUX_VERSION=2.9.6
+ENV FLUX_VERSION=2.10.0
 
 # renovate: datasource=github-releases depName=gh packageName=cli/cli
 ENV GH_VERSION=2.103.2
@@ -234,7 +234,7 @@ ENV PIPENV_VERSION=2026.10.3
 ENV PIXI_VERSION=0.83.0
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=10.34.7
+ENV PNPM_VERSION=10.34.8
 
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=11.28.8
