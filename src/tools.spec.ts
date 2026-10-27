@@ -1,7 +1,7 @@
 import { type ToolMetadata, tools } from '@containerbase/base';
 import { describe, expect, it } from 'vitest';
 import { assertMinCb } from './build.ts';
-import { type AssetTemplate, mayCompute } from './files.ts';
+import { type AssetTemplate, mayCompute, tagPrefixes } from './files.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
@@ -185,6 +185,10 @@ describe('tools', () => {
       expect(assetTemplate('bun').tagPrefix).toBe('bun-v');
       expect(assetTemplate('kustomize').tagPrefix).toBe('kustomize/v');
       expect(assetTemplate('gh').tagPrefix).toBeUndefined();
+      expect(tagPrefixes(toolFiles['kustomize'])).toEqual(['kustomize/v']);
+      expect(tagPrefixes(toolFiles['docker'])).toEqual(['v', 'docker-v']);
+      expect(tagPrefixes(toolFiles['helm'])).toBeUndefined();
+      expect(tagPrefixes(toolFiles['gh'])).toBeUndefined();
       const lists = Object.entries(toolFiles).flatMap(([tool, template]) =>
         typeof template === 'object' && 'list' in template.checksum
           ? [[tool, template.checksum.list('2.0.0')]]

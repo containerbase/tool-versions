@@ -11,6 +11,7 @@ import {
   mayCompute,
   parsePrebuildName,
   runAll,
+  tagPrefixes,
   withFiles,
 } from '../files.ts';
 import { request } from '../http.ts';
@@ -119,7 +120,8 @@ function releaseTasks(
 
 /**
  * Fetches the releases of a GitHub repository. The leading `v` of a tag is
- * dropped, as `install-tool` does, or the prefix of an asset template. Drafts
+ * dropped, as `install-tool` does, or the first tag prefix of the template the
+ * tag starts with; tags without one of them are skipped. Drafts
  * and tags which are no valid version are skipped. A release is a prerelease when GitHub marks it as one or
  * its version has a prerelease part.
  * GitHub lists the newest releases first, so paging stops after the first page
@@ -150,6 +152,7 @@ export async function fetchGithubReleases(
 ): Promise<ToolVersion[]> {
   const { isValid, isPrerelease, compare } = versionings[versioning];
   const isTooOld = belowMinimum(versioning, minVersion);
+  const prefixes = tagPrefixes(template);
   const headers = githubHeaders();
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
   const tasks: (() => Promise<void>)[] = [];
@@ -158,8 +161,8 @@ export async function fetchGithubReleases(
     const res = await request(url, headers);
     let foundKnown = false;
     for (const release of GithubReleases.parse(await res.json())) {
-      const prefix = typeof template === 'object' ? template.tagPrefix : undefined;
-      if (prefix !== undefined && !release.tag_name.startsWith(prefix)) {
+      const prefix = prefixes?.find((p) => release.tag_name.startsWith(p));
+      if (prefixes !== undefined && prefix === undefined) {
         // a tag of something else in the repository
         continue;
       }
