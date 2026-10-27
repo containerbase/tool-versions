@@ -5,6 +5,7 @@ import {
   type AssetTemplate,
   type ToolFiles,
   computed,
+  withTagPrefixes,
 } from './files.ts';
 import type { Source, ToolSource } from './schema.ts';
 import { nightlyDate } from './versioning.ts';
@@ -506,20 +507,26 @@ export const toolFiles: Record<string, ToolFiles> = {
       return { name, url, checksumUrls: [`${url}.sha256`], algorithm: 'sha256', arch };
     });
   },
-  // the static builds have no checksums, they are computed
-  docker: computed((version) =>
-    (['amd64', 'arm64'] as const).map((arch) => {
-      const dir = arch === 'amd64' ? 'x86_64' : 'aarch64';
-      return {
-        // the file is `docker-<version>.tgz` in the folder of each architecture
-        name: `docker-${version}-${dir}.tgz`,
-        url: `https://download.docker.com/linux/static/stable/${dir}/docker-${version}.tgz`,
-        checksumUrls: [],
-        algorithm: 'sha256',
-        compute: true,
-        arch,
-      };
-    }),
+  // the static builds have no checksums, they are computed; the 29.x releases
+  // are tagged `docker-v<version>`, the older lines still `v<version>`, and the
+  // other modules have tags like `client/v0.6.2`
+  docker: withTagPrefixes(
+    computed((version) =>
+      (['amd64', 'arm64'] as const).map((arch) => {
+        const dir = arch === 'amd64' ? 'x86_64' : 'aarch64';
+        return {
+          // the file is `docker-<version>.tgz` in the folder of each architecture
+          name: `docker-${version}-${dir}.tgz`,
+          url: `https://download.docker.com/linux/static/stable/${dir}/docker-${version}.tgz`,
+          checksumUrls: [],
+          algorithm: 'sha256',
+          compute: true,
+          arch,
+        };
+      }),
+    ),
+    'v',
+    'docker-v',
   ),
   kubectl: (version) =>
     (['amd64', 'arm64'] as const).map((arch) => {

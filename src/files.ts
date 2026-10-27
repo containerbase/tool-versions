@@ -49,6 +49,33 @@ export function computed(template: FileTemplate): FileTemplate {
   return template;
 }
 
+/** The tag parts before the version of the templates which have them. */
+const prefixes = new WeakMap<FileTemplate, readonly string[]>();
+
+/**
+ * Sets the tag parts before the version of a template, for repositories whose
+ * tags aren't `v<version>` or `<version>`. A tag with none of them is skipped.
+ * @param template - the template
+ * @param tagPrefixes - the prefixes, the first one a tag starts with is used
+ * @returns the template
+ */
+export function withTagPrefixes(template: FileTemplate, ...tagPrefixes: string[]): FileTemplate {
+  prefixes.set(template, tagPrefixes);
+  return template;
+}
+
+/**
+ * The tag parts before the version of a template, `undefined` when its tags are
+ * `v<version>` or `<version>`.
+ * @param template - how the files are listed
+ */
+export function tagPrefixes(template: ToolFiles | undefined): readonly string[] | undefined {
+  if (typeof template === 'function') {
+    return prefixes.get(template);
+  }
+  return template?.tagPrefix === undefined ? undefined : [template.tagPrefix];
+}
+
 /** The containerbase arch of a file. */
 export type Arch = NonNullable<ToolFile['arch']>;
 

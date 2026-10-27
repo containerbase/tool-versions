@@ -3,7 +3,7 @@ import { stdout } from 'node:process';
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetDownloadBudget } from '../download.ts';
-import { type AssetTemplate, type FileTemplate, computed } from '../files.ts';
+import { type AssetTemplate, type FileTemplate, computed, withTagPrefixes } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
 
@@ -97,6 +97,33 @@ describe('datasources/github-releases', () => {
       { version: '3.9.0' },
     ]);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('takes the tags with any of the prefixes of a template function and strips it', async () => {
+    nock(api)
+      .get('/repos/moby/moby/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        release('docker-v29.9.2'),
+        release('client/v0.6.2'),
+        release('docker-v29.9.0-rc.2', true),
+        release('api/v1.56.1'),
+        release('v25.0.18'),
+      ]);
+
+    await expect(
+      fetchGithubReleases(
+        'moby/moby',
+        none,
+        new Map(),
+        withTagPrefixes(() => [], 'v', 'docker-v'),
+        false,
+      ),
+    ).resolves.toEqual([
+      { version: '29.9.2' },
+      { version: '29.9.0-rc.2', prerelease: true },
+      { version: '25.0.18' },
+    ]);
   });
 
   it('stops paging after a page with a known version', async () => {

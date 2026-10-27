@@ -22,7 +22,7 @@ Example: `helm`.
 - The versions are the releases of the upstream repository.
 - The files are the linux `amd64` and `arm64` assets, or urls built by a template in `src/tools.ts`.
 - The checksum is read from a checksum asset: one file per asset, or one list for all of them (downloaded once per release).
-- A tag prefix, like the one of `kustomize`, is set in `src/tools.ts`.
+- A tag prefix, like the one of `kustomize`, is set in `src/tools.ts`. A tool can have several, like `docker` with `v` and `docker-v`; tags with none of them are skipped.
 - A version without any file with a checksum isn't published.
 
 ## Other hosts
