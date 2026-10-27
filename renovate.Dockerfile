@@ -255,7 +255,7 @@ ENV POWERSHELL_VERSION=7.6.9
 ENV PYTHON_VERSION=3.10.22
 
 # renovate: datasource=github-releases depName=python packageName=containerbase/python-prebuild
-ENV PYTHON_VERSION=3.11.17
+ENV PYTHON_VERSION=3.11.18
 
 # renovate: datasource=github-releases depName=python packageName=containerbase/python-prebuild
 ENV PYTHON_VERSION=3.12.15
