@@ -174,7 +174,7 @@ ENV KUSTOMIZE_VERSION=5.8.3
 ENV MAVEN_VERSION=3.10.0
 
 # renovate: datasource=github-releases depName=mise packageName=jdx/mise
-ENV MISE_VERSION=2026.10.19
+ENV MISE_VERSION=2026.10.20
 
 # renovate: datasource=github-releases depName=mono packageName=containerbase/mono-prebuild
 ENV MONO_VERSION=6.14.1
