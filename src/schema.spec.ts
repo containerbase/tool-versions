@@ -73,6 +73,11 @@ describe('schema', () => {
       );
     });
 
+    it('accepts the lts flag only as true', () => {
+      expect(ToolVersions.parse({ ...data, lts: true })).toEqual({ ...data, lts: true });
+      expect(ToolVersions.safeParse({ ...data, lts: false }).success).toBe(false);
+    });
+
     it('accepts the minCb ranges', () => {
       const minCb = [{ version: '0.6.0.1', cb: '14.51.0' }];
       expect(ToolVersions.parse({ ...data, minCb })).toEqual({ ...data, minCb });

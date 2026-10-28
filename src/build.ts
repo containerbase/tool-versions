@@ -93,9 +93,10 @@ function hasFiles(tool: string): boolean {
 
 /**
  * Sets the `type`, `minVersion` and `distroMinVersion` of a tool from
- * `@containerbase/base`, its links from the mapping and the given `minCb`
- * ranges, and removes them when the tool has none, so a previously published
- * file gets the current ones.
+ * `@containerbase/base`, its links from the mapping, the given `minCb` ranges
+ * and the `lts` flag when one of its versions is an LTS release, and removes
+ * them when the tool has none, so a previously published file gets the current
+ * ones.
  * @param data - the tool versions
  * @param minCb - the published ranges of the tool
  */
@@ -105,6 +106,7 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
     type: _type,
     sourceUrl: _sourceUrl,
     homepage: _homepage,
+    lts: _lts,
     minVersion: _minVersion,
     distroMinVersion: _distroMinVersion,
     minCb: _minCb,
@@ -112,6 +114,7 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
   } = data;
   const type = metadata[tool]?.type;
   const { sourceUrl, homepage } = toolLinks[tool] ?? {};
+  const lts = data.versions.some((version) => version.lts);
   const minVersion = minVersionOf(tool);
   const distroMinVersion = distroMinVersionsOf(tool);
   return {
@@ -119,6 +122,7 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
     ...(type && { type }),
     ...(sourceUrl && { sourceUrl }),
     ...(homepage && { homepage }),
+    ...(lts && { lts }),
     ...(minVersion && { minVersion }),
     ...(Object.keys(distroMinVersion).length && { distroMinVersion }),
     ...(minCb.length && { minCb }),

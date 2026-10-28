@@ -49,6 +49,7 @@ Optional fields are omitted when unknown.
 | `type`                         | `dotnet`, `gem`, `npm`, `pip` | the package manager which installs the tool, from `@containerbase/base`                            |
 | `sourceUrl`                    | url                           | where the source code lives, for changelogs                                                        |
 | `homepage`                     | url                           | the homepage                                                                                       |
+| `lts`                          | `true`                        | the tool has LTS release streams, like `node` and `java`, only present when true                   |
 | `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                 |
 | `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key |
 | `minCb`                        | list of `version` and `cb`    | the oldest containerbase version which can install a version and the ones above it, see below      |
