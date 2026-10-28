@@ -228,12 +228,13 @@ describe('build', () => {
     });
 
     expect(failed).toEqual([]);
-    // the previous file gets the current type and links
+    // the previous file gets the current type, links and lts flag
     expect(JSON.parse(await read('pnpm.json'))).toEqual({
       $schema: `${schemas}/tool.schema.json`,
       ...previous,
       type: 'npm',
       ...pnpmLinks,
+      lts: true,
     });
     expect(ToolIndex.parse(JSON.parse(await read('index.json')))).toEqual({
       $schema: `${schemas}/index.schema.json`,
@@ -339,6 +340,35 @@ describe('build', () => {
     const java = JSON.parse(await read('java.json'));
     expect(java).toMatchObject({ homepage: 'https://adoptium.net' });
     expect(java).not.toHaveProperty('sourceUrl');
+  });
+
+  it('flags a tool with an LTS release as lts', async () => {
+    const file = {
+      name: 'a.tar.gz',
+      url: 'https://example.com/a.tar.gz',
+      checksum: `sha256:${'a'.repeat(64)}`,
+    };
+    const previousArchive = await archiveOf({
+      tool: 'java',
+      source: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [
+        { version: '22.0.2+9', files: [file] },
+        { version: '21.0.5+11.0.LTS', lts: true, files: [file] },
+      ],
+    });
+    nock('https://api.adoptium.net').get('/v3/info/available_releases').times(3).reply(500);
+
+    await build({
+      dir,
+      sources: {
+        java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
+      },
+      now,
+      previousArchive,
+    });
+
+    expect(JSON.parse(await read('java.json'))).toMatchObject({ lts: true });
   });
 
   it('merges the fresh versions with the previous ones', async () => {

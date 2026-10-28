@@ -108,6 +108,8 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 
 /** The content of a `<tool>.json` file. */
 export const ToolVersions = Base.ToolVersions.extend({
+  /** whether the tool has LTS release streams, only set when one of its versions is an LTS release */
+  lts: z.literal(true).optional(),
   /**
    * the containerbase version a release and the releases above it need, newest
    * version first, only for tools with releases which an older containerbase
