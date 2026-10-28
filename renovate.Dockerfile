@@ -282,7 +282,7 @@ ENV RUBY_VERSION=4.0.9
 ENV RUST_VERSION=1.99.1
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
-ENV SBT_VERSION=1.13.0
+ENV SBT_VERSION=1.13.1
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
 ENV SBT_VERSION=2.0.11
