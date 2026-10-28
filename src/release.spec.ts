@@ -7,11 +7,13 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   BreakingChangeError,
+  buildTimeOf,
   createArchive,
   githubOutput,
   hasChanges,
   hasReleaseCommit,
   isReleaseDue,
+  latestVersion,
   nextVersion,
   planVersion,
   selectFiles,
@@ -180,6 +182,14 @@ describe('release', () => {
       expect(hasChanges(new Map([['a.txt', 'a']]), new Map([['a.txt', 'b']]))).toBe(true);
       expect(hasChanges(new Map([['a.json', '{']]), new Map([['a.json', '{']]))).toBe(false);
     });
+
+    it('ignores the release.json, which changes with every build', () => {
+      const before = new Map(previous).set('release.json', '{"version":"1.0.0"}\n');
+      const after = new Map(previous).set('release.json', '{"version":"1.0.1"}\n');
+
+      expect(hasChanges(before, after)).toBe(false);
+      expect(hasChanges(previous, after)).toBe(false);
+    });
   });
 
   describe('isReleaseDue', () => {
@@ -243,6 +253,35 @@ describe('release', () => {
     });
   });
 
+  describe('latestVersion', () => {
+    it('is the highest published version of the major version', () => {
+      expect(latestVersion(1, ['v1.0.9', 'v1.10.0', 'v2.0.0', 'v1.2.3', 'foo'])).toBe('1.10.0');
+      expect(latestVersion(1, ['1.0.1'])).toBe('1.0.1');
+    });
+
+    it('is undefined without a release of the major version', () => {
+      expect(latestVersion(1, [])).toBeUndefined();
+      expect(latestVersion(2, ['v1.0.0'])).toBeUndefined();
+    });
+  });
+
+  describe('buildTimeOf', () => {
+    it('is the updatedAt of the index of the format', () => {
+      const files = new Map([['v1/index.json', '{"updatedAt":"2026-10-16T11:05:00.000Z"}']]);
+
+      expect(buildTimeOf(files)).toBe('2026-10-16T11:05:00.000Z');
+    });
+
+    it.each([
+      ['no index', new Map<string, string>()],
+      ['an invalid index', new Map([['v1/index.json', '{']])],
+      ['an index without a time', new Map([['v1/index.json', '{"updatedAt":1}']])],
+      ['an index which is no object', new Map([['v1/index.json', '[]']])],
+    ])('is undefined for %s', (_name, files) => {
+      expect(buildTimeOf(files)).toBeUndefined();
+    });
+  });
+
   describe('githubOutput', () => {
     it('has the outputs of the step', () => {
       expect(githubOutput({ version: '1.0.3', changed: true })).toBe(
@@ -266,6 +305,8 @@ describe('release', () => {
         [
           'index.json',
           'formats.schema.json',
+          'release.json',
+          'release.schema.json',
           'v1/index.json',
           'v1/tool.schema.json',
           'v1/helm.json',
@@ -278,6 +319,8 @@ describe('release', () => {
       expect([...selectFiles(files).keys()]).toEqual([
         'index.json',
         'formats.schema.json',
+        'release.json',
+        'release.schema.json',
         'v1/index.json',
         'v1/tool.schema.json',
         'v1/helm.json',

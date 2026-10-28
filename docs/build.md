@@ -8,7 +8,7 @@ The `pages` workflow runs on every push to `main`, nightly and on demand.
 
 1. **Previous release:** the `build` job gets the tags of all releases. It downloads the archive of the latest release, verifies its `.sha512` and extracts it. It also lists the commit subjects since that tag.
 2. **Build:** `pnpm build --previous-archive <folder>` starts from the extracted archive, see [updates](#updates).
-3. **Pack:** `pnpm pack:release` packs the release archive, see [the release archive](#release-archive), and decides whether a release is due.
+3. **Pack:** `pnpm pack:release` decides whether a release is due, writes the root `release.json` into `dist/` and packs the release archive, see [the release archive](#release-archive).
 4. **Deploy:** the `deploy` job publishes `dist/` to GitHub Pages.
 5. **Release:** the `release` job creates the release, only when one is due.
 
@@ -71,7 +71,8 @@ The pages workflow runs it after the build and adds the number of files and the 
   - A breaking commit (`type!:` in the subject) of the major version of the latest release can't be released. The pack step doesn't fail, the site is deployed as usual, but it writes no archive and sets the outputs `breaking` and `error`. The `release` job then fails with the message and creates no release.
   - Once the code has a new format major, the breaking commit is released as `<major>.0.0`.
   - The previous release is the highest `v<major>.x.y` tag, tags of other majors and of no version are ignored. The first release of a major is `<major>.0.0`.
-- **Data change:** the new files differ from the previous release in other than the `updatedAt` of the files and the digests which follow from it.
+- **Data change:** the new files differ from the previous release in other than the `updatedAt` of the files, the digests which follow from it and the `release.json`.
+- **`release.json`:** the pack step writes it into the build output before packing, so the deployed site and the archive have the same file. It has the version of the new release, or of the latest release when none is due, and the `updatedAt` of `v1/index.json` as the `buildTime`. A breaking change, which blocks the release, keeps the version of the latest release too.
 - **Tags:** a release is tagged `v<version>`, like `v1.0.3`.
 - **Release notes:** the header with the version and date, the data changes (versions added and removed per tool, and versions which only gained, lost or changed files, at most 10 listed each, new and removed tools on their own line) and the code changes: the conventional commits since the previous tag (`--commits <file>` has their subjects, one per line), as features, bug fixes, performance improvements, reverts, breaking changes and other (`refactor`, `docs`), each with its pull request number. `chore`, `ci`, `test` and `build` commits aren't listed.
 

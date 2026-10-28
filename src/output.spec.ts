@@ -8,6 +8,7 @@ import {
   integrity,
   writeFormats,
   writeIndex,
+  writeRelease,
   writeSchemas,
   writeToolVersions,
 } from './output.ts';
@@ -263,6 +264,25 @@ describe('output', () => {
       type: 'object',
       required: ['defaultDistro', 'formats'],
     });
+    expect(JSON.parse(await read('release.schema.json'))).toMatchObject({
+      type: 'object',
+      required: ['version', 'buildTime'],
+    });
+  });
+
+  it('writes the release.json with its schema url', async () => {
+    await writeRelease(dir, { version: '1.2.1', buildTime: '2026-10-16T11:05:00.000Z' });
+
+    expect(await read('release.json')).toBe(
+      '{"$schema":"https://containerbase.github.io/tool-versions/release.schema.json","version":"1.2.1","buildTime":"2026-10-16T11:05:00.000Z"}\n',
+    );
+  });
+
+  it.each([
+    { version: 'v1.2.1', buildTime: '2026-10-16T11:05:00.000Z' },
+    { version: '1.2.1', buildTime: '2026-10-16' },
+  ])('rejects an invalid release %j', async (release) => {
+    await expect(writeRelease(dir, release)).rejects.toThrow();
   });
 
   it('writes the json schemas', async () => {

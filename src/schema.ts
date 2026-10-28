@@ -182,3 +182,17 @@ export type ToolIndex = z.infer<typeof ToolIndex>;
  */
 export const Formats = Base.FormatIndex;
 export type Formats = z.infer<typeof Formats>;
+
+/**
+ * The content of the root `release.json` file: the release the deployed data
+ * belongs to and when it was built, so a reader with embedded data can tell
+ * whether the online data is newer without fetching it.
+ */
+export const Release = z.object({
+  $schema: z.url({ protocol: /^https$/ }).optional(),
+  /** the version of the release, plain semver */
+  version: z.string().regex(plainSemver, 'Invalid semver version'),
+  /** when the build of the data started, in UTC, the `updatedAt` of its files */
+  buildTime: z.iso.datetime(),
+});
+export type Release = z.infer<typeof Release>;
