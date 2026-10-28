@@ -184,6 +184,11 @@ describe('tools', () => {
       expect(assetTemplate('gleam')).toMatchObject({ algorithm: 'sha512' });
       expect(assetTemplate('bun').tagPrefix).toBe('bun-v');
       expect(assetTemplate('kustomize').tagPrefix).toBe('kustomize/v');
+      expect(assetTemplate('jq').tagPrefix).toBe('jq-');
+      expect(assetTemplate('jq').files('1.8.1')).toEqual([
+        { arch: 'amd64', name: 'jq-linux-amd64' },
+        { arch: 'arm64', name: 'jq-linux-arm64' },
+      ]);
       expect(assetTemplate('gh').tagPrefix).toBeUndefined();
       expect(tagPrefixes(toolFiles['kustomize'])).toEqual(['kustomize/v']);
       expect(tagPrefixes(toolFiles['docker'])).toEqual(['v', 'docker-v']);

@@ -154,6 +154,10 @@ ENV JAVA_VERSION=21.0.13+9.0.LTS
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=25.0.5+8.0.LTS
 
+# the `jq-` tag prefix is stripped by a rule in .github/renovate.json
+# renovate: datasource=github-releases depName=jq packageName=jqlang/jq
+ENV JQ_VERSION=1.8.2
+
 # renovate: datasource=pypi depName=kas
 ENV KAS_VERSION=5.5
 
