@@ -88,6 +88,7 @@ export const toolSources: Record<string, ToolSource> = {
   java: { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   'java-jre': { datasource: 'java-version', packageName: 'java-jre', versioning: 'npm' },
+  jq: github('jqlang/jq'),
   kas: { datasource: 'pypi', packageName: 'kas', versioning: 'pep440' },
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
@@ -220,6 +221,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   java: { homepage: 'https://adoptium.net' },
   'java-jdk': { homepage: 'https://adoptium.net' },
   'java-jre': { homepage: 'https://adoptium.net' },
+  jq: { sourceUrl: 'https://github.com/jqlang/jq', homepage: 'https://jqlang.org' },
   kas: { sourceUrl: 'https://github.com/siemens/kas', homepage: 'https://kas.readthedocs.io' },
   kubectl: {
     sourceUrl: 'https://github.com/kubernetes/kubernetes',
@@ -412,6 +414,12 @@ export const toolFiles: Record<string, ToolFiles> = {
   helmfile: {
     files: perArch(goArch, (arch, v) => `helmfile_${v}_linux_${arch}.tar.gz`),
     checksum: { list: (v) => `helmfile_${v}_checksums.txt` },
+  },
+  jq: {
+    // the releases are tagged `jq-<version>`
+    tagPrefix: 'jq-',
+    files: perArch(goArch, (arch) => `jq-linux-${arch}`),
+    checksum: { list: () => 'sha256sum.txt' },
   },
   kustomize: {
     // the other tags of the repository belong to other modules

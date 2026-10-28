@@ -19,6 +19,12 @@
       "minimumReleaseAge": "2 hours"
     },
     {
+      "description": "Strip the `jq-` prefix of the jq release tags",
+      "matchFileNames": ["renovate.Dockerfile"],
+      "matchPackageNames": ["jqlang/jq"],
+      "extractVersion": "^jq-(?<version>.+)$"
+    },
+    {
       "description": "Update pnpm in the rebuild trigger file and the repo's own pnpm in one PR to save CI runs; no separate patch branch, which would split the group",
       "matchPackageNames": ["pnpm"],
       "groupName": "pnpm",
