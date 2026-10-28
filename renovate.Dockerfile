@@ -285,7 +285,7 @@ ENV RUST_VERSION=1.99.1
 ENV SBT_VERSION=1.13.1
 
 # renovate: datasource=github-releases depName=sbt packageName=sbt/sbt
-ENV SBT_VERSION=2.0.11
+ENV SBT_VERSION=2.0.12
 
 # renovate: datasource=github-releases depName=scala packageName=scala/scala
 ENV SCALA_VERSION=2.12.21
