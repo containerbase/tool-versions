@@ -12,7 +12,7 @@ import {
 } from './download.ts';
 import { isUnsupportedDistro, mayCompute } from './files.ts';
 import { formatDir } from './formats.ts';
-import { type LogEntry, collectLogs, logError, logWarning } from './log.ts';
+import { type LogEntry, collectLogs, logError, logNotice, logWarning } from './log.ts';
 import {
   fileNameSafe,
   writeFormats,
@@ -331,15 +331,24 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
 }
 
 /**
+ * How old a new version must be before it is published: a registry can list a
+ * release before all its downloads are reachable.
+ */
+const minimumReleaseAge = 60 * 60 * 1000;
+
+/**
  * Fetches the versions of a tool and merges them with the previous ones. The
  * fresh flags win, and versions which disappeared upstream are kept. Previous
  * files and release times are kept for fresh versions without any. The
  * previous constraints always win, as a published release doesn't change: only
- * versions without previous constraints take the fresh ones.
+ * versions without previous constraints take the fresh ones. New versions
+ * younger than the minimum release age wait for a later build, versions
+ * without a release time are published right away.
  * @param tool - the tool name
  * @param source - the source of the tool
  * @param published - the previously published versions, without the rust
  * nightlies which are older than the published days
+ * @param now - the time of the build, for the minimum release age
  * @returns the versions, and the version of the `latest` tag for sources which have one
  * @throws when the fetch fails or there are no versions at all
  */
@@ -347,6 +356,7 @@ async function fetchVersions(
   tool: string,
   source: ToolSource,
   published: ToolVersion[],
+  now: Date,
 ): Promise<FetchedVersions> {
   const previous =
     source.datasource === 'rust-version'
@@ -378,7 +388,19 @@ async function fetchVersions(
     source.versioning,
     minVersionOf(tool),
   );
-  const { versions: fetched, latest } = Array.isArray(result) ? { versions: result } : result;
+  const { versions: all, latest } = Array.isArray(result) ? { versions: result } : result;
+  const tooNew = all.filter(
+    ({ version, releaseTimestamp }) =>
+      !known.has(version) &&
+      releaseTimestamp !== undefined &&
+      now.getTime() - Date.parse(releaseTimestamp) < minimumReleaseAge,
+  );
+  if (tooNew.length) {
+    logNotice(
+      `${tool}: ${tooNew.map(({ version }) => version).join(', ')} wait for the minimum release age of 1 hour`,
+    );
+  }
+  const fetched = all.filter((entry) => !tooNew.includes(entry));
   const fresh = fetched.map((entry) => {
     const keptFiles = files.get(entry.version);
     const keptTimestamp = timestamps.get(entry.version);
@@ -477,7 +499,12 @@ export async function build({
     startToolDownloads(computesChecksums(tool, source));
     collectLogs(logs);
     try {
-      const { versions, latest } = await fetchVersions(tool, source, previous?.versions ?? []);
+      const fetched = await fetchVersions(tool, source, previous?.versions ?? [], now);
+      const { versions } = fetched;
+      // a `latest` which still waits for the minimum release age keeps the previous one
+      const latest = versions.some(({ version }) => version === fetched.latest)
+        ? fetched.latest
+        : previous?.latest;
       data = { tool, source, updatedAt, ...(latest && { latest }), versions };
       minCb = minCbRanges(tool, source, data.versions, previous?.minCb);
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
