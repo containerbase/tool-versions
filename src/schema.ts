@@ -103,6 +103,8 @@ export const ToolVersion = Base.ToolVersion.extend({
   distros: z.array(Base.DistroCode).min(1).optional(),
   /** sorted by name, not in the `<tool>.json` files, but in the `<tool>/<version>.json` ones */
   files: z.array(ToolFile).min(1).optional(),
+  /** whether the registry marks the version as deprecated, only for npm tools */
+  deprecated: z.literal(true).optional(),
 });
 export type ToolVersion = z.infer<typeof ToolVersion>;
 
@@ -110,6 +112,8 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 export const ToolVersions = Base.ToolVersions.extend({
   /** whether the tool has LTS release streams, only set when one of its versions is an LTS release */
   lts: z.literal(true).optional(),
+  /** the version of the `latest` dist-tag, only for npm tools and only when it is listed */
+  latest: z.string().min(1).optional(),
   /**
    * the containerbase version a release and the releases above it need, newest
    * version first, only for tools with releases which an older containerbase

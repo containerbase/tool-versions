@@ -1,16 +1,17 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import type { ToolVersion } from '../schema.ts';
 import { fetchNpmVersions } from './npm.ts';
 
 const registry = 'https://registry.npmjs.org';
 const abbreviated = 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*';
 
 /**
- * Fetches the versions of a package, with the versions which have a release time.
+ * Fetches a package, with the versions which have a release time.
  * @param packageName - the npm package name
  * @param hasTimestamp - the versions which already have a release time
  */
-async function fetchVersions(
+async function fetchPackage(
   packageName: string,
   hasTimestamp: string[],
 ): ReturnType<typeof fetchNpmVersions> {
@@ -24,6 +25,15 @@ async function fetchVersions(
   );
 }
 
+/**
+ * Fetches the versions of a package, with the versions which have a release time.
+ * @param packageName - the npm package name
+ * @param hasTimestamp - the versions which already have a release time
+ */
+async function fetchVersions(packageName: string, hasTimestamp: string[]): Promise<ToolVersion[]> {
+  return (await fetchPackage(packageName, hasTimestamp)).versions;
+}
+
 describe('datasources/npm', () => {
   beforeAll(() => {
     nock.disableNetConnect();
@@ -33,7 +43,7 @@ describe('datasources/npm', () => {
     nock.cleanAll();
   });
 
-  it('flags prereleases and sorts newest first', async () => {
+  it('flags prereleases and deprecated versions and sorts newest first', async () => {
     const scope = nock(registry, { reqheaders: { accept: abbreviated } })
       .get('/pnpm')
       .reply(200, {
@@ -50,12 +60,41 @@ describe('datasources/npm', () => {
     await expect(
       fetchVersions('pnpm', ['9.15.0', '10.0.0-rc.1', '10.0.0', '9.2.0']),
     ).resolves.toEqual([
-      { version: '10.0.0' },
+      { version: '10.0.0', deprecated: true },
       { version: '10.0.0-rc.1', prerelease: true },
       { version: '9.15.0' },
       { version: '9.2.0' },
     ]);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('returns the latest dist-tag, ignores an empty deprecation', async () => {
+    nock(registry)
+      .get('/pnpm')
+      .reply(200, {
+        'dist-tags': { latest: '9.15.0', next: '10.0.0' },
+        versions: { '10.0.0': {}, '9.15.0': { deprecated: '' } },
+      });
+
+    await expect(fetchPackage('pnpm', ['10.0.0', '9.15.0'])).resolves.toEqual({
+      versions: [{ version: '10.0.0' }, { version: '9.15.0' }],
+      latest: '9.15.0',
+    });
+  });
+
+  it.each([
+    ['an unlisted version', { 'dist-tags': { latest: 'invalid' } }],
+    ['no latest', { 'dist-tags': {} }],
+    ['no dist-tags', {}],
+    ['invalid dist-tags', { 'dist-tags': ['9.15.0'] }],
+  ])('returns no latest for %s', async (_name, tags) => {
+    nock(registry)
+      .get('/pnpm')
+      .reply(200, { ...tags, versions: { '9.15.0': {}, invalid: {} } });
+
+    await expect(fetchPackage('pnpm', ['9.15.0'])).resolves.toEqual({
+      versions: [{ version: '9.15.0' }],
+    });
   });
 
   it('only requests the abbreviated document when all versions have a release time', async () => {
@@ -174,6 +213,18 @@ describe('datasources/npm', () => {
       { version: '1.0.0-rc.1', prerelease: true },
     ]);
     expect(scope.isDone()).toBe(true);
+  });
+
+  it('takes the latest dist-tag of `@yarnpkg/cli-dist` for the merged yarn packages', async () => {
+    nock(registry)
+      .get('/@yarnpkg%2fcli-dist')
+      .reply(200, { 'dist-tags': { latest: '4.9.2' }, versions: { '4.9.2': {} } })
+      .get('/yarn')
+      .reply(200, { 'dist-tags': { latest: '1.22.22' }, versions: { '1.22.22': {} } });
+
+    await expect(fetchPackage('@yarnpkg/cli-dist', ['4.9.2', '1.22.22'])).resolves.toMatchObject({
+      latest: '4.9.2',
+    });
   });
 
   it('keeps the constraints of the merged yarn packages', async () => {
