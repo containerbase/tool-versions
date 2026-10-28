@@ -369,6 +369,38 @@ describe('build', () => {
     });
   });
 
+  it('publishes a new version only once it is older than the minimum release age', async () => {
+    const previousArchive = await archiveOf({
+      ...previousPnpm([{ version: '9.1.0', releaseTimestamp: '2026-10-08T11:50:00.000Z' }]),
+      latest: '9.1.0',
+    });
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, {
+        'dist-tags': { latest: '10.0.0' },
+        versions: { '10.0.0': {}, '9.2.0': {}, '9.1.0': {}, '9.0.0': {} },
+        time: {
+          // 30 minutes before the build, too new
+          '10.0.0': '2026-10-08T11:30:00.000Z',
+          '9.2.0': '2026-10-08T10:59:00.000Z',
+        },
+      });
+
+    await build({ dir, sources: pnpmSource, now, previousArchive });
+
+    const pnpm = JSON.parse(await read('pnpm.json'));
+    // the new latest waits too, the previous one stays; a known version and one
+    // without a release time are kept
+    expect(pnpm.latest).toBe('9.1.0');
+    expect(pnpm.versions.map(({ version }: { version: string }) => version)).toEqual([
+      '9.2.0',
+      '9.1.0',
+      '9.0.0',
+    ]);
+    expect(output).toContain('::notice::pnpm: 10.0.0 wait for the minimum release age of 1 hour\n');
+  });
+
   it('drops the latest version of the previous file when it is no longer listed', async () => {
     const previousArchive = await archiveOf({
       ...previousPnpm([{ version: '9.0.0' }]),

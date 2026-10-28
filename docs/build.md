@@ -21,6 +21,7 @@ Without a release yet, step 1 is skipped and the build doesn't get `--previous-a
 - Without it, like for the first release or with a local `pnpm build`, the build starts empty, like a full refresh. All checksums are computed again, limited by the [download budget](./sources.md#download-budget). It prints which previous state it used.
 - Known versions, files and release times are reused. Only missing ones are fetched.
 - Versions gone upstream stay listed.
+- **Minimum release age:** a new version is only published once its release time is 1 hour old, as a registry can list a release before all its downloads are reachable. Until then it is left out with a notice, and a `latest` which points to it keeps the previous one. Versions without a release time, like the ones of docker, are published right away, and published versions are never taken back.
 - Paged sources stop at the first known version. A full refresh fills older gaps.
 - **Full refresh:** run the `pages` workflow with the `full` input, or `pnpm build --full`. It ignores the previous state, also when there is a release.
 
