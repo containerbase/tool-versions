@@ -4,10 +4,11 @@ import { join } from 'node:path';
 import { defaultDistro } from '@containerbase/base';
 import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
-import { formats, formatsSchemaUrl, schemaUrl } from './formats.ts';
+import { formats, formatsSchemaUrl, releaseSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
 import {
   Formats,
+  Release,
   ToolIndex,
   type ToolVersion,
   ToolVersions,
@@ -158,8 +159,9 @@ export async function writeIndex(dir: string, index: ToolIndex): Promise<void> {
 
 /**
  * Writes the root `index.json`, which lists the published formats and has the
- * default distro of `@containerbase/base`, and its json schema
- * `formats.schema.json`.
+ * default distro of `@containerbase/base`, its json schema
+ * `formats.schema.json`, and the json schema `release.schema.json` of the
+ * `release.json` the pack step writes.
  * @param dir - the output folder, the root of the site
  */
 export async function writeFormats(dir: string): Promise<void> {
@@ -168,6 +170,20 @@ export async function writeFormats(dir: string): Promise<void> {
     Formats.parse({ $schema: formatsSchemaUrl, defaultDistro, formats }),
   );
   await writeJson(join(dir, 'formats.schema.json'), z.toJSONSchema(Formats));
+  await writeJson(join(dir, 'release.schema.json'), z.toJSONSchema(Release));
+}
+
+/**
+ * Writes the root `release.json` with the version of the release the data
+ * belongs to and its build time.
+ * @param dir - the output folder, the root of the site
+ * @param release - the version and the build time
+ */
+export async function writeRelease(dir: string, release: Release): Promise<void> {
+  await writeJson(
+    join(dir, 'release.json'),
+    Release.parse({ $schema: releaseSchemaUrl, ...release }),
+  );
 }
 
 /**

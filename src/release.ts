@@ -43,6 +43,37 @@ export function planVersion(
 }
 
 /**
+ * The minor and patch of the highest published version of a major version.
+ * @param major - the major version of the releases
+ * @param published - the published versions or their tags with a leading `v`,
+ * in any order, tags of other majors and of no version are ignored
+ */
+function latestOf(
+  major: number,
+  published: readonly string[],
+): { minor: number; patch: number } | undefined {
+  const versions = published.flatMap((tag) => {
+    const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag);
+    const [tagMajor, minor, patch] = match?.slice(1).map(Number) ?? [];
+    return tagMajor === major && minor !== undefined && patch !== undefined
+      ? [{ minor, patch }]
+      : [];
+  });
+  return versions.sort((a, b) => b.minor - a.minor || b.patch - a.patch)[0];
+}
+
+/**
+ * The highest published version of a major version, like `1.7.21`.
+ * @param major - the major version of the releases
+ * @param published - the published versions or their tags with a leading `v`
+ * @returns the version, `undefined` without a release of the major version
+ */
+export function latestVersion(major: number, published: readonly string[]): string | undefined {
+  const latest = latestOf(major, published);
+  return latest && `${major}.${latest.minor}.${latest.patch}`;
+}
+
+/**
  * Creates the version of the next release from the commits since the previous
  * one, like semantic-release: a `feat` commit is a minor release, anything else,
  * also only a change of the data, a patch release. The previous release is the
@@ -62,14 +93,7 @@ export function nextVersion(
   commits: readonly string[],
 ): string {
   const parsed = commits.flatMap((subject) => parseCommit(subject) ?? []);
-  const versions = published.flatMap((tag) => {
-    const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag);
-    const [tagMajor, minor, patch] = match?.slice(1).map(Number) ?? [];
-    return tagMajor === major && minor !== undefined && patch !== undefined
-      ? [{ minor, patch }]
-      : [];
-  });
-  const latest = versions.sort((a, b) => b.minor - a.minor || b.patch - a.patch)[0];
+  const latest = latestOf(major, published);
   if (!latest) {
     return `${major}.0.0`;
   }
@@ -137,8 +161,8 @@ function normalize(path: string, content: string): string {
 
 /**
  * Decides whether the data of a new release differs from the previous one,
- * ignoring what changes with every build: the `updatedAt` of the files and the
- * digests which follow from them.
+ * ignoring what changes with every build: the `updatedAt` of the files, the
+ * digests which follow from them, and the `release.json`.
  * @param previous - the files of the previous release
  * @param next - the files of the new release
  * @returns whether the new release has changes
@@ -146,6 +170,7 @@ function normalize(path: string, content: string): string {
 export function hasChanges(previous: FileMap, next: FileMap): boolean {
   const data = (files: FileMap): [string, string][] =>
     [...files]
+      .filter(([path]) => path !== 'release.json')
       .map(([path, content]): [string, string] => [path, normalize(path, content)])
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return JSON.stringify(data(previous)) !== JSON.stringify(data(next));
@@ -215,20 +240,41 @@ export async function readFiles(dir: string): Promise<Map<string, string>> {
   return files;
 }
 
+/** The client files at the root of the site, next to the folder of the format. */
+const rootFiles = new Set([
+  'index.json',
+  'formats.schema.json',
+  'release.json',
+  'release.schema.json',
+]);
+
 /**
- * Selects the client files of the build output: the root `index.json` and its
- * schema, and everything in the folder of the format. Other files, like a job
- * summary, are left out.
+ * Selects the client files of the build output: the root `index.json`, the
+ * `release.json` and their schemas, and everything in the folder of the
+ * format. Other files, like a job summary, are left out.
  * @param files - the files of the build output
  * @returns the files of the release archive
  */
 export function selectFiles(files: FileMap): Map<string, string> {
   return new Map(
-    [...files].filter(
-      ([path]) =>
-        path === 'index.json' || path === 'formats.schema.json' || path.startsWith(`${formatDir}/`),
-    ),
+    [...files].filter(([path]) => rootFiles.has(path) || path.startsWith(`${formatDir}/`)),
   );
+}
+
+/**
+ * The build time of the data: the `updatedAt` of the `index.json` of the
+ * format, when the build started.
+ * @param files - the files of the build output
+ * @returns the build time, `undefined` without a valid `index.json`
+ */
+export function buildTimeOf(files: FileMap): string | undefined {
+  const content = files.get(`${formatDir}/index.json`);
+  try {
+    const data: unknown = content === undefined ? undefined : JSON.parse(content);
+    return isRecord(data) && typeof data['updatedAt'] === 'string' ? data['updatedAt'] : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** What the release archive is made of, for the job summary. */

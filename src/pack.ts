@@ -2,12 +2,15 @@ import { appendFile, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
+import { writeRelease } from './output.ts';
 import { releaseNotes } from './release-notes.ts';
 import {
+  buildTimeOf,
   createArchive,
   githubOutput,
   hasReleaseCommit,
   isReleaseDue,
+  latestVersion,
   planVersion,
   readFiles,
   releaseMajor,
@@ -46,12 +49,27 @@ const commits = values.commits
   ? (await readFile(values.commits, 'utf8')).split('\n').filter(Boolean)
   : [];
 const { version, error } = planVersion(releaseMajor, values.published, commits);
+const previous = values.previous ? await readFiles(values.previous) : undefined;
+const next = selectFiles(await readFiles(values.from));
+// the first release doesn't wait for a commit
+const wanted =
+  values['release-on'] === 'any' || previous === undefined || hasReleaseCommit(commits);
+const changed = error === undefined && isReleaseDue(previous, next) && wanted;
+
+// the site describes the deployed data: the version of the new release, or of
+// the latest one when the build makes none
+const released = changed ? version : (latestVersion(releaseMajor, values.published) ?? version);
+if (released) {
+  await writeRelease(values.from, {
+    version: released,
+    buildTime: buildTimeOf(next) ?? new Date().toISOString(),
+  });
+}
+
 if (error === undefined) {
   await rm(values.to, { recursive: true, force: true });
   const info = await createArchive(values.from, values.to, version);
 
-  const previous = values.previous ? await readFiles(values.previous) : undefined;
-  const next = selectFiles(await readFiles(values.from));
   const notes = releaseNotes({
     version,
     date: new Date(),
@@ -67,11 +85,7 @@ if (error === undefined) {
     await appendFile(values.summary, `### Release archive ${version}\n\n${line}\n`);
   }
   if (values['github-output']) {
-    const due = isReleaseDue(previous, next);
-    // the first release doesn't wait for a commit
-    const wanted =
-      values['release-on'] === 'any' || previous === undefined || hasReleaseCommit(commits);
-    await appendFile(values['github-output'], githubOutput({ version, changed: due && wanted }));
+    await appendFile(values['github-output'], githubOutput({ version, changed }));
   }
 } else {
   // a breaking change blocks the release, but not the build: the release job

@@ -26,3 +26,6 @@ export function schemaUrl(name: string): string {
 
 /** The absolute url of the json schema of the root `index.json`. */
 export const formatsSchemaUrl = `${siteUrl}/formats.schema.json`;
+
+/** The absolute url of the json schema of the root `release.json`. */
+export const releaseSchemaUrl = `${siteUrl}/release.schema.json`;

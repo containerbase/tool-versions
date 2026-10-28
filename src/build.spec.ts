@@ -181,8 +181,14 @@ describe('build', () => {
     });
 
     expect(failed).toEqual(['npm', 'corepack']);
-    // the root has the index of the formats, everything else is in the format folder
-    expect((await readdir(dir)).sort()).toEqual(['formats.schema.json', 'index.json', 'v1']);
+    // the root has the index of the formats and the schema of the `release.json`
+    // the pack step writes, everything else is in the format folder
+    expect((await readdir(dir)).sort()).toEqual([
+      'formats.schema.json',
+      'index.json',
+      'release.schema.json',
+      'v1',
+    ]);
     expect(JSON.parse(await readFile(join(dir, 'index.json'), 'utf8'))).toEqual({
       $schema: 'https://containerbase.github.io/tool-versions/formats.schema.json',
       defaultDistro: 'noble',

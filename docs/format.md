@@ -21,6 +21,25 @@ Pin a major version of the format and read the root index only to warn when it i
 - `formats[].removalDate`: when a deprecated format is removed, only for those.
 - Schema: `formats.schema.json`.
 
+## Release
+
+[`release.json`](https://containerbase.github.io/tool-versions/release.json) has the release of the deployed data and when it was built.
+
+```json
+{
+  "$schema": "https://containerbase.github.io/tool-versions/release.schema.json",
+  "version": "1.7.22",
+  "buildTime": "2026-10-28T03:00:00.000Z"
+}
+```
+
+- `version`: the release the data belongs to. A build which makes no release keeps the version of the latest release.
+- `buildTime`: when the build of the data started, the `updatedAt` of `v1/index.json`. It changes with every build, also without a release.
+- The release archive has the same file as the site at the time of the release.
+- A reader with embedded data can fetch only this file and compare the `buildTime` to decide whether the online data is newer.
+- It is outside the format folders and the integrity chain, it doesn't change the data files.
+- Schema: `release.schema.json`.
+
 Everything else is in the folder of a format, `v1/` for now.
 
 ## Files
@@ -177,7 +196,7 @@ Which versions are listed:
 
 The client files are also attached to each GitHub release as `tool-versions-<version>.tar.xz`, with `tool-versions-<version>.tar.xz.sha512`.
 
-- The archive has the root `index.json`, `formats.schema.json` and the `v1/` folder, with the same paths as on the site.
+- The archive has the root `index.json`, `release.json`, their schemas and the `v1/` folder, with the same paths as on the site.
 - The next build starts from it: the `files` of a version are in its `<tool>/<version>.json`.
 - The `.sha512` file has the lowercase hex digest of the archive, like the ones of the containerbase prebuilds.
 - It is meant for embedding the data, like in the containerbase image.
