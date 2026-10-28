@@ -342,6 +342,39 @@ describe('build', () => {
     expect(java).not.toHaveProperty('sourceUrl');
   });
 
+  it('publishes the latest dist-tag and the deprecated versions of an npm tool', async () => {
+    nock(registry)
+      .get('/pnpm')
+      .times(2)
+      .reply(200, {
+        'dist-tags': { latest: '9.0.0' },
+        versions: { '10.0.0': {}, '9.0.0': {}, '8.0.0': { deprecated: 'use 9' } },
+      });
+
+    await build({ dir, sources: pnpmSource, now });
+
+    expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+      latest: '9.0.0',
+      versions: [
+        { version: '10.0.0' },
+        { version: '9.0.0' },
+        { version: '8.0.0', deprecated: true },
+      ],
+    });
+  });
+
+  it('drops the latest version of the previous file when it is no longer listed', async () => {
+    const previousArchive = await archiveOf({
+      ...previousPnpm([{ version: '9.0.0' }]),
+      latest: '8.0.0',
+    });
+    nock(registry).get('/pnpm').times(3).reply(500);
+
+    await build({ dir, sources: pnpmSource, now, previousArchive });
+
+    expect(JSON.parse(await read('pnpm.json'))).not.toHaveProperty('latest');
+  });
+
   it('flags a tool with an LTS release as lts', async () => {
     const file = {
       name: 'a.tar.gz',

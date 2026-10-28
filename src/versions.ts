@@ -9,24 +9,32 @@ import type { ToolVersion } from './schema.ts';
 export interface VersionFlags {
   prerelease?: boolean | undefined;
   lts?: boolean | undefined;
+  deprecated?: boolean | undefined;
   releaseTimestamp?: string | undefined;
   constraints?: Record<string, string> | undefined;
+}
+
+/** The versions of a package and the version its `latest` tag points to, for sources which have one. */
+export interface FetchedVersions {
+  versions: ToolVersion[];
+  latest?: string | undefined;
 }
 
 /**
  * Creates a version entry which only carries the flags that are true, and the
  * release time and the constraints when they are known.
  * @param version - the version as `install-tool` accepts it
- * @param flags - the prerelease and lts flags, the release time and the constraints
+ * @param flags - the prerelease, lts and deprecated flags, the release time and the constraints
  */
 export function toolVersion(
   version: string,
-  { prerelease, lts, releaseTimestamp, constraints }: VersionFlags = {},
+  { prerelease, lts, deprecated, releaseTimestamp, constraints }: VersionFlags = {},
 ): ToolVersion {
   return {
     version,
     ...(prerelease && { prerelease }),
     ...(lts && { lts }),
+    ...(deprecated && { deprecated }),
     ...(releaseTimestamp && { releaseTimestamp }),
     ...(constraints && { constraints }),
   };

@@ -32,7 +32,7 @@ import type {
 import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { belowMinimum, versionings } from './versioning.ts';
-import { compareSemver, isPlainSemver, sortVersions } from './versions.ts';
+import { type FetchedVersions, compareSemver, isPlainSemver, sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
 
@@ -96,7 +96,7 @@ function hasFiles(tool: string): boolean {
  * `@containerbase/base`, its links from the mapping, the given `minCb` ranges
  * and the `lts` flag when one of its versions is an LTS release, and removes
  * them when the tool has none, so a previously published file gets the current
- * ones.
+ * ones. The `latest` version is dropped when it isn't listed.
  * @param data - the tool versions
  * @param minCb - the published ranges of the tool
  */
@@ -107,6 +107,7 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
     sourceUrl: _sourceUrl,
     homepage: _homepage,
     lts: _lts,
+    latest: fetchedLatest,
     minVersion: _minVersion,
     distroMinVersion: _distroMinVersion,
     minCb: _minCb,
@@ -115,6 +116,9 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
   const type = metadata[tool]?.type;
   const { sourceUrl, homepage } = toolLinks[tool] ?? {};
   const lts = data.versions.some((version) => version.lts);
+  const latest = data.versions.some(({ version }) => version === fetchedLatest)
+    ? fetchedLatest
+    : undefined;
   const minVersion = minVersionOf(tool);
   const distroMinVersion = distroMinVersionsOf(tool);
   return {
@@ -123,6 +127,7 @@ function withMetadata(data: ToolVersions, minCb: NonNullable<ToolVersions['minCb
     ...(sourceUrl && { sourceUrl }),
     ...(homepage && { homepage }),
     ...(lts && { lts }),
+    ...(latest && { latest }),
     ...(minVersion && { minVersion }),
     ...(Object.keys(distroMinVersion).length && { distroMinVersion }),
     ...(minCb.length && { minCb }),
@@ -335,13 +340,14 @@ function publishable(tool: string, source: Source, versions: ToolVersion[]): Too
  * @param source - the source of the tool
  * @param published - the previously published versions, without the rust
  * nightlies which are older than the published days
+ * @returns the versions, and the version of the `latest` tag for sources which have one
  * @throws when the fetch fails or there are no versions at all
  */
 async function fetchVersions(
   tool: string,
   source: ToolSource,
   published: ToolVersion[],
-): Promise<ToolVersion[]> {
+): Promise<FetchedVersions> {
   const previous =
     source.datasource === 'rust-version'
       ? published.filter(({ version }) => !isExpiredNightly(version))
@@ -362,7 +368,7 @@ async function fetchVersions(
       constraints ? [[version, constraints] as const] : [],
     ),
   );
-  const fetched = await fetch(
+  const result = await fetch(
     source.packageName,
     known,
     files,
@@ -372,6 +378,7 @@ async function fetchVersions(
     source.versioning,
     minVersionOf(tool),
   );
+  const { versions: fetched, latest } = Array.isArray(result) ? { versions: result } : result;
   const fresh = fetched.map((entry) => {
     const keptFiles = files.get(entry.version);
     const keptTimestamp = timestamps.get(entry.version);
@@ -390,7 +397,7 @@ async function fetchVersions(
   if (!versions.length) {
     throw new Error('No versions found');
   }
-  return versions;
+  return { versions, latest };
 }
 
 /**
@@ -470,12 +477,8 @@ export async function build({
     startToolDownloads(computesChecksums(tool, source));
     collectLogs(logs);
     try {
-      data = {
-        tool,
-        source,
-        updatedAt,
-        versions: await fetchVersions(tool, source, previous?.versions ?? []),
-      };
+      const { versions, latest } = await fetchVersions(tool, source, previous?.versions ?? []);
+      data = { tool, source, updatedAt, ...(latest && { latest }), versions };
       minCb = minCbRanges(tool, source, data.versions, previous?.minCb);
       stdout.write(`${tool}: ${data.versions.length} versions\n`);
     } catch (err) {

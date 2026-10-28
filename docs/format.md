@@ -50,6 +50,7 @@ Optional fields are omitted when unknown.
 | `sourceUrl`                    | url                           | where the source code lives, for changelogs                                                        |
 | `homepage`                     | url                           | the homepage                                                                                       |
 | `lts`                          | `true`                        | the tool has LTS release streams, like `node` and `java`, only present when true                   |
+| `latest`                       | string                        | the version of the npm `latest` dist-tag, only for npm tools and only when it is listed            |
 | `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                 |
 | `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key |
 | `minCb`                        | list of `version` and `cb`    | the oldest containerbase version which can install a version and the ones above it, see below      |
@@ -58,6 +59,7 @@ Optional fields are omitted when unknown.
 | `versions`                     | list                          | the versions, newest first, prereleases included                                                   |
 | `versions[].version`           | string                        | the exact `install-tool` version                                                                   |
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
+| `versions[].deprecated`        | `true`                        | the registry deprecates the version, only for npm tools and only present when true                 |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
 | `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
 | `versions[].archs`             | list of `amd64`, `arm64`      | the archs with a file of the version, sorted, only in `<tool>.json`, see below                     |

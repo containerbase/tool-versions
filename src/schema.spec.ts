@@ -78,6 +78,14 @@ describe('schema', () => {
       expect(ToolVersions.safeParse({ ...data, lts: false }).success).toBe(false);
     });
 
+    it('accepts the latest version, but no empty one', () => {
+      expect(ToolVersions.parse({ ...data, latest: '9.0.0' })).toEqual({
+        ...data,
+        latest: '9.0.0',
+      });
+      expect(ToolVersions.safeParse({ ...data, latest: '' }).success).toBe(false);
+    });
+
     it('accepts the minCb ranges', () => {
       const minCb = [{ version: '0.6.0.1', cb: '14.51.0' }];
       expect(ToolVersions.parse({ ...data, minCb })).toEqual({ ...data, minCb });
@@ -139,6 +147,12 @@ describe('schema', () => {
 
     it('accepts a version without files', () => {
       expect(ToolVersion.parse({ version: '3.14.8' })).toEqual({ version: '3.14.8' });
+    });
+
+    it('accepts the deprecated flag only as true', () => {
+      const version = { version: '9.0.0', deprecated: true };
+      expect(ToolVersion.parse(version)).toEqual(version);
+      expect(ToolVersion.safeParse({ ...version, deprecated: false }).success).toBe(false);
     });
 
     it('accepts a release timestamp', () => {

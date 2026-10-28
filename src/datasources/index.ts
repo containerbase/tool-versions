@@ -1,5 +1,6 @@
 import type { PreviousFiles, ToolFiles } from '../files.ts';
 import type { DatasourceName, ToolVersion, VersioningName } from '../schema.ts';
+import type { FetchedVersions } from '../versions.ts';
 import { fetchAndroidSdkVersions } from './android-sdk.ts';
 import { fetchDartVersions } from './dart-version.ts';
 import { fetchDotnetVersions } from './dotnet-version.ts';
@@ -18,7 +19,8 @@ import { fetchRustVersions } from './rust-version.ts';
 import { fetchSwiftReleases } from './swift-releases.ts';
 
 /**
- * Fetches the versions of a package, newest first. Paged sources may stop
+ * Fetches the versions of a package, newest first. Sources with a `latest`
+ * tag, like npm, return it with the versions. Paged sources may stop
  * early once they reach a known version. The previously published files are
  * reused by name instead of fetching them again. A template lists the files of
  * a version where the source doesn't. No files are fetched when `fetchFiles`
@@ -38,7 +40,7 @@ export type Fetcher = (
   hasTimestamp?: ReadonlySet<string>,
   versioning?: VersioningName,
   minVersion?: string,
-) => Promise<ToolVersion[]>;
+) => Promise<ToolVersion[] | FetchedVersions>;
 
 /** The fetcher of each datasource. */
 export const datasources: Record<DatasourceName, Fetcher> = {

@@ -2,8 +2,8 @@ import semver from 'semver';
 import { z } from 'zod';
 import type { PreviousFiles, ToolFiles } from '../files.ts';
 import { getJson } from '../http.ts';
-import type { ToolVersion } from '../schema.ts';
 import {
+  type FetchedVersions,
   compareSemver,
   isSemver,
   isSemverPrerelease,
@@ -17,9 +17,12 @@ const NpmVersion = z.object({
   // only `engines.node`, not `devEngines`, which isn't checked on install.
   // Old packages have odd `engines`, like a list, which count as none.
   engines: z.object({ node: z.unknown() }).optional().catch(undefined),
+  // the deprecation message, an empty one undoes the deprecation
+  deprecated: z.string().optional().catch(undefined),
 });
 
 const NpmPackage = z.object({
+  'dist-tags': z.object({ latest: z.string().optional() }).optional().catch(undefined),
   versions: z.record(z.string(), NpmVersion.catch({})),
 });
 
@@ -47,14 +50,15 @@ const unions: Record<string, PackageRange[]> = {
 };
 
 /**
- * Fetches the versions of one npm package which are accepted.
+ * Fetches the versions of one npm package which are accepted, and its `latest`
+ * dist-tag when that version is accepted.
  * @param range - the package and the versions to take
  * @param hasTimestamp - the versions which already have a release time
  */
 async function fetchPackage(
   { packageName, accepts }: PackageRange,
   hasTimestamp: ReadonlySet<string>,
-): Promise<ToolVersion[]> {
+): Promise<FetchedVersions> {
   const url = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}`;
   const meta = await getJson(url, NpmPackage, {
     // the abbreviated document, it lists all versions
@@ -66,22 +70,29 @@ async function fetchPackage(
   const times = names.some((version) => !hasTimestamp.has(version))
     ? (await getJson(url, NpmTimes, { accept: 'application/json' })).time
     : undefined;
-  return names.map((version) =>
-    toolVersion(version, {
-      prerelease: isSemverPrerelease(version),
-      releaseTimestamp: hasTimestamp.has(version) ? undefined : toTimestamp(times?.[version]),
-      constraints: toConstraints('node', meta.versions[version]?.engines?.node, '*'),
-    }),
-  );
+  const latest = meta['dist-tags']?.latest;
+  return {
+    versions: names.map((version) =>
+      toolVersion(version, {
+        prerelease: isSemverPrerelease(version),
+        deprecated: Boolean(meta.versions[version]?.deprecated),
+        releaseTimestamp: hasTimestamp.has(version) ? undefined : toTimestamp(times?.[version]),
+        constraints: toConstraints('node', meta.versions[version]?.engines?.node, '*'),
+      }),
+    ),
+    latest: latest !== undefined && names.includes(latest) ? latest : undefined,
+  };
 }
 
 /**
  * Fetches all versions of a package from the npm registry, like the
- * containerbase npm resolver. Deprecated versions are kept, `install-tool`
- * still installs them. The abbreviated document has no release times, so the
+ * containerbase npm resolver, and the version of its `latest` dist-tag.
+ * Deprecated versions are kept and flagged, `install-tool` still installs
+ * them. The abbreviated document has no release times, so the
  * full (much larger) document is only fetched when a version has none yet.
  * The `engines.node` of a version, which the abbreviated document has, is its
- * `node` constraint. The versions of tools with several packages (`yarn`) are merged, see `unions`.
+ * `node` constraint. The versions of tools with several packages (`yarn`) are
+ * merged, see `unions`, and their `latest` is the one of the first package.
  * @param packageName - the npm package name
  * @param _known - unused, the registry lists all versions at once
  * @param _previous - unused, npm tools have no files
@@ -96,10 +107,14 @@ export async function fetchNpmVersions(
   _template?: ToolFiles,
   _fetchFiles?: boolean,
   hasTimestamp: ReadonlySet<string> = new Set(),
-): Promise<ToolVersion[]> {
+): Promise<FetchedVersions> {
   const ranges = unions[packageName] ?? [{ packageName, accepts: () => true }];
-  const versions = (
-    await Promise.all(ranges.map((range) => fetchPackage(range, hasTimestamp)))
-  ).flat();
-  return sortVersions(versions, compareSemver);
+  const packages = await Promise.all(ranges.map((range) => fetchPackage(range, hasTimestamp)));
+  return {
+    versions: sortVersions(
+      packages.flatMap(({ versions }) => versions),
+      compareSemver,
+    ),
+    latest: packages[0]?.latest,
+  };
 }
