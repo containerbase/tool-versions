@@ -77,7 +77,7 @@ ENV DEVBOX_VERSION=0.18.5
 ENV DOCKER_COMPOSE_VERSION=5.6.1
 
 # renovate: datasource=github-releases depName=elixir packageName=elixir-lang/elixir
-ENV ELIXIR_VERSION=1.20.4
+ENV ELIXIR_VERSION=1.20.5
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
 ENV ERLANG_VERSION=27.3.4.19
