@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getJson } from '../http.ts';
+import { HttpError, getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
 import {
   compareRuby,
@@ -24,13 +24,20 @@ const RubygemsVersions = z.array(
  * resolver. The prerelease flag, the release time and the `ruby_version`, the
  * `ruby` constraint without the `>= 0` of gems which accept any ruby, come
  * from the same document. Versions which are no valid ruby version are skipped.
+ * Rubygems answers with a 404 when all versions of a gem are yanked, which is
+ * an empty list here. Other errors are thrown.
  * @param packageName - the gem name
  */
 export async function fetchRubygemsVersions(packageName: string): Promise<ToolVersion[]> {
   const releases = await getJson(
     `https://rubygems.org/api/v1/versions/${encodeURIComponent(packageName)}.json`,
     RubygemsVersions,
-  );
+  ).catch((err: unknown) => {
+    if (err instanceof HttpError && err.status === 404) {
+      return [];
+    }
+    throw err;
+  });
   const versions = releases
     .filter(({ number }) => isRubyVersion(number))
     .map(({ number, prerelease, created_at, ruby_version }) =>
