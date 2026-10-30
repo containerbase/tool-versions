@@ -241,10 +241,10 @@ ENV PIXI_VERSION=0.83.0
 ENV PNPM_VERSION=10.34.9
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=11.28.8
+ENV PNPM_VERSION=11.28.9
 
 # renovate: datasource=npm depName=pnpm
-ENV PNPM_VERSION=12.15.0
+ENV PNPM_VERSION=12.16.0
 
 # renovate: datasource=pypi depName=poetry
 ENV POETRY_VERSION=2.5.1
