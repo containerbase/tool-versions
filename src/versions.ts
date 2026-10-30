@@ -1,5 +1,6 @@
 import { eq as rubyEq, gt as rubyGt, valid as rubyValid } from '@renovatebot/ruby-semver';
 import semver from 'semver';
+
 import type { ToolVersion } from './schema.ts';
 
 /**

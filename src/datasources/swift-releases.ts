@@ -1,10 +1,11 @@
 import { z } from 'zod';
-import { type ComputedFile, computeChecksumTasks, reportSkippedDownloads } from '../download.ts';
-import { type Arch, type PreviousFiles, type ToolFiles, runAll, withFiles } from '../files.ts';
+
+import { computeChecksumTasks, type ComputedFile, reportSkippedDownloads } from '../download.ts';
+import { type Arch, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { belowMinimum, versionings } from '../versioning.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 /** The releases of swift.org, with the platforms of each. */
 const releasesUrl = 'https://www.swift.org/api/v1/install/releases.json';

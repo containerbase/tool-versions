@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { HttpError, request } from './http.ts';
 
 const host = 'https://example.com';

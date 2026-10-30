@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
+
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { resetDownloadBudget } from '../download.ts';
 import { fetchNugetExeVersions } from './nuget-exe.ts';
 

@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { fetchNugetVersions } from './nuget.ts';
 
 describe('datasources/nuget', () => {

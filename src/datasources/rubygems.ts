@@ -1,13 +1,14 @@
 import { z } from 'zod';
-import { HttpError, getJson } from '../http.ts';
+
+import { getJson, HttpError } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
 import {
   compareRuby,
   isRubyVersion,
   sortVersions,
   toConstraints,
-  toTimestamp,
   toolVersion,
+  toTimestamp,
 } from '../versions.ts';
 
 const RubygemsVersions = z.array(

@@ -1,4 +1,5 @@
 import { get as getVersioning } from 'renovate/dist/modules/versioning/index.js';
+
 import type { VersioningName } from './schema.ts';
 
 /** How the versions of a tool are validated and ordered. */

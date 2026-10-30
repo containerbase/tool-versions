@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { Formats, PreviousToolVersions, ToolFile, ToolVersion, ToolVersions } from './schema.ts';
 
 const file = {

@@ -1,10 +1,11 @@
 import { z } from 'zod';
+
 import {
-  type PreviousFiles,
-  type ToolFiles,
   checksum,
   fetchText,
+  type PreviousFiles,
   runAll,
+  type ToolFiles,
   withFiles,
 } from '../files.ts';
 import { getJson } from '../http.ts';
@@ -15,8 +16,8 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
-  toTimestamp,
   toolVersion,
+  toTimestamp,
 } from '../versions.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 

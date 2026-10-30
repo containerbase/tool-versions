@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import type { ToolFile } from '../schema.ts';
 import { fetchHaskellDownloads } from './haskell-downloads.ts';
 

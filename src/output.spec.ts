@@ -1,8 +1,10 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stdout } from 'node:process';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   fileNameSafe,
   integrity,

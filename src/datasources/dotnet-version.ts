@@ -1,17 +1,18 @@
 import { z } from 'zod';
+
 import {
   type Arch,
-  type PreviousFiles,
-  type ToolFiles,
   checksum,
+  type PreviousFiles,
   runAll,
+  type ToolFiles,
   withFiles,
 } from '../files.ts';
 import { getJson } from '../http.ts';
 import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { versionings } from '../versioning.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 /** The release metadata of the .NET channels. */
 const indexUrl = 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json';

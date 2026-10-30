@@ -18,7 +18,7 @@
     "containerbase/enforce-ts-extension": "error",
     "containerbase/enum-member-pascal-case": "error",
     "containerbase/no-undeclared-dependencies": "error",
-    "containerbase/organize-imports": "error",
+    "containerbase/sort-imports": "error",
     "containerbase/test-root-describe": "error",
 
     "import/default": "error",
@@ -51,16 +51,6 @@
     "no-unused-expressions": "error",
     "no-empty-function": "error",
     "no-array-constructor": "error",
-
-    "sort-imports": [
-      "error",
-      {
-        "ignoreCase": false,
-        "ignoreDeclarationSort": true,
-        "ignoreMemberSort": false,
-        "memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
-      }
-    ],
 
     "object-shorthand": ["error", "always", { "avoidQuotes": true }],
 

@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   compareRuby,
   compareSemver,
   isRubyVersion,
   sortVersions,
   toConstraints,
-  toTimestamp,
   toolVersion,
+  toTimestamp,
 } from './versions.ts';
 
 describe('versions', () => {

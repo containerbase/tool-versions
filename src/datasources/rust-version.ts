@@ -1,8 +1,8 @@
-import { type PreviousFiles, type ToolFiles, checksumTasks, runAll, withFiles } from '../files.ts';
+import { checksumTasks, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { belowMinimum, nightlyDate, versionings } from '../versioning.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 import { fetchGithubReleases } from './github-releases.ts';
 
 /** The list of all release manifests of the rust release channel. */

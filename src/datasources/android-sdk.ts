@@ -1,10 +1,11 @@
 import { XMLParser } from '@nodable/flexible-xml-parser';
 import { z } from 'zod';
+
 import {
   type Algorithm,
+  checksum,
   type PreviousFiles,
   type ToolFiles,
-  checksum,
   withFiles,
 } from '../files.ts';
 import { request } from '../http.ts';

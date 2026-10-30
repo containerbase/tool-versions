@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
+
 import { parseReleaseDate, releaseNotes } from './release-notes.ts';
 import { readFiles } from './release.ts';
 

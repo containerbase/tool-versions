@@ -2,6 +2,7 @@ import { appendFile, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
+
 import { writeRelease } from './output.ts';
 import { releaseNotes } from './release-notes.ts';
 import {

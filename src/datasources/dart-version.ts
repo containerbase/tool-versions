@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { type PreviousFiles, type ToolFiles, checksumTasks, runAll, withFiles } from '../files.ts';
+
+import { checksumTasks, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { belowMinimum, versionings } from '../versioning.ts';
