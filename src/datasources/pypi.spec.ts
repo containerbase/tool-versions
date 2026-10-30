@@ -34,7 +34,7 @@ describe('datasources/pypi', () => {
       { version: '2.2.0.dev1', prerelease: true },
       { version: '2.1.0' },
       { version: '2.1.0b1', prerelease: true },
-      { version: '2.0.1' },
+      { version: '2.0.1', deprecated: true },
       { version: '2.0.0' },
       { version: '1.10.0' },
     ]);
@@ -58,6 +58,24 @@ describe('datasources/pypi', () => {
 
     await expect(fetchPypiVersions('poetry')).resolves.toEqual([
       { version: '2.1.0', releaseTimestamp: '2025-03-02T09:00:00.000Z' },
+      { version: '2.0.0', deprecated: true },
+      { version: '1.0.0' },
+    ]);
+  });
+
+  it('flags a release as deprecated only when all its files are yanked', async () => {
+    nock('https://pypi.org')
+      .get('/pypi/poetry/json')
+      .reply(200, {
+        releases: {
+          '3.0.0': [{ yanked: true }, { yanked: true }],
+          '2.0.0': [{ yanked: true }, { yanked: false }],
+          '1.0.0': [{}],
+        },
+      });
+
+    await expect(fetchPypiVersions('poetry')).resolves.toEqual([
+      { version: '3.0.0', deprecated: true },
       { version: '2.0.0' },
       { version: '1.0.0' },
     ]);
@@ -82,7 +100,7 @@ describe('datasources/pypi', () => {
 
     await expect(fetchPypiVersions('poetry')).resolves.toEqual([
       { version: '2.1.0', constraints: { python: '>=3.9,<4.0' } },
-      { version: '2.0.0' },
+      { version: '2.0.0', deprecated: true },
       { version: '1.0.0' },
     ]);
   });

@@ -54,7 +54,8 @@ function normalizeName(name: string): string {
 /**
  * Fetches all releases of a package from pypi, like the containerbase pip
  * resolver. Releases without files are skipped, they can't be installed.
- * Yanked releases are kept, pip installs them when pinned. Versions which are
+ * Yanked releases are kept, pip installs them when pinned, and are flagged as
+ * deprecated when all their files are yanked. Versions which are
  * no valid pep440 version are skipped too. The `requires_python` of a release
  * is its `python` constraint.
  * @param packageName - the pypi package name
@@ -73,6 +74,7 @@ export async function fetchPypiVersions(packageName: string): Promise<ToolVersio
     versions.push(
       toolVersion(version, {
         prerelease: parsed.is_prerelease,
+        deprecated: files.every(({ yanked }) => yanked === true),
         releaseTimestamp: releaseTimestamp(files),
         constraints: releaseConstraints(files),
       }),
