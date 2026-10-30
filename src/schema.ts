@@ -103,7 +103,10 @@ export const ToolVersion = Base.ToolVersion.extend({
   distros: z.array(Base.DistroCode).min(1).optional(),
   /** sorted by name, not in the `<tool>.json` files, but in the `<tool>/<version>.json` ones */
   files: z.array(ToolFile).min(1).optional(),
-  /** whether the registry marks the version as deprecated, only for npm tools */
+  /**
+   * whether the version is deprecated: deprecated by the npm registry, a pypi
+   * release whose files are all yanked, or a rubygems version removed from the registry
+   */
   deprecated: z.literal(true).optional(),
 });
 export type ToolVersion = z.infer<typeof ToolVersion>;

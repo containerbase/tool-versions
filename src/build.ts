@@ -338,7 +338,8 @@ const minimumReleaseAge = 60 * 60 * 1000;
 
 /**
  * Fetches the versions of a tool and merges them with the previous ones. The
- * fresh flags win, and versions which disappeared upstream are kept. Previous
+ * fresh flags win, and versions which disappeared upstream are kept, flagged as
+ * deprecated for rubygems, which removes yanked versions. Previous
  * files and release times are kept for fresh versions without any. The
  * previous constraints always win, as a published release doesn't change: only
  * versions without previous constraints take the fresh ones. New versions
@@ -412,9 +413,17 @@ async function fetchVersions(
       ...(!entry.releaseTimestamp && keptTimestamp && { releaseTimestamp: keptTimestamp }),
     };
   });
+  // rubygems omits yanked gems, so a previous version missing upstream is flagged
+  const upstream = new Set(all.map(({ version }) => version));
+  const kept =
+    source.datasource === 'rubygems'
+      ? previous.map((entry) =>
+          upstream.has(entry.version) ? entry : { ...entry, deprecated: true as const },
+        )
+      : previous;
   const versions = fileNameSafe(
     tool,
-    publishable(tool, source, sortVersions([...fresh, ...previous], compare)),
+    publishable(tool, source, sortVersions([...fresh, ...kept], compare)),
   );
   if (!versions.length) {
     throw new Error('No versions found');

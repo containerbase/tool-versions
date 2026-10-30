@@ -78,7 +78,7 @@ Optional fields are omitted when unknown.
 | `versions`                     | list                          | the versions, newest first, prereleases included                                                   |
 | `versions[].version`           | string                        | the exact `install-tool` version                                                                   |
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
-| `versions[].deprecated`        | `true`                        | the registry deprecates the version, only for npm tools and only present when true                 |
+| `versions[].deprecated`        | `true`                        | npm deprecated, all pypi files yanked, or removed from rubygems, only present when true            |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
 | `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
 | `versions[].archs`             | list of `amd64`, `arm64`      | the archs with a file of the version, sorted, only in `<tool>.json`, see below                     |

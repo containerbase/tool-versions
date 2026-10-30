@@ -52,9 +52,15 @@ describe('datasources/rubygems', () => {
     ]);
   });
 
-  it('fails on an error response', async () => {
+  it('returns no versions when all versions of the gem are yanked', async () => {
     nock('https://rubygems.org').get('/api/v1/versions/bundler.json').reply(404);
 
-    await expect(fetchRubygemsVersions('bundler')).rejects.toThrow('failed with status 404');
+    await expect(fetchRubygemsVersions('bundler')).resolves.toEqual([]);
+  });
+
+  it('fails on an error response', async () => {
+    nock('https://rubygems.org').get('/api/v1/versions/bundler.json').reply(403);
+
+    await expect(fetchRubygemsVersions('bundler')).rejects.toThrow('failed with status 403');
   });
 });

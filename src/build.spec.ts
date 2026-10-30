@@ -473,6 +473,59 @@ describe('build', () => {
     });
   });
 
+  it('flags the versions of a rubygems tool which disappeared upstream as deprecated', async () => {
+    const source: Source = { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' };
+    const previousArchive = await archiveOf({
+      tool: 'bundler',
+      source,
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [
+        { version: '2.5.0' },
+        { version: '2.4.0' },
+        { version: '2.3.0', deprecated: true },
+      ],
+    });
+    nock('https://rubygems.org')
+      .get('/api/v1/versions/bundler.json')
+      .reply(200, [
+        { number: '2.6.0', prerelease: false },
+        { number: '2.3.0', prerelease: false },
+      ]);
+
+    await build({ dir, sources: { bundler: source }, now, previousArchive });
+
+    // 2.3.0 reappeared, so the fresh data drops its flag
+    expect(JSON.parse(await read('bundler.json'))).toMatchObject({
+      versions: [
+        { version: '2.6.0' },
+        { version: '2.5.0', deprecated: true },
+        { version: '2.4.0', deprecated: true },
+        { version: '2.3.0' },
+      ],
+    });
+    expect(JSON.parse(await read('bundler.json')).versions[3]).not.toHaveProperty('deprecated');
+  });
+
+  it('keeps all previous versions of a rubygems tool as deprecated when the gem is gone', async () => {
+    const source: Source = { datasource: 'rubygems', packageName: 'bundler', versioning: 'ruby' };
+    const previousArchive = await archiveOf({
+      tool: 'bundler',
+      source,
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [{ version: '2.5.0' }, { version: '2.4.0' }],
+    });
+    nock('https://rubygems.org').get('/api/v1/versions/bundler.json').reply(404);
+
+    await build({ dir, sources: { bundler: source }, now, previousArchive });
+
+    expect(JSON.parse(await read('bundler.json'))).toMatchObject({
+      versions: [
+        { version: '2.5.0', deprecated: true },
+        { version: '2.4.0', deprecated: true },
+      ],
+    });
+  });
+
   it('keeps the previous files of a fresh version', async () => {
     const files = [
       {
