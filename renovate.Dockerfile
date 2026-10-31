@@ -10,7 +10,7 @@
 FROM scratch
 
 # renovate: datasource=github-releases depName=apko packageName=chainguard-dev/apko
-ENV APKO_VERSION=1.4.13
+ENV APKO_VERSION=1.4.14
 
 # renovate: datasource=github-releases depName=apm packageName=microsoft/apm
 ENV APM_VERSION=0.35.0
