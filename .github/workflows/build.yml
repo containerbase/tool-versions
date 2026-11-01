@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@2082203142ae62859ac4a86919258077c6460403 # v5.3.12
+        uses: containerbase/internal-tools/setup@32cf315841659d5247b8eefebdff571ec7cdbca4 # v5.3.13
         with:
           save-cache: true
 
@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@2082203142ae62859ac4a86919258077c6460403 # v5.3.12
+        uses: containerbase/internal-tools/setup@32cf315841659d5247b8eefebdff571ec7cdbca4 # v5.3.13
 
       - name: lint
         run: |
@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: ⚙️ Setup
-        uses: containerbase/internal-tools/setup@2082203142ae62859ac4a86919258077c6460403 # v5.3.12
+        uses: containerbase/internal-tools/setup@32cf315841659d5247b8eefebdff571ec7cdbca4 # v5.3.13
 
       - name: test
         run: pnpm test
