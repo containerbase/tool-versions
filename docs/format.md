@@ -100,6 +100,7 @@ It is only set when the version is listed. When the source has no listed one, li
 - Tools from npm have the version of the `latest` dist-tag.
 - `gradle` has the `version` of `services.gradle.org/versions/current`.
 - `android-sdk-cmdline-tools` has the version of the `cmdline-tools;latest` package, written like the other versions.
+- `poetry` has the newest stable, not deprecated release which satisfies the `poetry` requirement in the `requires_dist` of the latest `poetry-plugin-pypi-mirror` release.
 
 `versions[].deprecated` is only present when true. Readers skip deprecated versions when they resolve `latest` or a partial version:
 
