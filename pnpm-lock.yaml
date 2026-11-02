@@ -179,8 +179,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       '@renovatebot/ruby-semver':
-        specifier: 5.0.0
-        version: 5.0.0
+        specifier: 6.0.0
+        version: 6.0.0
       renovate:
         specifier: 44.199.2
         version: 44.199.2(supports-color@7.2.0)(typanion@3.14.0)
@@ -1029,6 +1029,10 @@ packages:
   '@renovatebot/ruby-semver@5.0.0':
     resolution: {integrity: sha512-yQgeq4HVV9mh2AJHHlStd//7mD/96lWj8KWB5Szi5YDjPwpvk12Sj3H+Y4waNC3N2D4t5xqbwYYpTHB5KsrSVg==}
     engines: {node: ^22.11.0 || >=24.10.0, pnpm: '>=10.0.0'}
+
+  '@renovatebot/ruby-semver@6.0.0':
+    resolution: {integrity: sha512-RGiSBw2vRYu5PnPTAaJR8R/VV86boURoojuohaJJcAZMgRKrpvRLlmUsK5A8WWLMH0JD9dHoYCpXHZdAZFlFTw==}
+    engines: {node: '>=24.10.0', pnpm: '>=10.0.0'}
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     resolution: {integrity: sha512-ia3DwAs0OsMGS7+IConptSiyk9pEXkOx/AbJ2n/lAGxH3QkWQus1t8d7gnAT38FCU2sQu8lUbeR6AiZFv4JxaA==}
@@ -4280,6 +4284,8 @@ snapshots:
   '@renovatebot/pgp@2.0.4': {}
 
   '@renovatebot/ruby-semver@5.0.0': {}
+
+  '@renovatebot/ruby-semver@6.0.0': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     optional: true
