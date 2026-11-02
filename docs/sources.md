@@ -54,7 +54,7 @@ Example: `pnpm`.
 - Deprecated tools aren't published.
 - `yarn` is the union of the `yarn` package (1.x) and `@yarnpkg/cli-dist` (2 and later).
 - `yarn-slim` is only the 1.x versions of `yarn`.
-- npm tools take the `latest` dist-tag as their `latest`.
+- npm tools take the `latest` dist-tag as their `latest`. `poetry` takes the newest stable release which the latest `poetry-plugin-pypi-mirror` requires, a failed lookup only warns.
 - Some sources have no release times.
 - The runtime constraints of npm, pypi and rubygems versions come from the documents the build fetches anyway, see the [format](./format.md#fields). Published constraints are reused, only versions without one read them.
 
