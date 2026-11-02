@@ -38,7 +38,7 @@ ENV BUNDLER_VERSION=4.0.23
 ENV CABAL_VERSION=3.18.2.0
 
 # renovate: datasource=pypi depName=checkov
-ENV CHECKOV_VERSION=3.4.0
+ENV CHECKOV_VERSION=3.4.1
 
 # renovate: datasource=rubygems depName=cocoapods versioning=ruby
 ENV COCOAPODS_VERSION=1.17.0
