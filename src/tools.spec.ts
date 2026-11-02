@@ -3,11 +3,31 @@ import { describe, expect, it } from 'vitest';
 
 import { assertMinCb } from './build.ts';
 import { type AssetTemplate, mayCompute, tagPrefixes } from './files.ts';
-import { toolFiles, toolLinks, toolSources } from './tools.ts';
-
-const metadata: Record<string, ToolMetadata> = tools;
+import {
+  toolMetadata as metadata,
+  toolExceptions,
+  toolFiles,
+  toolLinks,
+  toolSources,
+} from './tools.ts';
 
 describe('tools', () => {
+  describe('toolExceptions', () => {
+    // once `@containerbase/base` has the metadata, its bump removes the exception
+    it.each(Object.entries(toolExceptions))(
+      'has metadata for %s which @containerbase/base does not have yet',
+      (tool, exception) => {
+        const base: Record<string, ToolMetadata> = tools;
+        expect(base[tool]).not.toEqual(exception);
+      },
+    );
+
+    it('replaces the metadata of @containerbase/base', () => {
+      expect(metadata).toMatchObject(toolExceptions);
+      expect(metadata['pnpm']).toEqual(tools.pnpm);
+    });
+  });
+
   describe('toolSources', () => {
     it('maps every tool installed by a package manager, except deprecated ones', () => {
       const typed = Object.entries(metadata)
@@ -135,6 +155,14 @@ describe('tools', () => {
     it.each([
       ['apko', '1.1.0', ['apko_1.1.0_linux_amd64.tar.gz', 'apko_1.1.0_linux_arm64.tar.gz']],
       ['apm', '0.1.0', ['apm-linux-x86_64.tar.gz', 'apm-linux-arm64.tar.gz']],
+      [
+        'aube',
+        '2.9.0',
+        [
+          'aube-v2.9.0-x86_64-unknown-linux-gnu.tar.gz',
+          'aube-v2.9.0-aarch64-unknown-linux-gnu.tar.gz',
+        ],
+      ],
       ['buf', '1.50.0', ['buf-Linux-x86_64.tar.gz', 'buf-Linux-aarch64.tar.gz']],
       ['buildx', '0.20.0', ['buildx-v0.20.0.linux-amd64', 'buildx-v0.20.0.linux-arm64']],
       [
@@ -236,6 +264,11 @@ describe('tools', () => {
       expect(toolSources['kustomize']?.packageName).toBe('kubernetes-sigs/kustomize');
       expect(toolSources['vendir']?.packageName).toBe('vmware-tanzu/carvel-vendir');
       expect(toolSources['powershell']?.packageName).toBe('PowerShell/PowerShell');
+      expect(toolSources['aube']).toEqual({
+        datasource: 'github-releases',
+        packageName: 'jdx/aube',
+        versioning: 'semver',
+      });
     });
 
     it('maps kubectl, terraform and gradle to their sources', () => {
@@ -289,7 +322,7 @@ describe('tools', () => {
         typeof template === 'object' && template.computeMissing ? [tool] : [],
       );
 
-      expect(computed.sort()).toEqual(['bazelisk', 'protoc', 'scala']);
+      expect(computed.sort()).toEqual(['aube', 'bazelisk', 'protoc', 'scala']);
       expect(old.sort()).toEqual([
         'buildx',
         'docker-compose',

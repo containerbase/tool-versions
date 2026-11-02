@@ -2,8 +2,6 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { env, stdout } from 'node:process';
 
-import { type ToolMetadata, tools } from '@containerbase/base';
-
 import { datasources } from './datasources/index.ts';
 import { isExpiredNightly } from './datasources/rust-version.ts';
 import {
@@ -32,11 +30,9 @@ import type {
   ToolVersions,
 } from './schema.ts';
 import { BuildReport, countNewFiles, type ToolStatus, writeSummary } from './summary.ts';
-import { toolFiles, toolLinks, toolSources } from './tools.ts';
+import { toolMetadata as metadata, toolFiles, toolLinks, toolSources } from './tools.ts';
 import { belowMinimum, versionings } from './versioning.ts';
 import { compareSemver, type FetchedVersions, isPlainSemver, sortVersions } from './versions.ts';
-
-const metadata: Record<string, ToolMetadata> = tools;
 
 /** The options of a build. */
 export interface BuildOptions {
@@ -455,7 +451,8 @@ function computesChecksums(tool: string, source: Source): boolean {
  * previous file is left out, the other tools are still written.
  * @param options - the build options
  * @returns the tools which failed without a previous file
- * @throws when a mapped tool is unknown to `@containerbase/base`, or has an invalid `minCb`
+ * @throws when a mapped tool is unknown to `@containerbase/base` and has no exception in
+ * `toolExceptions`, or has an invalid `minCb`
  */
 export async function build({
   dir,
@@ -465,7 +462,7 @@ export async function build({
   clock = () => performance.now(),
   previousArchive,
 }: BuildOptions): Promise<string[]> {
-  const unknown = Object.keys(sources).filter((tool) => !Object.hasOwn(tools, tool));
+  const unknown = Object.keys(sources).filter((tool) => !Object.hasOwn(metadata, tool));
   if (unknown.length) {
     throw new Error(`Tools not found in @containerbase/base: ${unknown.join(', ')}`);
   }
