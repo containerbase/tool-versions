@@ -113,42 +113,73 @@ describe('datasources/android-sdk', () => {
         ),
       );
 
-    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toEqual([
-      // the zero minor is left out of 13.0 and the preview is the last part
-      {
-        version: '14.1',
-        prerelease: true,
-        files: [
-          {
-            name: 'commandlinetools-linux-14-alpha.zip',
-            url: `${host}/android/repository/commandlinetools-linux-14-alpha.zip`,
-            checksum: `sha1:${sha1}`,
-          },
-        ],
-      },
-      {
-        version: '13',
-        files: [
-          {
-            name: 'commandlinetools-linux-13114758_latest.zip',
-            url: `${host}/android/repository/commandlinetools-linux-13114758_latest.zip`,
-            checksum: `sha1:${sha1}`,
-          },
-        ],
-      },
-      {
-        version: '12.1.2',
-        files: [
-          {
-            name: 'commandlinetools-linux-12.zip',
-            url: `${host}/android/repository/commandlinetools-linux-12.zip`,
-            checksum: `sha256:${'b'.repeat(64)}`,
-          },
-        ],
-      },
-      // no linux archive
-      { version: '11' },
-    ]);
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toEqual({
+      // the version of `cmdline-tools;latest`
+      latest: '13',
+      versions: [
+        // the zero minor is left out of 13.0 and the preview is the last part
+        {
+          version: '14.1',
+          prerelease: true,
+          files: [
+            {
+              name: 'commandlinetools-linux-14-alpha.zip',
+              url: `${host}/android/repository/commandlinetools-linux-14-alpha.zip`,
+              checksum: `sha1:${sha1}`,
+            },
+          ],
+        },
+        {
+          version: '13',
+          files: [
+            {
+              name: 'commandlinetools-linux-13114758_latest.zip',
+              url: `${host}/android/repository/commandlinetools-linux-13114758_latest.zip`,
+              checksum: `sha1:${sha1}`,
+            },
+          ],
+        },
+        {
+          version: '12.1.2',
+          files: [
+            {
+              name: 'commandlinetools-linux-12.zip',
+              url: `${host}/android/repository/commandlinetools-linux-12.zip`,
+              checksum: `sha256:${'b'.repeat(64)}`,
+            },
+          ],
+        },
+        // no linux archive
+        { version: '11' },
+      ],
+    });
+  });
+
+  it('has no latest when the version of `cmdline-tools;latest` is not listed', async () => {
+    nock(host)
+      .get(path)
+      .reply(
+        200,
+        repository(
+          remotePackage(
+            'cmdline-tools;latest',
+            '<major>10</major>',
+            'channel-0',
+            archive('linux', 'commandlinetools-linux-latest.zip', 'sha1', sha1),
+          ),
+          remotePackage(
+            'cmdline-tools;9.0',
+            '<major>9</major>',
+            'channel-0',
+            archive('linux', 'commandlinetools-linux-9.zip', 'sha1', sha1),
+          ),
+        ),
+      );
+
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toEqual({
+      latest: undefined,
+      versions: [{ version: '9', files: [expect.objectContaining({ checksum: `sha1:${sha1}` })] }],
+    });
   });
 
   it('reads a repository with a single package and a single archive', async () => {
@@ -166,9 +197,9 @@ describe('datasources/android-sdk', () => {
         ),
       );
 
-    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toMatchObject([
-      { version: '9', files: [{ name: 'commandlinetools-linux-9.zip' }] },
-    ]);
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toMatchObject({
+      versions: [{ version: '9', files: [{ name: 'commandlinetools-linux-9.zip' }] }],
+    });
   });
 
   it('publishes no files when told so, and skips unknown checksum types', async () => {
@@ -193,13 +224,12 @@ describe('datasources/android-sdk', () => {
         ),
       );
 
-    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toMatchObject([
-      { version: '9' },
-      { version: '8', files: [{ checksum: `sha1:${sha1}` }] },
-    ]);
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toMatchObject({
+      versions: [{ version: '9' }, { version: '8', files: [{ checksum: `sha1:${sha1}` }] }],
+    });
     await expect(
       fetchAndroidSdkVersions('cmdline-tools', undefined, undefined, undefined, false),
-    ).resolves.toEqual([{ version: '9' }, { version: '8' }]);
+    ).resolves.toEqual({ versions: [{ version: '9' }, { version: '8' }] });
   });
 
   it('fails on an error response', async () => {

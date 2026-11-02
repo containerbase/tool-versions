@@ -106,7 +106,8 @@ export const ToolVersion = Base.ToolVersion.extend({
   files: z.array(ToolFile).min(1).optional(),
   /**
    * whether the version is deprecated: deprecated by the npm registry, a pypi
-   * release whose files are all yanked, or a rubygems version removed from the registry
+   * release whose files are all yanked, a rubygems version removed from the
+   * registry, or a `nuget.exe` release which is released but not blessed
    */
   deprecated: z.literal(true).optional(),
 });
@@ -116,7 +117,11 @@ export type ToolVersion = z.infer<typeof ToolVersion>;
 export const ToolVersions = Base.ToolVersions.extend({
   /** whether the tool has LTS release streams, only set when one of its versions is an LTS release */
   lts: z.literal(true).optional(),
-  /** the version of the `latest` dist-tag, only for npm tools and only when it is listed */
+  /**
+   * the version upstream calls latest, only for sources which have one and
+   * only when it is listed: the npm `latest` dist-tag, the gradle current
+   * release or the `cmdline-tools;latest` android sdk package
+   */
   latest: z.string().min(1).optional(),
   /**
    * the containerbase version a release and the releases above it need, newest

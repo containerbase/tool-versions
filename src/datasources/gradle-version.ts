@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { checksumTasks, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
 import { getJson } from '../http.ts';
+import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { versionings } from '../versioning.ts';
-import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
+import { type FetchedVersions, sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 const GradleReleases = z.array(
   z.object({
@@ -19,6 +20,22 @@ const GradleReleases = z.array(
     milestoneFor: z.string().default(''),
   }),
 );
+
+const GradleCurrent = z.object({ version: z.string() });
+
+/**
+ * Fetches the current gradle release. A failed lookup only logs a warning, so
+ * the releases are still published.
+ * @returns the version, or `undefined` when the lookup failed
+ */
+async function fetchCurrent(): Promise<string | undefined> {
+  try {
+    return (await getJson('https://services.gradle.org/versions/current', GradleCurrent)).version;
+  } catch (err) {
+    logWarning(`gradle: no current release: ${String(err)}`);
+    return undefined;
+  }
+}
 
 /**
  * Converts the build time of a gradle release to an ISO 8601 time.
@@ -40,7 +57,8 @@ function buildTimestamp(buildTime: string | undefined): string | undefined {
  * releases are skipped, release candidates and milestones are prereleases. The
  * distribution `gradle-<version>-bin.zip` is the file of a version, with the
  * checksum from its `.sha256` file as the containerbase installer reads it.
- * Releases without a `.sha256` file (404) have no file.
+ * Releases without a `.sha256` file (404) have no file. The `latest` version is
+ * the current release of services.gradle.org, when it is listed.
  * @param _packageName - unused, there is only gradle
  * @param _known - unused, the list has all releases at once
  * @param previous - the already known files by version
@@ -57,9 +75,12 @@ export async function fetchGradleVersions(
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
   versioning: VersioningName = 'gradle',
-): Promise<ToolVersion[]> {
+): Promise<FetchedVersions> {
   const { isValid, isPrerelease, compare } = versionings[versioning];
-  const releases = await getJson('https://services.gradle.org/versions/all', GradleReleases);
+  const [releases, current] = await Promise.all([
+    getJson('https://services.gradle.org/versions/all', GradleReleases),
+    fetchCurrent(),
+  ]);
   const versions: { entry: ToolVersion; files: ToolFile[] }[] = [];
   const tasks: (() => Promise<void>)[] = [];
   for (const release of releases) {
@@ -92,8 +113,11 @@ export async function fetchGradleVersions(
     versions.push({ entry, files });
   }
   await runAll(tasks);
-  return sortVersions(
-    versions.map(({ entry, files }) => withFiles(entry, files)),
-    compare,
-  );
+  return {
+    versions: sortVersions(
+      versions.map(({ entry, files }) => withFiles(entry, files)),
+      compare,
+    ),
+    latest: versions.some(({ entry }) => entry.version === current) ? current : undefined,
+  };
 }

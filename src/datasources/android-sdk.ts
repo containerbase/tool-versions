@@ -11,7 +11,7 @@ import {
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { versionings } from '../versioning.ts';
-import { sortVersions, toolVersion } from '../versions.ts';
+import { type FetchedVersions, sortVersions, toolVersion } from '../versions.ts';
 
 /** The android sdk repository, which lists all packages. */
 const repositoryUrl = 'https://dl.google.com/android/repository/repository2-3.xml';
@@ -116,7 +116,8 @@ function linuxFile(archives: z.output<typeof Archive>[]): ToolFile | undefined {
  * (not `latest`) whose version is the revision without its zero parts, so
  * `13.0` is `13`. The first package of a version wins. Packages of the beta,
  * dev and canary channels are prereleases. The linux archive with its checksum
- * is the file of a version. There are no release times.
+ * is the file of a version. There are no release times. The `latest` version
+ * is the one of the `cmdline-tools;latest` package, when it is listed.
  * @param _packageName - unused, there is only the command-line tools
  * @param _known - unused, the repository has all packages
  * @param _previous - unused, the files come from the repository
@@ -133,7 +134,7 @@ export async function fetchAndroidSdkVersions(
   fetchFiles = true,
   _hasTimestamp?: ReadonlySet<string>,
   versioning: VersioningName = 'semver-coerced',
-): Promise<ToolVersion[]> {
+): Promise<FetchedVersions> {
   const { isValid, compare } = versionings[versioning];
   const xml = await (await request(repositoryUrl)).text();
   const { 'sdk-repository': repository } = Repository.parse(parser.parse(xml));
@@ -141,14 +142,19 @@ export async function fetchAndroidSdkVersions(
     repository.channel.map((channel) => [channel['@'].id, channel['#text']]),
   );
   const versions = new Map<string, ToolVersion>();
+  let latest: string | undefined;
   for (const pkg of repository.remotePackage) {
     const { path } = pkg['@'];
-    if (!path.startsWith('cmdline-tools;') || path === 'cmdline-tools;latest') {
+    if (!path.startsWith('cmdline-tools;')) {
       continue;
     }
     const { major, minor, micro, preview } = pkg.revision;
     // zero parts are left out, as the containerbase CLI does
     const version = [major, minor, micro, preview].filter(Boolean).join('.');
+    if (path === 'cmdline-tools;latest') {
+      latest = version;
+      continue;
+    }
     if (!isValid(version) || versions.has(version)) {
       continue;
     }
@@ -163,5 +169,8 @@ export async function fetchAndroidSdkVersions(
       ),
     );
   }
-  return sortVersions([...versions.values()], compare);
+  return {
+    versions: sortVersions([...versions.values()], compare),
+    latest: latest !== undefined && versions.has(latest) ? latest : undefined,
+  };
 }

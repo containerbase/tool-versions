@@ -65,7 +65,8 @@ describe('datasources/nuget-exe', () => {
         releaseTimestamp: '2024-08-08T21:40:20.000Z',
         files: [file('6.11.0', 'blessed')],
       },
-      { version: '6.10.2', files: [file('6.10.2', 'released')] },
+      // released, but not blessed
+      { version: '6.10.2', deprecated: true, files: [file('6.10.2', 'released')] },
     ]);
   });
 

@@ -69,7 +69,7 @@ Optional fields are omitted when unknown.
 | `sourceUrl`                    | url                           | where the source code lives, for changelogs                                                        |
 | `homepage`                     | url                           | the homepage                                                                                       |
 | `lts`                          | `true`                        | the tool has LTS release streams, like `node` and `java`, only present when true                   |
-| `latest`                       | string                        | the version of the npm `latest` dist-tag, only for npm tools and only when it is listed            |
+| `latest`                       | string                        | the version upstream calls latest, only for sources with one and only when it is listed, see below |
 | `minVersion`                   | string                        | the oldest supported version on the `defaultDistro`, in the versioning of the tool                 |
 | `distroMinVersion`             | map of codename to version    | the oldest version on a distro, only where it differs from `minVersion`. Any codename can be a key |
 | `minCb`                        | list of `version` and `cb`    | the oldest containerbase version which can install a version and the ones above it, see below      |
@@ -78,7 +78,7 @@ Optional fields are omitted when unknown.
 | `versions`                     | list                          | the versions, newest first, prereleases included                                                   |
 | `versions[].version`           | string                        | the exact `install-tool` version                                                                   |
 | `versions[].prerelease`, `lts` | `true`                        | only present when true                                                                             |
-| `versions[].deprecated`        | `true`                        | npm deprecated, all pypi files yanked, or removed from rubygems, only present when true            |
+| `versions[].deprecated`        | `true`                        | npm deprecated, all pypi files yanked, removed from rubygems or nuget.exe not blessed, see below   |
 | `versions[].releaseTimestamp`  | UTC time                      | when the version was released, for Renovate's `minimumReleaseAge`                                  |
 | `versions[].constraints`       | map of tool to constraint     | the runtime the version needs, keyed by the parent tool, see below                                 |
 | `versions[].archs`             | list of `amd64`, `arm64`      | the archs with a file of the version, sorted, only in `<tool>.json`, see below                     |
@@ -93,6 +93,20 @@ Optional fields are omitted when unknown.
 `source` (`datasource`, `packageName`, `versioning`) is deprecated.
 It describes how the build fetches the versions, readers must not rely on it.
 It is removed with the next format major ([#146](https://github.com/containerbase/tool-versions/issues/146)).
+
+`latest` is the version to resolve `latest` to, when it is present.
+It is only set when the version is listed. When the source has no listed one, like a new one which waits for the minimum release age, the previous one is kept while it is listed:
+
+- Tools from npm have the version of the `latest` dist-tag.
+- `gradle` has the `version` of `services.gradle.org/versions/current`.
+- `android-sdk-cmdline-tools` has the version of the `cmdline-tools;latest` package, written like the other versions.
+
+`versions[].deprecated` is only present when true. Readers skip deprecated versions when they resolve `latest` or a partial version:
+
+- Tools from npm have the versions the registry deprecated.
+- Tools from PyPI have the releases whose files are all yanked.
+- Tools from RubyGems have the versions removed from the registry.
+- `nuget` has the `nuget.exe` releases of the stage `Released`, which aren't `ReleasedAndBlessed`.
 
 `versions[].constraints` is only present when the registry has a constraint for the version:
 

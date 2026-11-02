@@ -23,7 +23,9 @@ const releasedStages = new Set(['Released', 'ReleasedAndBlessed']);
 /**
  * Fetches the `nuget.exe` releases from dist.nuget.org, the list the
  * containerbase nuget resolver reads. A release which isn't released (like an
- * early access preview) is a prerelease. The file is `nuget.exe` of the
+ * early access preview) is a prerelease. A release which is `Released` but not
+ * `ReleasedAndBlessed` is deprecated, so it isn't picked as the latest or for a
+ * partial version. The file is `nuget.exe` of the
  * release, which has no published checksum, so it is computed by downloading it
  * once, see `computeChecksumTasks`. The same file works on every architecture.
  * @param _packageName - unused, there is only nuget.exe
@@ -54,6 +56,7 @@ export async function fetchNugetExeVersions(
   for (const { version, stage, uploaded } of sorted) {
     const entry = toolVersion(version, {
       prerelease: stage !== undefined && !releasedStages.has(stage),
+      deprecated: stage === 'Released',
       releaseTimestamp: toTimestamp(uploaded),
     });
     const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];

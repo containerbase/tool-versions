@@ -45,47 +45,87 @@ describe('datasources/gradle-version', () => {
       .get('/distributions/gradle-8.11-milestone-1-bin.zip.sha256')
       .reply(200, sum('c'))
       .get('/distributions/gradle-7.0-bin.zip.sha256')
-      .reply(404);
+      .reply(404)
+      .get('/versions/current')
+      .reply(200, { version: '8.10', current: true });
 
-    await expect(fetchGradleVersions('gradle')).resolves.toEqual([
-      {
-        version: '9.0-rc-1',
-        prerelease: true,
-        releaseTimestamp: '2025-06-01T12:00:00.000Z',
-        files: [file('9.0-rc-1', 'a')],
-      },
-      { version: '8.11-milestone-1', prerelease: true, files: [file('8.11-milestone-1', 'c')] },
-      {
-        version: '8.10',
-        releaseTimestamp: '2024-08-02T09:22:33.000Z',
-        files: [file('8.10', 'b')],
-      },
-      { version: '7.0' },
-    ]);
+    await expect(fetchGradleVersions('gradle')).resolves.toEqual({
+      latest: '8.10',
+      versions: [
+        {
+          version: '9.0-rc-1',
+          prerelease: true,
+          releaseTimestamp: '2025-06-01T12:00:00.000Z',
+          files: [file('9.0-rc-1', 'a')],
+        },
+        { version: '8.11-milestone-1', prerelease: true, files: [file('8.11-milestone-1', 'c')] },
+        {
+          version: '8.10',
+          releaseTimestamp: '2024-08-02T09:22:33.000Z',
+          files: [file('8.10', 'b')],
+        },
+        { version: '7.0' },
+      ],
+    });
   });
 
   it('reuses the known files without a request', async () => {
     nock(host)
       .get('/versions/all')
-      .reply(200, [{ version: '8.10' }]);
+      .reply(200, [{ version: '8.10' }])
+      .get('/versions/current')
+      .reply(200, { version: '8.10' });
 
     await expect(
       fetchGradleVersions('gradle', undefined, new Map([['8.10', [file('8.10', 'b')]]])),
-    ).resolves.toEqual([{ version: '8.10', files: [file('8.10', 'b')] }]);
+    ).resolves.toEqual({
+      latest: '8.10',
+      versions: [{ version: '8.10', files: [file('8.10', 'b')] }],
+    });
   });
 
   it('fetches no files when told so', async () => {
     nock(host)
       .get('/versions/all')
-      .reply(200, [{ version: '8.10' }]);
+      .reply(200, [{ version: '8.10' }])
+      .get('/versions/current')
+      .reply(200, { version: '8.10' });
 
     await expect(
       fetchGradleVersions('gradle', undefined, undefined, undefined, false),
-    ).resolves.toEqual([{ version: '8.10' }]);
+    ).resolves.toEqual({ latest: '8.10', versions: [{ version: '8.10' }] });
+  });
+
+  it('has no latest when the current release is not listed', async () => {
+    nock(host)
+      .get('/versions/all')
+      .reply(200, [{ version: '8.10' }, { version: '8.11', broken: true }])
+      .get('/versions/current')
+      .reply(200, { version: '8.11' });
+
+    const { latest } = await fetchGradleVersions('gradle', undefined, undefined, undefined, false);
+
+    expect(latest).toBeUndefined();
+  });
+
+  it('keeps the releases without latest when the current release fails', async () => {
+    nock(host)
+      .get('/versions/all')
+      .reply(200, [{ version: '8.10' }])
+      .get('/versions/current')
+      .reply(404);
+
+    const result = await fetchGradleVersions('gradle', undefined, undefined, undefined, false);
+
+    expect(result).toEqual({ versions: [{ version: '8.10' }], latest: undefined });
   });
 
   it('fails on an error response', async () => {
-    nock(host).get('/versions/all').reply(404);
+    nock(host)
+      .get('/versions/all')
+      .reply(404)
+      .get('/versions/current')
+      .reply(200, { version: '8.10' });
 
     await expect(fetchGradleVersions('gradle')).rejects.toThrow('failed with status 404');
   });
