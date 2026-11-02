@@ -41,7 +41,9 @@ Exceptions:
 - `java-jdk`, `java-jre`: the Adoptium source of `java`, with the jdk or jre image type.
 - `dotnet`: Microsoft's release metadata has the sha512 of every archive, so nothing is computed. A channel which can't be read is skipped with a warning.
 - `swift`: releases from `swift.org/api/v1/install/releases.json`. The files are the Ubuntu 22.04 (`jammy`), 24.04 (`noble`, from 5.10.1) and 26.04 (`resolute`) archives of the platforms a release lists, with the urls of the CLI. Swift only publishes PGP signatures, so the sha256 is computed.
-- `android-sdk-cmdline-tools`: Google's `repository2-3.xml`, a large XML parsed like the CLI does. The linux zip with its `sha1` is the file, the same for all architectures. It has no Renovate trigger line, as no Renovate datasource has its version format.
+- `android-sdk-cmdline-tools`: Google's `repository2-3.xml`, a large XML parsed like the CLI does. The linux zip with its `sha1` is the file, the same for all architectures. The `cmdline-tools;latest` package is no version, its version is the `latest`. It has no Renovate trigger line, as no Renovate datasource has its version format.
+- `gradle`: releases from `services.gradle.org/versions/all`, the `latest` is the release of `versions/current`.
+- `nuget`: `nuget.exe` releases from `dist.nuget.org/tools.json`. `EarlyAccessPreview` releases are prereleases, `Released` ones which aren't `ReleasedAndBlessed` are deprecated.
 
 ## Package managers
 
@@ -52,6 +54,7 @@ Example: `pnpm`.
 - Deprecated tools aren't published.
 - `yarn` is the union of the `yarn` package (1.x) and `@yarnpkg/cli-dist` (2 and later).
 - `yarn-slim` is only the 1.x versions of `yarn`.
+- npm tools take the `latest` dist-tag as their `latest`.
 - Some sources have no release times.
 - The runtime constraints of npm, pypi and rubygems versions come from the documents the build fetches anyway, see the [format](./format.md#fields). Published constraints are reused, only versions without one read them.
 

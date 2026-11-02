@@ -20,7 +20,7 @@ import { fetchSwiftReleases } from './swift-releases.ts';
 
 /**
  * Fetches the versions of a package, newest first. Sources with a `latest`
- * tag, like npm, return it with the versions. Paged sources may stop
+ * version, like the npm `latest` dist-tag, return it with the versions. Paged sources may stop
  * early once they reach a known version. The previously published files are
  * reused by name instead of fetching them again. A template lists the files of
  * a version where the source doesn't. No files are fetched when `fetchFiles`
