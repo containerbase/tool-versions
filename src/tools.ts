@@ -1,3 +1,4 @@
+import { type ToolMetadata, tools } from '@containerbase/base';
 import semver from 'semver';
 
 import {
@@ -10,6 +11,20 @@ import {
 } from './files.ts';
 import type { Source, ToolSource } from './schema.ts';
 import { nightlyDate } from './versioning.ts';
+
+/**
+ * Temporary metadata of tools until the next `@containerbase/base` release has
+ * it: tools which the package doesn't know yet, or whose metadata changes.
+ * Each entry replaces the metadata of the package for its tool and names the
+ * containerbase pull request, the bump of `@containerbase/base` removes it.
+ */
+export const toolExceptions: Record<string, ToolMetadata> = {
+  // containerbase/base#7162
+  aube: {},
+};
+
+/** The metadata of the tools: the ones of `@containerbase/base` and the exceptions. */
+export const toolMetadata: Record<string, ToolMetadata> = { ...tools, ...toolExceptions };
 
 /**
  * The source of a tool which containerbase publishes as the assets of the
@@ -52,6 +67,7 @@ export const toolSources: Record<string, ToolSource> = {
   },
   apko: github('chainguard-dev/apko'),
   apm: github('microsoft/apm'),
+  aube: github('jdx/aube'),
   buf: github('bufbuild/buf'),
   buildx: github('docker/buildx'),
   bazelisk: github('bazelbuild/bazelisk'),
@@ -151,6 +167,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   },
   apko: { sourceUrl: 'https://github.com/chainguard-dev/apko' },
   apm: { sourceUrl: 'https://github.com/microsoft/apm' },
+  aube: { sourceUrl: 'https://github.com/jdx/aube' },
   buf: { sourceUrl: 'https://github.com/bufbuild/buf', homepage: 'https://buf.build' },
   bazelisk: { sourceUrl: 'https://github.com/bazelbuild/bazelisk' },
   buildx: {
@@ -348,6 +365,11 @@ export const toolFiles: Record<string, ToolFiles> = {
   apm: {
     files: perArch({ amd64: 'x86_64', arm64: 'arm64' }, (arch) => `apm-linux-${arch}.tar.gz`),
     checksum: { sidecar: ['.sha256'] },
+  },
+  aube: {
+    files: perArch(unameArch, (arch, v) => `aube-v${v}-${arch}-unknown-linux-gnu.tar.gz`),
+    // the releases have no checksums, the GitHub digest is used when there is one
+    checksum: { compute: true },
   },
   buf: {
     files: perArch(unameArch, (arch) => `buf-Linux-${arch}.tar.gz`),

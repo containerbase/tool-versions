@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stdout } from 'node:process';
 
-import { type ToolMetadata, tools } from '@containerbase/base';
 import nock from 'nock';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +17,7 @@ import {
   type ToolSource,
   type ToolVersions,
 } from './schema.ts';
-import { toolSources } from './tools.ts';
+import { toolMetadata, toolSources } from './tools.ts';
 import { versionings } from './versioning.ts';
 
 // adds tools with minimum versions, so the tests don't depend on the minimums
@@ -157,8 +156,8 @@ describe('build', () => {
     };
   }
 
-  it('maps only tools known to @containerbase/base', () => {
-    expect(Object.keys(tools)).toEqual(expect.arrayContaining(Object.keys(toolSources)));
+  it('maps only tools known to @containerbase/base or its exceptions', () => {
+    expect(Object.keys(toolMetadata)).toEqual(expect.arrayContaining(Object.keys(toolSources)));
   });
 
   it('writes the tools and leaves out failing ones without a previous file', async () => {
@@ -1114,10 +1113,9 @@ describe('build', () => {
     });
 
     it('has a minimum which fits the versioning of each mapped tool', () => {
-      const metadata: Record<string, ToolMetadata> = tools;
       const invalid = Object.entries(toolSources)
         .filter(([tool, { versioning }]) => {
-          const minVersion = metadata[tool]?.minVersion;
+          const minVersion = toolMetadata[tool]?.minVersion;
           return minVersion !== undefined && !versionings[versioning].isValid(minVersion);
         })
         .map(([tool]) => tool);
