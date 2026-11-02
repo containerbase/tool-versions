@@ -170,8 +170,8 @@ importers:
   .:
     dependencies:
       '@containerbase/base':
-        specifier: 14.59.5
-        version: 14.59.5(zod@4.6.7)
+        specifier: 14.59.6
+        version: 14.59.6(zod@4.6.7)
       '@nodable/flexible-xml-parser':
         specifier: 1.11.3
         version: 1.11.3
@@ -378,8 +378,8 @@ packages:
       zod:
         optional: true
 
-  '@containerbase/base@14.59.5':
-    resolution: {integrity: sha512-sa+xU5Lz4J6AuBrMuuWu2H8CAWEWRg6EMu1BGZBCK5B7pg9QbTpBb+zJgEhrbxa2WJ1Wq5J0KZ1l2n9ohn2XxQ==}
+  '@containerbase/base@14.59.6':
+    resolution: {integrity: sha512-twpkovltaLV2iRbST+z3D53CE3a26FEkz1wnmR6qCi7T32Dz7kTKedKP1zE1Xi/rJlBWJ6EvAAwewrn7gBkYmw==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -3742,7 +3742,7 @@ snapshots:
     optionalDependencies:
       zod: 4.6.7
 
-  '@containerbase/base@14.59.5(zod@4.6.7)':
+  '@containerbase/base@14.59.6(zod@4.6.7)':
     dependencies:
       semver: 7.8.5
     optionalDependencies:
