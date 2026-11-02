@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { fetchGradleVersions } from './gradle-version.ts';
 
 const host = 'https://services.gradle.org';

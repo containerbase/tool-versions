@@ -1,5 +1,6 @@
 import process from 'node:process';
 import { parseArgs } from 'node:util';
+
 import { build } from './build.ts';
 
 const { values } = parseArgs({

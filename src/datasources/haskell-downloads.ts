@@ -1,10 +1,10 @@
 import {
   type Arch,
-  type PreviousFiles,
-  type ToolFiles,
   fetchText,
   parseChecksumList,
+  type PreviousFiles,
   runAll,
+  type ToolFiles,
   withFiles,
 } from '../files.ts';
 import { request } from '../http.ts';

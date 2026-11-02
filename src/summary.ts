@@ -1,4 +1,5 @@
 import { appendFile } from 'node:fs/promises';
+
 import type { LogEntry } from './log.ts';
 import type { ToolVersion } from './schema.ts';
 

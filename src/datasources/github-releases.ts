@@ -1,23 +1,25 @@
 import { env } from 'node:process';
+
 import { z } from 'zod';
+
 import { reportSkippedDownloads } from '../download.ts';
 import {
-  type FileCandidate,
-  type PreviousFiles,
-  type ToolFiles,
   assetTasks,
   checksumTasks,
+  type FileCandidate,
   isUnsupportedDistro,
   mayCompute,
   parsePrebuildName,
+  type PreviousFiles,
   runAll,
   tagPrefixes,
+  type ToolFiles,
   withFiles,
 } from '../files.ts';
 import { request } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { belowMinimum, versionings } from '../versioning.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 const GithubAsset = z.object({
   name: z.string(),

@@ -1,8 +1,9 @@
 import { compare, explain } from '@renovatebot/pep440';
 import { z } from 'zod';
+
 import { getJson } from '../http.ts';
 import type { ToolVersion } from '../schema.ts';
-import { sortVersions, toConstraints, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toConstraints, toolVersion, toTimestamp } from '../versions.ts';
 
 const PypiFile = z.object({
   upload_time_iso_8601: z.string().optional(),

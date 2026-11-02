@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import type { ToolVersion } from '../schema.ts';
 import { fetchNpmVersions } from './npm.ts';
 

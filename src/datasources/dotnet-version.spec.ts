@@ -1,6 +1,8 @@
 import { stdout } from 'node:process';
+
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { fetchDotnetVersions } from './dotnet-version.ts';
 
 const host = 'https://builds.dotnet.microsoft.com';

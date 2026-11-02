@@ -1,7 +1,9 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { env, stdout } from 'node:process';
+
 import { type ToolMetadata, tools } from '@containerbase/base';
+
 import { datasources } from './datasources/index.ts';
 import { isExpiredNightly } from './datasources/rust-version.ts';
 import {
@@ -12,7 +14,7 @@ import {
 } from './download.ts';
 import { isUnsupportedDistro, mayCompute } from './files.ts';
 import { formatDir } from './formats.ts';
-import { type LogEntry, collectLogs, logError, logNotice, logWarning } from './log.ts';
+import { collectLogs, type LogEntry, logError, logNotice, logWarning } from './log.ts';
 import {
   fileNameSafe,
   writeFormats,
@@ -29,10 +31,10 @@ import type {
   ToolVersion,
   ToolVersions,
 } from './schema.ts';
-import { BuildReport, type ToolStatus, countNewFiles, writeSummary } from './summary.ts';
+import { BuildReport, countNewFiles, type ToolStatus, writeSummary } from './summary.ts';
 import { toolFiles, toolLinks, toolSources } from './tools.ts';
 import { belowMinimum, versionings } from './versioning.ts';
-import { type FetchedVersions, compareSemver, isPlainSemver, sortVersions } from './versions.ts';
+import { compareSemver, type FetchedVersions, isPlainSemver, sortVersions } from './versions.ts';
 
 const metadata: Record<string, ToolMetadata> = tools;
 

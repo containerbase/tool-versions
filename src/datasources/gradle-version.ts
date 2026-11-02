@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { type PreviousFiles, type ToolFiles, checksumTasks, runAll, withFiles } from '../files.ts';
+
+import { checksumTasks, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { versionings } from '../versioning.ts';
-import { sortVersions, toTimestamp, toolVersion } from '../versions.ts';
+import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 const GradleReleases = z.array(
   z.object({

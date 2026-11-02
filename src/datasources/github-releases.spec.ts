@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { stdout } from 'node:process';
+
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { resetDownloadBudget } from '../download.ts';
-import { type AssetTemplate, type FileTemplate, computed, withTagPrefixes } from '../files.ts';
+import { type AssetTemplate, computed, type FileTemplate, withTagPrefixes } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
 import { fetchGithubReleases, nextPage } from './github-releases.ts';
 

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { formatDir } from './formats.ts';
 import { PreviousToolVersions, VersionFiles } from './schema.ts';
 

@@ -1,6 +1,8 @@
 import { stdout } from 'node:process';
+
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { ToolFile } from '../schema.ts';
 import { fetchNodeVersions } from './node-version.ts';
 

@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { fetchRubygemsVersions } from './rubygems.ts';
 
 describe('datasources/rubygems', () => {

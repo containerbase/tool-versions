@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import type { FileTemplate } from '../files.ts';
 import { fetchDartVersions } from './dart-version.ts';
 

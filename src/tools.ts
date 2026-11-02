@@ -1,10 +1,11 @@
 import semver from 'semver';
+
 import {
   type Arch,
   type AssetFile,
   type AssetTemplate,
-  type ToolFiles,
   computed,
+  type ToolFiles,
   withTagPrefixes,
 } from './files.ts';
 import type { Source, ToolSource } from './schema.ts';

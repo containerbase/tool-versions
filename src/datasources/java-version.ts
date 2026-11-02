@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { type PreviousFiles, type ToolFiles, checksum, runAll, withFiles } from '../files.ts';
-import { HttpError, getJson } from '../http.ts';
+
+import { checksum, type PreviousFiles, runAll, type ToolFiles, withFiles } from '../files.ts';
+import { getJson, HttpError } from '../http.ts';
 import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion } from '../schema.ts';
 import {
@@ -8,8 +9,8 @@ import {
   isSemver,
   isSemverPrerelease,
   sortVersions,
-  toTimestamp,
   toolVersion,
+  toTimestamp,
 } from '../versions.ts';
 
 const baseUrl = 'https://api.adoptium.net/v3/info';

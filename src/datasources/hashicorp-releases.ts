@@ -1,11 +1,12 @@
 import { z } from 'zod';
+
 import {
   type Arch,
-  type PreviousFiles,
-  type ToolFiles,
   fetchText,
   parseChecksumList,
+  type PreviousFiles,
   runAll,
+  type ToolFiles,
   withFiles,
 } from '../files.ts';
 import { getJson } from '../http.ts';

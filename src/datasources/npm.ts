@@ -1,16 +1,17 @@
 import semver from 'semver';
 import { z } from 'zod';
+
 import type { PreviousFiles, ToolFiles } from '../files.ts';
 import { getJson } from '../http.ts';
 import {
-  type FetchedVersions,
   compareSemver,
+  type FetchedVersions,
   isSemver,
   isSemverPrerelease,
   sortVersions,
   toConstraints,
-  toTimestamp,
   toolVersion,
+  toTimestamp,
 } from '../versions.ts';
 
 const NpmVersion = z.object({

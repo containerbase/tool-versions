@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { defaultDistro } from '@containerbase/base';
 import * as Base from '@containerbase/base/zod';
 import { z } from 'zod';
+
 import { formats, formatsSchemaUrl, releaseSchemaUrl, schemaUrl } from './formats.ts';
 import { logWarning } from './log.ts';
 import {

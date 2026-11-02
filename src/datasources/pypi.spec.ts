@@ -1,5 +1,6 @@
 import nock from 'nock';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { fetchPypiVersions } from './pypi.ts';
 
 const file = { packagetype: 'bdist_wheel', yanked: false };
