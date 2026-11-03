@@ -238,7 +238,7 @@ ENV PIP_TOOLS_VERSION=7.6.2
 ENV PIPENV_VERSION=2026.10.5
 
 # renovate: datasource=github-releases depName=pixi packageName=prefix-dev/pixi
-ENV PIXI_VERSION=0.83.0
+ENV PIXI_VERSION=0.84.0
 
 # renovate: datasource=npm depName=pnpm
 ENV PNPM_VERSION=10.34.9
