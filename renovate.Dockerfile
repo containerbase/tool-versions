@@ -316,7 +316,7 @@ ENV TERRAFORM_VERSION=1.17.1
 ENV TOFU_VERSION=1.13.2
 
 # renovate: datasource=pypi depName=uv
-ENV UV_VERSION=0.13.6
+ENV UV_VERSION=0.13.7
 
 # renovate: datasource=github-releases depName=vendir packageName=vmware-tanzu/carvel-vendir
 ENV VENDIR_VERSION=0.46.3
