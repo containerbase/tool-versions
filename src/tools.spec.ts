@@ -67,7 +67,6 @@ describe('tools', () => {
         git: prebuild('git'),
         golang: prebuild('golang', 'npm'),
         jb: prebuild('jb', 'loose'),
-        maven: prebuild('maven', 'maven'),
         mono: prebuild('mono'),
         nix: prebuild('nix'),
         php: prebuild('php', 'composer'),

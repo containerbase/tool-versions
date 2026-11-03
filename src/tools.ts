@@ -109,7 +109,7 @@ export const toolSources: Record<string, ToolSource> = {
   kas: { datasource: 'pypi', packageName: 'kas', versioning: 'pep440' },
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
-  maven: prebuild('maven', 'maven'),
+  maven: { datasource: 'maven-version', packageName: 'maven', versioning: 'maven' },
   mise: github('jdx/mise', 'npm'),
   mono: prebuild('mono'),
   nix: prebuild('nix'),
