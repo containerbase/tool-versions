@@ -197,6 +197,26 @@ describe('tools', () => {
       ).toEqual(names);
     });
 
+    it('lists different assets with a known arch for every asset template', () => {
+      const templates = Object.entries(toolFiles).flatMap(([tool, template]) =>
+        typeof template === 'object' ? [[tool, template.files('7.8.9')] as const] : [],
+      );
+
+      const invalid = templates
+        .filter(([, files]) => {
+          const names = new Set(files.map(({ name }) => name));
+          return (
+            !files.length ||
+            names.size !== files.length ||
+            files.some(({ name, arch }) => !name || ![undefined, 'amd64', 'arm64'].includes(arch))
+          );
+        })
+        .map(([tool]) => tool);
+
+      expect(templates.length).toBeGreaterThan(0);
+      expect(invalid).toEqual([]);
+    });
+
     it('lists the architectures of the assets, bun has two amd64 builds', () => {
       expect(
         assetTemplate('bun')
@@ -250,6 +270,7 @@ describe('tools', () => {
       ['1.14.5', 'elixir-otp-23.zip'],
       ['1.13.4', 'Precompiled.zip'],
       ['1.0.0', 'Precompiled.zip'],
+      ['main', 'Precompiled.zip'],
     ])('has the elixir file of %s as %s', (version, name) => {
       expect(assetTemplate('elixir').files(version)).toEqual([{ name }]);
     });

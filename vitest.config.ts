@@ -13,7 +13,16 @@ export default defineConfig({
       provider: 'v8',
       reporter: ci ? ['lcovonly', 'text'] : ['@containerbase/istanbul-reports-html', 'text'],
       include: ['src/**/*.ts'],
-      exclude: [...coverageConfigDefaults.exclude, 'src/test-setup.ts'],
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        'src/test-setup.ts',
+        // the command line entry points only parse the arguments and call the
+        // tested functions, they run as scripts and have no exports
+        'src/index.ts',
+        'src/notes.ts',
+        'src/pack.ts',
+      ],
+      ...(ci && { thresholds: { 100: true } }),
     },
     reporters: ci ? ['default', 'github-actions', 'junit'] : ['default'],
     outputFile: { junit: 'coverage/junit.xml' },

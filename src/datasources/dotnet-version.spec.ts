@@ -71,6 +71,11 @@ describe('datasources/dotnet-version', () => {
             sdk: sdk('8.0.101', [['dotnet-sdk-linux-x64.tar.gz', 'linux-x64', 'not a hash']]),
             sdks: null,
           },
+          {
+            'release-date': '2024-01-09',
+            // a file without a runtime id
+            sdk: { version: '8.0.100', files: [{ name: 'dotnet-sdk.pkg', hash: hash('a') }] },
+          },
         ],
       });
 
@@ -122,6 +127,7 @@ describe('datasources/dotnet-version', () => {
       },
       // no valid hash, so no file
       { version: '8.0.101', releaseTimestamp: '2024-01-09T00:00:00.000Z' },
+      { version: '8.0.100', releaseTimestamp: '2024-01-09T00:00:00.000Z' },
     ]);
   });
 

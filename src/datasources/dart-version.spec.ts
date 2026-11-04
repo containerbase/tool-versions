@@ -117,6 +117,23 @@ describe('datasources/dart-version', () => {
     ).resolves.toEqual([{ version: '3.5.0', files: [known] }]);
   });
 
+  it('lists the versions without files when told so', async () => {
+    nock(host)
+      .get(listing)
+      .query(query())
+      .reply(200, { prefixes: ['channels/stable/release/3.5.0/'] });
+    const known = {
+      name: 'dartsdk-linux-x64-release.zip',
+      url: `${host}/dart-archive/channels/stable/release/3.5.0/sdk/dartsdk-linux-x64-release.zip`,
+      checksum: `sha256:${sum('b')}`,
+      arch: 'amd64' as const,
+    };
+
+    await expect(
+      fetchDartVersions('dart', undefined, new Map([['3.5.0', [known]]]), template, false),
+    ).resolves.toEqual([{ version: '3.5.0' }]);
+  });
+
   it('fails on an error response', async () => {
     nock(host).get(listing).query(query()).reply(404);
 

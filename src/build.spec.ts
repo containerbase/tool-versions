@@ -30,7 +30,10 @@ vi.mock('@containerbase/base', async (importOriginal) => {
     tools: {
       ...actual.tools,
       'min-test': { minVersion: '18.09.0' },
-      'distro-test': { minVersion: '1.0.0', distroMinVersion: { resolute: '2.0.0' } },
+      'distro-test': {
+        minVersion: '1.0.0',
+        distroMinVersion: { resolute: '2.0.0', noble: undefined },
+      },
     },
   };
 });
@@ -1051,6 +1054,10 @@ describe('build', () => {
             version: '1.5.0',
             files: [file('a-1.5.0.tgz'), file('a-1.5.0-resolute.tgz', 'resolute')],
           },
+          // without files, and with only a file of a distro which is too old: both
+          // are no published versions
+          { version: '1.4.0' },
+          { version: '1.3.0', files: [file('a-1.3.0-resolute.tgz', 'resolute')] },
           // below the minimum
           { version: '0.9.0', files: [file('a-0.9.0.tgz')] },
         ],

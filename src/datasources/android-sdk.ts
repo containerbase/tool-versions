@@ -106,7 +106,7 @@ function linuxFile(archives: z.output<typeof Archive>[]): ToolFile | undefined {
   const url = archive?.complete.url;
   // the zip is the same for all linux architectures, so the file has no arch
   return url && sum
-    ? { name: url.split('/').pop() ?? url, url: `${archiveBase}${url}`, checksum: sum }
+    ? { name: url.slice(url.lastIndexOf('/') + 1), url: `${archiveBase}${url}`, checksum: sum }
     : undefined;
 }
 

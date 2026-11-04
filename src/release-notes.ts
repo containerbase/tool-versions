@@ -56,7 +56,7 @@ export function sortKeys(value: unknown): unknown {
   }
   return Object.fromEntries(
     Object.entries(value)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([key, entry]) => [key, sortKeys(entry)]),
   );
 }

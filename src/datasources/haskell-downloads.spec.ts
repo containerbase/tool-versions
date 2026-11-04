@@ -153,6 +153,21 @@ describe('datasources/haskell-downloads', () => {
     ]);
   });
 
+  it('lists the versions without files when told so', async () => {
+    nock(host).get('/~ghc/').reply(200, '<a href="9.8.2/">9.8.2/</a>');
+    const name = 'ghc-9.8.2-x86_64-deb10-linux.tar.xz';
+    const known: ToolFile = {
+      name,
+      url: `${host}/~ghc/9.8.2/${name}`,
+      checksum: `sha256:${sum('a')}`,
+      arch: 'amd64',
+    };
+
+    await expect(
+      fetchHaskellDownloads('ghc', undefined, new Map([['9.8.2', [known]]]), undefined, false),
+    ).resolves.toEqual([{ version: '9.8.2' }]);
+  });
+
   it('fails for an unknown package and on an error response', async () => {
     await expect(fetchHaskellDownloads('stack')).rejects.toThrow('Unknown haskell package stack');
 

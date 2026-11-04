@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { parseCommit } from './release-notes.ts';
 import {
   BreakingChangeError,
   buildTimeOf,
@@ -20,6 +21,9 @@ import {
   planVersion,
   selectFiles,
 } from './release.ts';
+
+// keeps the real functions, so a test can make `parseCommit` fail once
+vi.mock('./release-notes.ts', { spy: true });
 
 /**
  * A slim tool file, as written by the build.
@@ -185,6 +189,25 @@ describe('release', () => {
       expect(hasChanges(new Map([['a.json', '{']]), new Map([['a.json', '{']]))).toBe(false);
     });
 
+    it('compares json which is no object, and index entries which are no objects, as they are', () => {
+      const list = (content: string): Map<string, string> => new Map([['a.json', content]]);
+      const index = (tool: unknown): Map<string, string> =>
+        new Map([['v1/index.json', JSON.stringify({ tools: [tool] })]]);
+
+      expect(hasChanges(list('[1]'), list('[1]'))).toBe(false);
+      expect(hasChanges(list('[1]'), list('[2]'))).toBe(true);
+      expect(hasChanges(index(1), index(1))).toBe(false);
+      expect(hasChanges(index(1), index(2))).toBe(true);
+      // the files of an entry are compared by name, also when they aren't objects
+      expect(
+        hasChanges(
+          index({ slim: 'a', versionFiles: 'b' }),
+          index({ slim: 'a', versionFiles: 'b' }),
+        ),
+      ).toBe(false);
+      expect(hasChanges(index({ slim: 'a' }), index({ slim: 'b' }))).toBe(true);
+    });
+
     it('ignores the release.json, which changes with every build', () => {
       const before = new Map(previous).set('release.json', '{"version":"1.0.0"}\n');
       const after = new Map(previous).set('release.json', '{"version":"1.0.1"}\n');
@@ -252,6 +275,14 @@ describe('release', () => {
 
     it('has the next major version for a breaking change with a new format folder', () => {
       expect(planVersion(2, ['v1.0.1'], ['feat!: new format'])).toEqual({ version: '2.0.0' });
+    });
+
+    it('throws any other error', () => {
+      vi.mocked(parseCommit).mockImplementationOnce(() => {
+        throw new Error('unexpected');
+      });
+
+      expect(() => planVersion(1, ['v1.0.1'], ['fix: a'])).toThrow('unexpected');
     });
   });
 

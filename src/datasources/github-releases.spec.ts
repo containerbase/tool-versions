@@ -724,6 +724,49 @@ describe('datasources/github-releases', () => {
       expect(output).toEqual([]);
     });
 
+    it('skips a file without a sidecar asset, and warns for a sidecar without a digest', async () => {
+      const output: string[] = [];
+      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+        output.push(String(chunk));
+        return true;
+      });
+      mockReleases([
+        withNames('v2.0.0', ['tool.tgz']),
+        withNames('v1.0.0', ['tool.tgz', 'tool.tgz.sha256']),
+      ]);
+      nock(host).get(`${download}/v1.0.0/tool.tgz.sha256`).reply(200, 'not a digest');
+
+      await expect(
+        fetchWith({ files: () => [{ name: 'tool.tgz' }], checksum: { sidecar: ['.sha256'] } }),
+      ).resolves.toEqual([{ version: '2.0.0' }, { version: '1.0.0' }]);
+      expect(output).toEqual([
+        `::warning::some/tool: no valid sha256 digest in ${dlUrl('v1.0.0', 'tool.tgz.sha256')}\n`,
+      ]);
+    });
+
+    it('computes a file without a sidecar asset when the template says so', async () => {
+      mockReleases([
+        withNames('v2.0.0', ['tool.tgz', 'tool.tgz.sha256']),
+        withNames('v1.0.0', ['tool.tgz']),
+      ]);
+      nock(host)
+        .get(`${download}/v2.0.0/tool.tgz.sha256`)
+        .reply(200, hex('a'))
+        .get(`${download}/v1.0.0/tool.tgz`)
+        .reply(200, 'old', { 'content-length': '3' });
+
+      const versions = await fetchWith({
+        files: () => [{ name: 'tool.tgz' }],
+        checksum: { sidecar: ['.sha256'] },
+        computeMissing: true,
+      });
+
+      expect(versions.map(({ version, files }) => [version, files?.[0]?.checksum])).toEqual([
+        ['2.0.0', `sha256:${hex('a')}`],
+        ['1.0.0', `sha256:${createHash('sha256').update('old').digest('hex')}`],
+      ]);
+    });
+
     it('reuses the previous files and fetches no list when all files are known', async () => {
       mockReleases([withNames('v1.2.0', ['tool_1.2.0_linux_amd64.tar.gz', 'checksums.txt'])]);
       const known = {
