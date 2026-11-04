@@ -1,5 +1,7 @@
+import { stdout } from 'node:process';
+
 import nock from 'nock';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchGradleVersions } from './gradle-version.ts';
 
@@ -109,6 +111,11 @@ describe('datasources/gradle-version', () => {
   });
 
   it('keeps the releases without latest when the current release fails', async () => {
+    const output: string[] = [];
+    vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    });
     nock(host)
       .get('/versions/all')
       .reply(200, [{ version: '8.10' }])
@@ -118,6 +125,9 @@ describe('datasources/gradle-version', () => {
     const result = await fetchGradleVersions('gradle', undefined, undefined, undefined, false);
 
     expect(result).toEqual({ versions: [{ version: '8.10' }], latest: undefined });
+    expect(output).toEqual([
+      `::warning::gradle: no current release: HttpError: GET ${host}/versions/current failed with status 404\n`,
+    ]);
   });
 
   it('fails on an error response', async () => {

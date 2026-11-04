@@ -63,6 +63,8 @@ jobs:
       - setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      id-token: write
 
     steps:
       - name: ⚙️ Setup
@@ -70,3 +72,16 @@ jobs:
 
       - name: test
         run: pnpm test
+
+      - name: Codecov test results
+        if: github.event_name != 'merge_group' && !cancelled()
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: true
+          report_type: test_results
+
+      - name: Codecov coverage results
+        if: github.event_name != 'merge_group'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: true

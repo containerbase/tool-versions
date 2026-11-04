@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { stdout } from 'node:process';
 
 import nock from 'nock';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetDownloadBudget } from '../download.ts';
 import { type AssetTemplate, computed, type FileTemplate, withTagPrefixes } from '../files.ts';
@@ -80,8 +80,6 @@ describe('datasources/github-releases', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
   it('reads all pages, drops the v, flags prereleases and sorts newest first', async () => {
@@ -789,7 +787,8 @@ describe('datasources/github-releases', () => {
         };
       }
 
-      afterEach(() => {
+      beforeEach(() => {
+        // the env of the test before is already unstubbed here
         resetDownloadBudget();
       });
 

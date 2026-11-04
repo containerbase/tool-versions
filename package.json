@@ -21,7 +21,7 @@
     "pack:release": "node src/pack.ts",
     "release-notes": "node src/notes.ts",
     "prepare": "husky",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@containerbase/base": "14.63.0",
@@ -34,11 +34,13 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@containerbase/istanbul-reports-html": "2.0.23",
     "@containerbase/oxlint-plugin": "1.1.0",
     "@tsconfig/node24": "24.0.5",
     "@tsconfig/strictest": "2.0.8",
     "@types/node": "24.19.2",
     "@types/semver": "7.8.0",
+    "@vitest/coverage-v8": "5.0.5",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "nock": "15.0.5",

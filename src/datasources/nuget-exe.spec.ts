@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
+import { stdout } from 'node:process';
 
 import nock from 'nock';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetDownloadBudget } from '../download.ts';
 import { fetchNugetExeVersions } from './nuget-exe.ts';
@@ -32,10 +33,13 @@ describe('datasources/nuget-exe', () => {
     nock.disableNetConnect();
   });
 
+  beforeEach(() => {
+    // the env of the test before is already unstubbed here
+    resetDownloadBudget();
+  });
+
   afterEach(() => {
     nock.cleanAll();
-    vi.unstubAllEnvs();
-    resetDownloadBudget();
   });
 
   it('lists the releases newest first and computes the checksum of nuget.exe', async () => {
@@ -71,6 +75,11 @@ describe('datasources/nuget-exe', () => {
   });
 
   it('reuses the known files, and stops with a notice when the budget is used up', async () => {
+    const output: string[] = [];
+    vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    });
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '10');
     resetDownloadBudget();
     nock(host)
@@ -102,6 +111,9 @@ describe('datasources/nuget-exe', () => {
       ['6.10.2', sha('x'.repeat(8))],
       // without a file until the next build, so the build leaves it out
       ['6.9.0', undefined],
+    ]);
+    expect(output).toEqual([
+      '::notice::nuget: download budget of the tool used up, the checksums of 1 files will be computed by the next builds\n',
     ]);
   });
 

@@ -28,7 +28,6 @@ describe('datasources/dotnet-version', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
   });
 
   it('lists the sdks of all channels with the linux archives and their sha512', async () => {

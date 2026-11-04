@@ -85,8 +85,6 @@ describe('build', () => {
 
   afterEach(async () => {
     nock.cleanAll();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
     await rm(archive, { recursive: true, force: true });
   });

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
+import { stdout } from 'node:process';
 
 import nock from 'nock';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetDownloadBudget } from '../download.ts';
 import { fetchSwiftReleases } from './swift-releases.ts';
@@ -45,10 +46,13 @@ describe('datasources/swift-releases', () => {
     nock.disableNetConnect();
   });
 
+  beforeEach(() => {
+    // the env of the test before is already unstubbed here
+    resetDownloadBudget();
+  });
+
   afterEach(() => {
     nock.cleanAll();
-    vi.unstubAllEnvs();
-    resetDownloadBudget();
   });
 
   it('lists the archives of Ubuntu 22.04, 24.04 and 26.04 with the urls of the cli', async () => {
@@ -226,6 +230,11 @@ describe('datasources/swift-releases', () => {
   });
 
   it('computes the newest releases first and reuses the known files', async () => {
+    const output: string[] = [];
+    vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    });
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '10');
     resetDownloadBudget();
     nock(site)
@@ -264,6 +273,9 @@ describe('datasources/swift-releases', () => {
       // without a file until the next build
       ['6.0.2', undefined],
       ['6.0.1', undefined],
+    ]);
+    expect(output).toEqual([
+      '::notice::swift: download budget of the tool used up, the checksums of 2 files will be computed by the next builds\n',
     ]);
   });
 

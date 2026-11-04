@@ -45,6 +45,8 @@ describe('download', () => {
   });
 
   beforeEach(() => {
+    // the env of the test before is already unstubbed here
+    resetDownloadBudget();
     output = [];
     vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
       output.push(String(chunk));
@@ -54,9 +56,6 @@ describe('download', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
-    resetDownloadBudget();
   });
 
   describe('computeChecksum', () => {

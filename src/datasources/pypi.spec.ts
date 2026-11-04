@@ -1,9 +1,25 @@
+import { stdout } from 'node:process';
+
 import nock from 'nock';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchPypiVersions } from './pypi.ts';
 
 const file = { packagetype: 'bdist_wheel', yanked: false };
+
+/**
+ * Captures what the code under test writes to stdout, like the GitHub
+ * annotations, so they don't reach the test output.
+ * @returns the written chunks, filled while the test runs
+ */
+function captureOutput(): string[] {
+  const output: string[] = [];
+  vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+    output.push(String(chunk));
+    return true;
+  });
+  return output;
+}
 
 /**
  * Mocks the poetry releases and the latest release of the mirror plugin.
@@ -162,20 +178,35 @@ describe('datasources/pypi', () => {
   );
 
   it.each([
-    ['no requirements', null],
-    ['no poetry requirement', ['poetry-core>=1']],
-    ['an invalid range', ['poetry (not a range)']],
-    ['no matching release', ['poetry>=4']],
-  ])('has no poetry latest for %s', async (_name, requiresDist) => {
+    ['no requirements', null, 'no poetry requirement in the latest poetry-plugin-pypi-mirror'],
+    [
+      'no poetry requirement',
+      ['poetry-core>=1'],
+      'no poetry requirement in the latest poetry-plugin-pypi-mirror',
+    ],
+    [
+      'an invalid range',
+      ['poetry (not a range)'],
+      'no poetry requirement in the latest poetry-plugin-pypi-mirror',
+    ],
+    [
+      'no matching release',
+      ['poetry>=4'],
+      'no stable release satisfies >=4 of poetry-plugin-pypi-mirror',
+    ],
+  ])('has no poetry latest for %s', async (_name, requiresDist, warning) => {
+    const output = captureOutput();
     mockPoetry(requiresDist);
 
     const { versions, latest } = await fetchPypiVersions('poetry');
 
     expect(latest).toBeUndefined();
     expect(versions).toHaveLength(5);
+    expect(output).toEqual([`::warning::poetry: ${warning}\n`]);
   });
 
   it('has no poetry latest when the mirror plugin fails', async () => {
+    const output = captureOutput();
     nock('https://pypi.org')
       .get('/pypi/poetry/json')
       .reply(200, { releases: { '2.1.0': [file] } })
@@ -185,5 +216,8 @@ describe('datasources/pypi', () => {
     await expect(fetchPypiVersions('poetry')).resolves.toEqual({
       versions: [{ version: '2.1.0' }],
     });
+    expect(output).toEqual([
+      '::warning::poetry: no latest from poetry-plugin-pypi-mirror: HttpError: GET https://pypi.org/pypi/poetry-plugin-pypi-mirror/json failed with status 404\n',
+    ]);
   });
 });

@@ -34,7 +34,7 @@ All tooling runs through `pnpm`:
 - `pnpm install --frozen-lockfile`: install dependencies, also after `mise install`
 - `pnpm lint`: check formatting (oxfmt), lint (oxlint) and types (tsc)
 - `pnpm lint-fix`: fix formatting and lint findings
-- `pnpm test`: run the unit tests
+- `pnpm test`: run the unit tests with coverage, the html report is in `coverage/`
 - `pnpm build`: build the files into `dist/`, starting empty. `--previous-archive <folder>` starts from the extracted archive of a release (see the README for downloading one into the ignored `tmp/`), `--full` ignores the previous state
 - `pnpm pack:release`: pack the release archive from `dist/` into `dist-release/`
 - `pnpm release-notes`: write the notes of a release from two extracted archives
