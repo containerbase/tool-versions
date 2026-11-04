@@ -117,6 +117,27 @@ describe('datasources/nuget-exe', () => {
     ]);
   });
 
+  it('lists the releases without files when told so', async () => {
+    nock(host)
+      .get('/tools.json')
+      .reply(200, { 'nuget.exe': [{ version: '6.11.0', stage: 'ReleasedAndBlessed' }] });
+    const known = {
+      name: 'nuget.exe',
+      url: `${host}/win-x86-commandline/v6.11.0/nuget.exe`,
+      checksum: `sha256:${'0'.repeat(64)}`,
+    };
+
+    await expect(
+      fetchNugetExeVersions(
+        'nuget.exe',
+        undefined,
+        new Map([['6.11.0', [known]]]),
+        undefined,
+        false,
+      ),
+    ).resolves.toEqual([{ version: '6.11.0' }]);
+  });
+
   it('fails on an error response', async () => {
     nock(host).get('/tools.json').reply(404);
 

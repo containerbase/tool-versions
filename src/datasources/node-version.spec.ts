@@ -146,6 +146,26 @@ describe('datasources/node-version', () => {
     });
   });
 
+  it('ignores prebuild releases without a node prebuild, and files without a checksum', async () => {
+    nock(dist)
+      .get('/dist/index.json')
+      .reply(200, [{ version: 'v25.1.0', lts: false }])
+      .get('/dist/v25.1.0/SHASUMS256.txt')
+      .reply(200, `${x64}  node-v25.1.0-linux-x64.tar.xz\n`);
+    mockPrebuilds([
+      // no assets at all, and only another file
+      prebuildRelease('25.0.0', []),
+      prebuildRelease('24.0.0', ['other.tar.xz', 'other.tar.xz.sha512']),
+    ]);
+    nock(prebuildHost)
+      .get(`${prebuildPath}/24.0.0/other.tar.xz.sha512`)
+      .reply(200, 'd'.repeat(128));
+
+    await expect(fetchNodeVersions('node')).resolves.toEqual([
+      { version: '25.1.0', files: files('25.1.0').slice(1) },
+    ]);
+  });
+
   it('reuses the known files and stops paging at a version with a prebuild', async () => {
     nock(dist)
       .get('/dist/index.json')

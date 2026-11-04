@@ -61,9 +61,7 @@ const products: Record<string, Product> = {
  * @returns the folder names, without the slash
  */
 function folders(html: string): string[] {
-  return [...html.matchAll(/href="(?:\.\/)?([^"/?#]+)\/"/g)].flatMap((match) =>
-    match[1] ? [match[1]] : [],
-  );
+  return Array.from(html.matchAll(/href="(?:\.\/)?([^"/?#]+)\/"/g), ([, folder = '']) => folder);
 }
 
 /**

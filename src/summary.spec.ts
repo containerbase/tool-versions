@@ -88,6 +88,26 @@ describe('summary', () => {
     );
   });
 
+  it('counts the messages of a tool in the plural', () => {
+    const report = new BuildReport(false, 1024, 0);
+    report.add({
+      tool: 'node',
+      status: 'updated',
+      versions: 1,
+      newVersions: 0,
+      filesAdded: 0,
+      computedFiles: 0,
+      computedBytes: 0,
+      waitingFiles: 0,
+      logs: [
+        { level: 'warning', message: 'first' },
+        { level: 'warning', message: 'second' },
+      ],
+    });
+
+    expect(report.render(1000)).toContain('<details><summary>node: 2 messages</summary>');
+  });
+
   it('renders a full build without warnings and without a section for them', () => {
     const report = new BuildReport(true, 1024, 0);
     report.add({

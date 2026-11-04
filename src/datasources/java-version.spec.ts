@@ -170,7 +170,8 @@ describe('datasources/java-version', () => {
       const scope = nock(baseUrl)
         .get('/v3/assets/feature_releases/21/ga')
         .query(assetQuery('x64', 0))
-        .reply(200, [asset(version, 'x64', sha1)])
+        // a release which isn't wanted is skipped
+        .reply(200, [asset('21.0.3+9.0.LTS', 'x64', sha1), asset(version, 'x64', sha1)])
         .get('/v3/assets/feature_releases/21/ga')
         .query(assetQuery('aarch64', 0))
         .reply(200, [asset(version, 'aarch64', sha2)]);
@@ -179,6 +180,33 @@ describe('datasources/java-version', () => {
         { version, lts: true, releaseTimestamp: releasedIso, files: files() },
       ]);
       expect(scope.isDone()).toBe(true);
+    });
+
+    it('keeps paging while a release time is missing, and leaves out an invalid one', async () => {
+      mockVersions([version]);
+      const scope = nock(baseUrl)
+        .get('/v3/assets/feature_releases/21/ga')
+        .query(assetQuery('x64', 0))
+        .reply(200, [{ ...asset(version, 'x64', sha1), timestamp: 'not a time' }])
+        .get('/v3/assets/feature_releases/21/ga')
+        .query(assetQuery('x64', 1))
+        .reply(404)
+        .get('/v3/assets/feature_releases/21/ga')
+        .query(assetQuery('aarch64', 0))
+        .reply(200, [asset(version, 'aarch64', sha2)]);
+
+      await expect(fetchJavaVersions('java-jdk', none)).resolves.toEqual([
+        { version, lts: true, files: files() },
+      ]);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    it('lists the versions without files when told so', async () => {
+      mockVersions([version]);
+
+      await expect(
+        fetchJavaVersions('java-jdk', none, new Map([[version, files()]]), undefined, false),
+      ).resolves.toEqual([{ version, lts: true }]);
     });
 
     it('requests only the missing architecture', async () => {

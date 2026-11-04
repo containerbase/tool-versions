@@ -173,7 +173,7 @@ export function hasChanges(previous: FileMap, next: FileMap): boolean {
     [...files]
       .filter(([path]) => path !== 'release.json')
       .map(([path, content]): [string, string] => [path, normalize(path, content)])
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+      .sort(([a], [b]) => (a < b ? -1 : 1));
   return JSON.stringify(data(previous)) !== JSON.stringify(data(next));
 }
 

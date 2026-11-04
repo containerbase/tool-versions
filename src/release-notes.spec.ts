@@ -238,6 +238,59 @@ describe('release-notes', () => {
       );
     });
 
+    it('lists every kind of change of a tool and a new tool with a single version', () => {
+      const versionFile = (version: string, name: string): [string, string] => [
+        `v1/multi/${version}.json`,
+        JSON.stringify({ tool: 'multi', version, files: [{ name }] }),
+      ];
+      const previous = new Map([
+        ...files({ multi: tool('1.0', '3.0', '4.0', '6.0') }),
+        versionFile('3.0', 'a'),
+        versionFile('4.0', 'b'),
+      ]);
+      const next = new Map([
+        ...files({ multi: tool('3.0', '4.0', '5.0', '6.0'), solo: tool('1.0') }),
+        versionFile('4.0', 'c'),
+        versionFile('6.0', 'd'),
+      ]);
+
+      expect(
+        releaseNotes({
+          version: '1.0.4',
+          date: new Date('2026-10-19T03:00:00.000Z'),
+          previous,
+          next,
+          commits: [],
+        }),
+      ).toBe(
+        [
+          '## 1.0.4 (2026-10-19)',
+          '',
+          '### Data changes',
+          '',
+          '- `multi`: added 5.0; removed 1.0; files added for 6.0; files removed for 3.0; files changed for 4.0',
+          '- `solo`: new tool with 1 version',
+          '',
+        ].join('\n'),
+      );
+    });
+
+    it('lists a removed tool', () => {
+      expect(
+        releaseNotes({
+          version: '1.0.2',
+          date: new Date('2026-10-18T03:00:00.000Z'),
+          previous: files({ gone: tool('1.0.0') }),
+          next: files({}),
+          commits: [],
+        }),
+      ).toBe(
+        ['## 1.0.2 (2026-10-18)', '', '### Data changes', '', '- `gone`: tool removed', ''].join(
+          '\n',
+        ),
+      );
+    });
+
     it('has only the header without changes', () => {
       expect(
         releaseNotes({

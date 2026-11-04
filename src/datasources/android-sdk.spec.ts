@@ -182,6 +182,41 @@ describe('datasources/android-sdk', () => {
     });
   });
 
+  it('has no versions for a repository without packages', async () => {
+    nock(host).get(path).reply(200, repository());
+
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toEqual({
+      latest: undefined,
+      versions: [],
+    });
+  });
+
+  it('takes the first package of a version', async () => {
+    nock(host)
+      .get(path)
+      .reply(
+        200,
+        repository(
+          remotePackage(
+            'cmdline-tools;9.0',
+            '<major>9</major><minor>0</minor>',
+            'channel-0',
+            archive('linux', 'commandlinetools-linux-9.zip', 'sha1', sha1),
+          ),
+          remotePackage(
+            'cmdline-tools;9.0-again',
+            '<major>9</major>',
+            'channel-0',
+            archive('linux', 'commandlinetools-linux-9-again.zip', 'sha1', sha1),
+          ),
+        ),
+      );
+
+    await expect(fetchAndroidSdkVersions('cmdline-tools')).resolves.toMatchObject({
+      versions: [{ version: '9', files: [{ name: 'commandlinetools-linux-9.zip' }] }],
+    });
+  });
+
   it('reads a repository with a single package and a single archive', async () => {
     nock(host)
       .get(path)

@@ -93,6 +93,15 @@ describe('download', () => {
       await expect(computeChecksum(`${host}/chunked.bin`)).resolves.toBeUndefined();
     });
 
+    it('takes a file without content length off the budget while streaming', async () => {
+      vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '100');
+      resetDownloadBudget();
+      nock(host).get('/chunked.bin').reply(200, 'x'.repeat(50), { 'transfer-encoding': 'chunked' });
+
+      await expect(computeChecksum(`${host}/chunked.bin`)).resolves.toBe(sha256('x'.repeat(50)));
+      expect(remainingDownloadBudget()).toBe(50);
+    });
+
     it('makes no request without a budget', async () => {
       vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '0');
       resetDownloadBudget();

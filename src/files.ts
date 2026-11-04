@@ -308,7 +308,7 @@ export function assetTasks(
       : 'list' in source && assets.has(source.list(version));
   return template
     .files(version)
-    .filter(({ name }) => assets.has(name) && !files.some((file) => file.name === name))
+    .filter(({ name }) => !files.some((file) => file.name === name))
     .flatMap(({ name, arch }) => {
       const asset = assets.get(name);
       if (!asset) {
