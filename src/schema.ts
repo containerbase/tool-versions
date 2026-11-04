@@ -120,8 +120,9 @@ export const ToolVersions = Base.ToolVersions.extend({
   lts: z.literal(true).optional(),
   /**
    * the version upstream calls latest, only for sources which have one and
-   * only when it is listed: the npm `latest` dist-tag, the gradle current
-   * release, the `cmdline-tools;latest` android sdk package, or the newest
+   * only when it is listed: the npm `latest` dist-tag, the GitHub latest
+   * release, the gradle current release, the `cmdline-tools;latest` android
+   * sdk package, or the newest
    * stable poetry release the latest `poetry-plugin-pypi-mirror` requires
    */
   latest: z.string().min(1).optional(),

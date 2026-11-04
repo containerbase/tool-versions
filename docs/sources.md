@@ -45,7 +45,7 @@ Exceptions:
 - `swift`: releases from `swift.org/api/v1/install/releases.json`. The files are the Ubuntu 22.04 (`jammy`), 24.04 (`noble`, from 5.10.1) and 26.04 (`resolute`) archives of the platforms a release lists, with the urls of the CLI. Swift only publishes PGP signatures, so the sha256 is computed.
 - `android-sdk-cmdline-tools`: Google's `repository2-3.xml`, a large XML parsed like the CLI does. The linux zip with its `sha1` is the file, the same for all architectures. The `cmdline-tools;latest` package is no version, its version is the `latest`. It has no Renovate trigger line, as no Renovate datasource has its version format.
 - `gradle`: releases from `services.gradle.org/versions/all`, the `latest` is the release of `versions/current`.
-- `maven`: versions from the `maven-metadata.xml` of `org.apache.maven:apache-maven` in Maven Central, prereleases by the `maven` versioning. Its `release` and `latest` can be prereleases, so there is no `latest`.
+- `maven`: versions from the `maven-metadata.xml` of `org.apache.maven:apache-maven` in Maven Central, prereleases by the `maven` versioning. Its `release` and `latest` can be prereleases, so the `latest` is the GitHub latest release of `containerbase/maven-prebuild`.
   - Every version has the Apache `apache-maven-<version>-bin.tar.gz`, with the checksum from its `.sha512` file, or its `.sha1` file for old releases without one.
   - The release time is the `Last-Modified` time of that checksum file, not the prebuild release time, which a rebuild of an old version moves.
   - Versions with a release of `containerbase/maven-prebuild` also have its `maven-<version>.tar.xz` with the sha512, so they have both files. The CLI picks the file by name and prefers the prebuild.
@@ -62,7 +62,7 @@ Example: `pnpm`.
 - Deprecated tools aren't published.
 - `yarn` is the union of the `yarn` package (1.x) and `@yarnpkg/cli-dist` (2 and later).
 - `yarn-slim` is only the 1.x versions of `yarn`.
-- npm tools take the `latest` dist-tag as their `latest`. `poetry` takes the newest stable release which the latest `poetry-plugin-pypi-mirror` requires, a failed lookup only warns.
+- npm tools take the `latest` dist-tag as their `latest`. Tools from GitHub releases and `rust` take the GitHub "latest release" (`releases/latest`), `node` and `maven` the one of their containerbase prebuild repository; a repository without one has no `latest` and other failures only warn. `poetry` takes the newest stable release which the latest `poetry-plugin-pypi-mirror` requires, a failed lookup only warns.
 - Some sources have no release times.
 - The runtime constraints of npm, pypi and rubygems versions come from the documents the build fetches anyway, see the [format](./format.md#fields). Published constraints are reused, only versions without one read them.
 

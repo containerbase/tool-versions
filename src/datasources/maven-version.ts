@@ -161,7 +161,7 @@ async function fetchPrebuilds(
 /**
  * Fetches the maven versions from the `maven-metadata.xml` of the Apache
  * distribution in Maven Central, prereleases flagged by the versioning. Its
- * `release` and `latest` are prereleases too, so there is no `latest`. Every
+ * `release` and `latest` are prereleases too, so they aren't the `latest`. Every
  * version has the Apache `apache-maven-<version>-bin.tar.gz` file and its
  * Maven Central release time, and the versions with a release of
  * `containerbase/maven-prebuild` also its `maven-<version>.tar.xz` file. The
