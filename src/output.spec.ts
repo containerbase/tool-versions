@@ -65,7 +65,6 @@ describe('output', () => {
   });
 
   afterEach(async () => {
-    vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
   });
 

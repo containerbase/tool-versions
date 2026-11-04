@@ -98,7 +98,6 @@ describe('datasources/java-version', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
   });
 
   describe('files', () => {

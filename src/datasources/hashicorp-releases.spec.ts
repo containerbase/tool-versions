@@ -51,7 +51,6 @@ describe('datasources/hashicorp-releases', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
   });
 
   it('lists the linux amd64 and arm64 zips with the checksums of the SHA256SUMS', async () => {

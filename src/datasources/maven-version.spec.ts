@@ -86,7 +86,6 @@ describe('datasources/maven-version', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
   });
 
   it('lists the Apache file of every version and the prebuild file where there is one', async () => {

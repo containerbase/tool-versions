@@ -90,7 +90,6 @@ describe('datasources/node-version', () => {
 
   afterEach(() => {
     nock.cleanAll();
-    vi.restoreAllMocks();
   });
 
   it('adds the prebuild files next to the nodejs.org ones, with arch and distro', async () => {
