@@ -177,7 +177,7 @@ ENV KUBECTL_VERSION=1.37.2
 # renovate: datasource=github-releases depName=kustomize packageName=kubernetes-sigs/kustomize
 ENV KUSTOMIZE_VERSION=5.8.3
 
-# renovate: datasource=github-releases depName=maven packageName=containerbase/maven-prebuild versioning=maven
+# renovate: datasource=maven depName=maven packageName=org.apache.maven:apache-maven versioning=maven
 ENV MAVEN_VERSION=3.10.0
 
 # renovate: datasource=github-releases depName=mise packageName=jdx/mise

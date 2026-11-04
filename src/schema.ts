@@ -13,6 +13,7 @@ export const DatasourceName = z.enum([
   'hashicorp-releases',
   'haskell-downloads',
   'java-version',
+  'maven-version',
   'node-version',
   'npm',
   'nuget',

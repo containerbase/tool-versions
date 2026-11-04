@@ -172,6 +172,9 @@ importers:
       '@containerbase/base':
         specifier: 14.63.0
         version: 14.63.0(zod@4.6.7)
+      '@nodable/compact-builder':
+        specifier: 2.0.0
+        version: 2.0.0
       '@nodable/flexible-xml-parser':
         specifier: 1.11.3
         version: 1.11.3
