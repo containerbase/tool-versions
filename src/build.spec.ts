@@ -975,7 +975,9 @@ describe('build', () => {
         .reply(200, [
           { tag_name: 'v3.19.0', draft: false, prerelease: false },
           { tag_name: 'v3.0.2', draft: false, prerelease: false },
-        ]);
+        ])
+        .get('/repos/helm/helm/releases/latest')
+        .reply(404);
       // an unmocked request of the files of 3.0.2 would warn
       nock('https://get.helm.sh')
         .get('/helm-v3.19.0-linux-amd64.tar.gz.sha256sum')
@@ -1387,7 +1389,9 @@ describe('build', () => {
             { name: 'pnpm.tgz.sha512', browser_download_url: `${dl}/pnpm.tgz.sha512` },
           ],
         },
-      ]);
+      ])
+      .get('/repos/pnpm/pnpm/releases/latest')
+      .reply(200, { tag_name: 'v10.0.0' });
     // no request to the sidecar is mocked, so it would fail and print a warning
 
     await build({
@@ -1400,6 +1404,7 @@ describe('build', () => {
     });
 
     expect(JSON.parse(await read('pnpm.json'))).toMatchObject({
+      latest: '10.0.0',
       versions: [{ version: '10.0.0' }, { version: '9.0.0' }],
     });
     expect(await read('pnpm.json')).not.toContain('files');

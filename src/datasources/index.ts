@@ -4,7 +4,7 @@ import type { FetchedVersions } from '../versions.ts';
 import { fetchAndroidSdkVersions } from './android-sdk.ts';
 import { fetchDartVersions } from './dart-version.ts';
 import { fetchDotnetVersions } from './dotnet-version.ts';
-import { fetchGithubReleases } from './github-releases.ts';
+import { fetchGithubReleasesWithLatest, withGithubLatest } from './github-releases.ts';
 import { fetchGradleVersions } from './gradle-version.ts';
 import { fetchHashicorpReleases } from './hashicorp-releases.ts';
 import { fetchHaskellDownloads } from './haskell-downloads.ts';
@@ -48,18 +48,18 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'android-sdk': fetchAndroidSdkVersions,
   'dart-version': fetchDartVersions,
   'dotnet-version': fetchDotnetVersions,
-  'github-releases': fetchGithubReleases,
+  'github-releases': fetchGithubReleasesWithLatest,
   'gradle-version': fetchGradleVersions,
   'hashicorp-releases': fetchHashicorpReleases,
   'haskell-downloads': fetchHaskellDownloads,
   'java-version': fetchJavaVersions,
-  'maven-version': fetchMavenVersions,
-  'node-version': fetchNodeVersions,
+  'maven-version': withGithubLatest(fetchMavenVersions, 'containerbase/maven-prebuild'),
+  'node-version': withGithubLatest(fetchNodeVersions, 'containerbase/node-prebuild'),
   npm: fetchNpmVersions,
   nuget: fetchNugetVersions,
   'nuget-exe': fetchNugetExeVersions,
   pypi: fetchPypiVersions,
   rubygems: fetchRubygemsVersions,
-  'rust-version': fetchRustVersions,
+  'rust-version': withGithubLatest(fetchRustVersions),
   'swift-releases': fetchSwiftReleases,
 };

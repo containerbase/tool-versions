@@ -99,6 +99,7 @@ It is only set when the version is listed. When the source has no listed one, li
 
 - Tools from npm have the version of the `latest` dist-tag.
 - `gradle` has the `version` of `services.gradle.org/versions/current`.
+- Tools from GitHub releases and `rust` have the version of the GitHub "latest release", also when it is a prerelease. `node` and `maven` have the one of `containerbase/node-prebuild` and `containerbase/maven-prebuild`.
 - `android-sdk-cmdline-tools` has the version of the `cmdline-tools;latest` package, written like the other versions.
 - `poetry` has the newest stable, not deprecated release which satisfies the `poetry` requirement in the `requires_dist` of the latest `poetry-plugin-pypi-mirror` release.
 

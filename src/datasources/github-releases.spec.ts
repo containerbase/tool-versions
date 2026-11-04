@@ -7,7 +7,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetDownloadBudget } from '../download.ts';
 import { type AssetTemplate, computed, type FileTemplate, withTagPrefixes } from '../files.ts';
 import type { ToolFile } from '../schema.ts';
-import { fetchGithubReleases, nextPage } from './github-releases.ts';
+import {
+  fetchGithubReleases,
+  fetchGithubReleasesWithLatest,
+  nextPage,
+  withGithubLatest,
+} from './github-releases.ts';
 
 const api = 'https://api.github.com';
 const none = new Set<string>();
@@ -971,6 +976,94 @@ describe('datasources/github-releases', () => {
     nock(api).get('/repos/helm/helm/releases').query({ per_page: '100' }).reply(403);
 
     await expect(fetchGithubReleases('helm/helm', none)).rejects.toThrow('failed with status 403');
+  });
+
+  describe('fetchGithubReleasesWithLatest', () => {
+    /**
+     * Mocks the release list of helm.
+     * @param tags - the listed tags
+     */
+    function mockReleases(...tags: string[]): void {
+      nock(api)
+        .get('/repos/helm/helm/releases')
+        .query({ per_page: '100' })
+        .reply(
+          200,
+          tags.map((tag) => release(tag)),
+        );
+    }
+
+    it('takes the latest release without its v', async () => {
+      mockReleases('v4.0.0', 'v3.19.0');
+      nock(api).get('/repos/helm/helm/releases/latest').reply(200, release('v3.19.0'));
+
+      await expect(fetchGithubReleasesWithLatest('helm/helm', none)).resolves.toEqual({
+        versions: [{ version: '4.0.0' }, { version: '3.19.0' }],
+        latest: '3.19.0',
+      });
+    });
+
+    it('strips the tag prefix of the template', async () => {
+      nock(api)
+        .get('/repos/moby/moby/releases')
+        .query({ per_page: '100' })
+        .reply(200, [release('docker-v29.9.2')])
+        .get('/repos/moby/moby/releases/latest')
+        .reply(200, release('docker-v29.9.2'));
+
+      await expect(
+        fetchGithubReleasesWithLatest(
+          'moby/moby',
+          none,
+          new Map(),
+          withTagPrefixes(() => [], 'docker-v'),
+          false,
+        ),
+      ).resolves.toMatchObject({ latest: '29.9.2' });
+    });
+
+    it('takes the latest release of another repository', async () => {
+      nock(api)
+        .get('/repos/containerbase/node-prebuild/releases/latest')
+        .reply(200, release('24.22.2'));
+      const fetch = withGithubLatest(
+        () => Promise.resolve([{ version: '26.13.0' }, { version: '24.22.2' }]),
+        'containerbase/node-prebuild',
+      );
+
+      await expect(fetch('node', none)).resolves.toEqual({
+        versions: [{ version: '26.13.0' }, { version: '24.22.2' }],
+        latest: '24.22.2',
+      });
+    });
+
+    it('has no latest without a latest release', async () => {
+      mockReleases('v4.0.0-rc.1');
+      nock(api).get('/repos/helm/helm/releases/latest').reply(404);
+
+      await expect(fetchGithubReleasesWithLatest('helm/helm', none)).resolves.toEqual({
+        versions: [{ version: '4.0.0-rc.1', prerelease: true }],
+        latest: undefined,
+      });
+    });
+
+    it('warns when the latest release fails', async () => {
+      const output: string[] = [];
+      vi.spyOn(stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+        output.push(String(chunk));
+        return true;
+      });
+      mockReleases('v4.0.0');
+      nock(api).get('/repos/helm/helm/releases/latest').reply(403);
+
+      await expect(fetchGithubReleasesWithLatest('helm/helm', none)).resolves.toEqual({
+        versions: [{ version: '4.0.0' }],
+        latest: undefined,
+      });
+      expect(output).toEqual([
+        `::warning::helm/helm: no latest release: HttpError: GET ${api}/repos/helm/helm/releases/latest failed with status 403\n`,
+      ]);
+    });
   });
 
   describe('nextPage', () => {

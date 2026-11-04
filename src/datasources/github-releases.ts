@@ -16,10 +16,11 @@ import {
   type ToolFiles,
   withFiles,
 } from '../files.ts';
-import { request } from '../http.ts';
+import { HttpError, request } from '../http.ts';
+import { logWarning } from '../log.ts';
 import type { ToolFile, ToolVersion, VersioningName } from '../schema.ts';
 import { belowMinimum, versionings } from '../versioning.ts';
-import { sortVersions, toolVersion, toTimestamp } from '../versions.ts';
+import { type FetchedVersions, sortVersions, toolVersion, toTimestamp } from '../versions.ts';
 
 const GithubAsset = z.object({
   name: z.string(),
@@ -62,6 +63,22 @@ function githubHeaders(): Record<string, string> {
     'x-github-api-version': '2022-11-28',
     ...(token && { authorization: `Bearer ${token}` }),
   };
+}
+
+/**
+ * The version of a release tag: without its leading `v`, or without the first
+ * tag prefix of the template the tag starts with.
+ * @param tag - the tag of the release
+ * @param prefixes - the tag prefixes of the template, if it has some
+ * @returns the version, or `undefined` for a tag without one of the prefixes
+ */
+function tagVersion(tag: string, prefixes: readonly string[] | undefined): string | undefined {
+  if (prefixes === undefined) {
+    return tag.replace(/^v/, '');
+  }
+  const prefix = prefixes.find((p) => tag.startsWith(p));
+  // a tag of something else in the repository
+  return prefix === undefined ? undefined : tag.slice(prefix.length);
 }
 
 /**
@@ -163,16 +180,8 @@ export async function fetchGithubReleases(
     const res = await request(url, headers);
     let foundKnown = false;
     for (const release of GithubReleases.parse(await res.json())) {
-      const prefix = prefixes?.find((p) => release.tag_name.startsWith(p));
-      if (prefixes !== undefined && prefix === undefined) {
-        // a tag of something else in the repository
-        continue;
-      }
-      const version =
-        prefix === undefined
-          ? release.tag_name.replace(/^v/, '')
-          : release.tag_name.slice(prefix.length);
-      if (release.draft || !isValid(version) || isTooOld(version)) {
+      const version = tagVersion(release.tag_name, prefixes);
+      if (version === undefined || release.draft || !isValid(version) || isTooOld(version)) {
         continue;
       }
       foundKnown ||= known.has(version);
@@ -197,3 +206,73 @@ export async function fetchGithubReleases(
     compare,
   );
 }
+
+const GithubLatestRelease = z.object({ tag_name: z.string() });
+
+/**
+ * Reads the version of the GitHub "latest release" of a repository. A
+ * repository without one (404) is silent, any other failure prints a warning.
+ * @param packageName - the repository, like `helm/helm`
+ * @param template - the template with the tag prefixes, if the tool has one
+ * @returns the version, or `undefined` without a latest release
+ */
+async function fetchLatestRelease(
+  packageName: string,
+  template: ToolFiles | undefined,
+): Promise<string | undefined> {
+  const url = `https://api.github.com/repos/${packageName}/releases/latest`;
+  try {
+    const { tag_name } = GithubLatestRelease.parse(
+      await (await request(url, githubHeaders())).json(),
+    );
+    return tagVersion(tag_name, tagPrefixes(template));
+  } catch (err) {
+    if (!(err instanceof HttpError && err.status === 404)) {
+      logWarning(`${packageName}: no latest release: ${String(err)}`);
+    }
+    return undefined;
+  }
+}
+
+/** A fetcher which returns only the versions. */
+type VersionsFetcher = (
+  packageName: string,
+  known: ReadonlySet<string>,
+  previous?: PreviousFiles,
+  template?: ToolFiles,
+  fetchFiles?: boolean,
+  hasTimestamp?: ReadonlySet<string>,
+  versioning?: VersioningName,
+  minVersion?: string,
+) => Promise<ToolVersion[]>;
+
+/**
+ * Adds the GitHub "latest release" as `latest` to the versions of a fetcher,
+ * also when it is a prerelease. The build drops it when it isn't listed.
+ * @param fetch - fetches the versions
+ * @param repository - the repository of the latest release, like a
+ * containerbase prebuild repository; else the package name with the tag
+ * prefixes of the template
+ * @returns the fetcher with the `latest`
+ */
+export function withGithubLatest(
+  fetch: VersionsFetcher,
+  repository?: string,
+): (...args: Parameters<VersionsFetcher>) => Promise<FetchedVersions> {
+  return async (...args) => {
+    const [packageName, , , template] = args;
+    const [versions, latest] = await Promise.all([
+      fetch(...args),
+      repository === undefined
+        ? fetchLatestRelease(packageName, template)
+        : fetchLatestRelease(repository, undefined),
+    ]);
+    return { versions, latest };
+  };
+}
+
+/**
+ * Fetches the releases of a GitHub repository like `fetchGithubReleases`, with
+ * the GitHub "latest release" as `latest`.
+ */
+export const fetchGithubReleasesWithLatest = withGithubLatest(fetchGithubReleases);
