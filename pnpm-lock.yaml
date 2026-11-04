@@ -170,8 +170,8 @@ importers:
   .:
     dependencies:
       '@containerbase/base':
-        specifier: 14.63.1
-        version: 14.63.1(zod@4.6.7)
+        specifier: 14.64.0
+        version: 14.64.0(zod@4.6.7)
       '@nodable/compact-builder':
         specifier: 2.0.0
         version: 2.0.0
@@ -404,8 +404,8 @@ packages:
       zod:
         optional: true
 
-  '@containerbase/base@14.63.1':
-    resolution: {integrity: sha512-/Gvs9rS2cH+upyMeaWY9he/9/KwJwe6+Kp5mPWr5FDGWRJOGNH/IaT4msHaOlkX3ymWFgCZLxYlVE06DMUzFBg==}
+  '@containerbase/base@14.64.0':
+    resolution: {integrity: sha512-NwbnZQktQDhJulr4Z23rLsHrbcFAMP7OqcsmwE0QQaTI4iNUPgcnMyyWRhyl6vgmvflf3oiJXMtLePDCGS+gmQ==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -3842,7 +3842,7 @@ snapshots:
     optionalDependencies:
       zod: 4.6.7
 
-  '@containerbase/base@14.63.1(zod@4.6.7)':
+  '@containerbase/base@14.64.0(zod@4.6.7)':
     dependencies:
       semver: 7.8.5
     optionalDependencies:
