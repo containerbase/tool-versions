@@ -9,6 +9,7 @@ import { fetchGradleVersions } from './gradle-version.ts';
 import { fetchHashicorpReleases } from './hashicorp-releases.ts';
 import { fetchHaskellDownloads } from './haskell-downloads.ts';
 import { fetchJavaVersions } from './java-version.ts';
+import { fetchJuliaVersions } from './julia-versions.ts';
 import { fetchMavenVersions } from './maven-version.ts';
 import { fetchNodeVersions } from './node-version.ts';
 import { fetchNpmVersions } from './npm.ts';
@@ -53,6 +54,7 @@ export const datasources: Record<DatasourceName, Fetcher> = {
   'hashicorp-releases': fetchHashicorpReleases,
   'haskell-downloads': fetchHaskellDownloads,
   'java-version': fetchJavaVersions,
+  'julia-versions': withGithubLatest(fetchJuliaVersions, 'JuliaLang/julia'),
   'maven-version': withGithubLatest(fetchMavenVersions, 'containerbase/maven-prebuild'),
   'node-version': withGithubLatest(fetchNodeVersions, 'containerbase/node-prebuild'),
   npm: fetchNpmVersions,
