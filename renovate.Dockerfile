@@ -146,7 +146,7 @@ ENV HELMFILE_VERSION=1.8.2
 ENV JAVA_VERSION=8.0.504+1
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
-ENV JAVA_VERSION=11.0.32+101
+ENV JAVA_VERSION=11.0.33+10
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=17.0.21+9
