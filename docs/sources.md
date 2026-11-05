@@ -4,7 +4,7 @@ Where the versions and files come from.
 [`src/tools.ts`](../src/tools.ts) is the source of truth: it maps each tool to its source and lists the files of a version.
 Each tool must exist in `@containerbase/base`.
 Until a containerbase release adds a tool or changes its metadata, `toolExceptions` in `src/tools.ts` has the metadata of the next release, with the containerbase pull request.
-A spec fails once the installed `@containerbase/base` has the same metadata, so its bump removes the exception.
+A spec fails once the installed `@containerbase/base` has the tool with every field of the exception, so its bump removes the exception.
 
 ## Containerbase prebuilds
 

@@ -13,12 +13,13 @@ import {
 
 describe('tools', () => {
   describe('toolExceptions', () => {
-    // once `@containerbase/base` has the metadata, its bump removes the exception
+    // once `@containerbase/base` has the tool with every field of the exception,
+    // its bump fails until the exception is removed
     it.each(Object.entries(toolExceptions))(
       'has metadata for %s which @containerbase/base does not have yet',
       (tool, exception) => {
         const base: Record<string, ToolMetadata> = tools;
-        expect(base[tool]).not.toEqual(exception);
+        expect(base).not.toMatchObject({ [tool]: exception });
       },
     );
 
