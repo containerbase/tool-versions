@@ -211,7 +211,7 @@ ENV NPM_VERSION=12.2.1
 ENV NUGET_VERSION=7.9.0
 
 # renovate: datasource=github-releases depName=nub packageName=nubjs/nub
-ENV NUB_VERSION=0.9.7
+ENV NUB_VERSION=0.10.0
 
 # renovate: datasource=nuget depName=Paket
 ENV PAKET_VERSION=9.0.2
