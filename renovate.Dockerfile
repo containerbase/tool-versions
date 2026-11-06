@@ -217,7 +217,7 @@ ENV NUB_VERSION=0.9.7
 ENV PAKET_VERSION=9.0.2
 
 # renovate: datasource=pypi depName=pdm
-ENV PDM_VERSION=2.29.6
+ENV PDM_VERSION=2.29.7
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
 ENV PHP_VERSION=8.2.35
