@@ -235,7 +235,7 @@ ENV PHP_VERSION=8.5.12
 ENV PIP_TOOLS_VERSION=7.6.2
 
 # renovate: datasource=pypi depName=pipenv
-ENV PIPENV_VERSION=2026.10.6
+ENV PIPENV_VERSION=2026.11.0
 
 # renovate: datasource=github-releases depName=pixi packageName=prefix-dev/pixi
 ENV PIXI_VERSION=0.84.1
