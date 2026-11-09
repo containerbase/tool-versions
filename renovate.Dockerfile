@@ -187,7 +187,7 @@ ENV MISE_VERSION=2026.11.4
 ENV MONO_VERSION=6.14.1
 
 # renovate: datasource=github-releases depName=nix packageName=containerbase/nix-prebuild
-ENV NIX_VERSION=2.35.4
+ENV NIX_VERSION=2.35.5
 
 # renovate: datasource=node-version depName=node versioning=node
 ENV NODE_VERSION=22.23.4
