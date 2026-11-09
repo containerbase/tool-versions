@@ -4,6 +4,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { fetchJuliaVersions } from './julia-versions.ts';
 
 const host = 'https://julialang-s3.julialang.org';
+const api = 'https://api.github.com';
 const hash = (char: string): string => char.repeat(64);
 
 /**
@@ -20,6 +21,31 @@ function file(
   return { url: `${host}/bin/${path}`, triplet, ...(sha256 && { sha256 }) };
 }
 
+/**
+ * A GitHub release of `JuliaLang/julia`.
+ * @param version - the version
+ * @param publishedAt - the release time
+ */
+function release(
+  version: string,
+  publishedAt: string,
+): { tag_name: string; draft: boolean; prerelease: boolean; published_at: string } {
+  return {
+    tag_name: `v${version}`,
+    draft: false,
+    prerelease: version.includes('-'),
+    published_at: publishedAt,
+  };
+}
+
+/**
+ * Mocks the GitHub releases of `JuliaLang/julia`.
+ * @param releases - the releases
+ */
+function mockReleases(releases: ReturnType<typeof release>[]): void {
+  nock(api).get('/repos/JuliaLang/julia/releases?per_page=100').reply(200, releases);
+}
+
 describe('datasources/julia-versions', () => {
   beforeAll(() => {
     nock.disableNetConnect();
@@ -30,6 +56,7 @@ describe('datasources/julia-versions', () => {
   });
 
   it('lists the releases with the linux glibc archives and their sha256', async () => {
+    mockReleases([release('1.14.0-rc1', '2026-10-01T10:00:00Z')]);
     nock(host)
       .get('/bin/versions.json')
       .reply(200, {
@@ -82,6 +109,7 @@ describe('datasources/julia-versions', () => {
       {
         version: '1.14.0-rc1',
         prerelease: true,
+        releaseTimestamp: '2026-10-01T10:00:00.000Z',
         files: [
           {
             name: 'julia-1.14.0-rc1-linux-x86_64.tar.gz',
@@ -113,6 +141,7 @@ describe('datasources/julia-versions', () => {
   });
 
   it('publishes no files when told so', async () => {
+    mockReleases([]);
     nock(host)
       .get('/bin/versions.json')
       .reply(200, {
@@ -126,5 +155,21 @@ describe('datasources/julia-versions', () => {
     await expect(
       fetchJuliaVersions('julia', undefined, undefined, undefined, false),
     ).resolves.toEqual([{ version: '1.13.3' }]);
+  });
+
+  it('takes the release times from the GitHub releases', async () => {
+    mockReleases([
+      release('1.13.3', '2026-11-04T06:17:00Z'),
+      // not in versions.json, so not listed
+      release('1.13.4', '2026-11-05T06:17:00Z'),
+    ]);
+    nock(host).get('/bin/versions.json').reply(200, { '1.13.3': {}, '1.13.2': {} });
+
+    await expect(
+      fetchJuliaVersions('julia', new Set(['1.13.2']), undefined, undefined, false),
+    ).resolves.toEqual([
+      { version: '1.13.3', releaseTimestamp: '2026-11-04T06:17:00.000Z' },
+      { version: '1.13.2' },
+    ]);
   });
 });
