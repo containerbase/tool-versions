@@ -47,7 +47,7 @@ ENV CHECKOV_VERSION=3.4.3
 ENV COCOAPODS_VERSION=1.17.0
 
 # renovate: datasource=github-releases depName=composer packageName=containerbase/composer-prebuild
-ENV COMPOSER_VERSION=2.11.1
+ENV COMPOSER_VERSION=2.11.2
 
 # renovate: datasource=pypi depName=conan
 ENV CONAN_VERSION=2.34.0
