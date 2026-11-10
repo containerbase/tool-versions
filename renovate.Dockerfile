@@ -110,7 +110,7 @@ ENV GIT_LFS_VERSION=3.8.1
 ENV GLEAM_VERSION=1.19.2
 
 # renovate: datasource=github-releases depName=golang packageName=containerbase/golang-prebuild
-ENV GOLANG_VERSION=1.26.10
+ENV GOLANG_VERSION=1.26.11
 
 # renovate: datasource=github-releases depName=golang packageName=containerbase/golang-prebuild
 ENV GOLANG_VERSION=1.27.3
