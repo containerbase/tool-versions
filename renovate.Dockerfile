@@ -113,7 +113,7 @@ ENV GLEAM_VERSION=1.19.2
 ENV GOLANG_VERSION=1.26.10
 
 # renovate: datasource=github-releases depName=golang packageName=containerbase/golang-prebuild
-ENV GOLANG_VERSION=1.27.3
+ENV GOLANG_VERSION=1.27.4
 
 # renovate: datasource=gradle-version depName=gradle versioning=gradle
 ENV GRADLE_VERSION=8.14.6
