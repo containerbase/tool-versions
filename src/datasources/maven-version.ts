@@ -33,8 +33,7 @@ const checksumFiles: { suffix: string; algorithm: Algorithm }[] = [
 /** The parser of `maven-metadata.xml`, keeping versions like `3.0` as text. */
 const parser = new XMLParser({
   skip: { declaration: true, pi: true },
-  // https://github.com/nodable/flexible-xml-parser/issues/29
-  OutputBuilder: new CompactBuilderFactory({ tags: { valueParsers: ['entity', 'trim'] } }) as never,
+  OutputBuilder: new CompactBuilderFactory({ tags: { valueParsers: ['entity', 'trim'] } }),
 });
 
 const MavenMetadata = z.object({
