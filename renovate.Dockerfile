@@ -196,7 +196,7 @@ ENV NIX_VERSION=2.35.6
 ENV NODE_VERSION=22.23.5
 
 # renovate: datasource=node-version depName=node versioning=node
-ENV NODE_VERSION=24.22.2
+ENV NODE_VERSION=24.22.3
 
 # renovate: datasource=node-version depName=node versioning=node
 ENV NODE_VERSION=26.13.1
