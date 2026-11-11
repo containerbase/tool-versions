@@ -26,7 +26,7 @@
   "dependencies": {
     "@containerbase/base": "14.66.16",
     "@nodable/compact-builder": "2.0.1",
-    "@nodable/flexible-xml-parser": "1.11.3",
+    "@nodable/flexible-xml-parser": "1.11.4",
     "@renovatebot/pep440": "6.0.0",
     "@renovatebot/ruby-semver": "6.0.0",
     "renovate": "44.199.2",
