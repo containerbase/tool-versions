@@ -18,7 +18,10 @@ import { nightlyDate } from './versioning.ts';
  * Each entry replaces the metadata of the package for its tool and names the
  * containerbase pull request, the bump of `@containerbase/base` removes it.
  */
-export const toolExceptions: Record<string, ToolMetadata> = {};
+export const toolExceptions: Record<string, ToolMetadata> = {
+  // containerbase/base#8215
+  julia: { minVersion: '1.6.0' },
+};
 
 /** The metadata of the tools: the ones of `@containerbase/base` and the exceptions. */
 export const toolMetadata: Record<string, ToolMetadata> = { ...tools, ...toolExceptions };
@@ -103,6 +106,7 @@ export const toolSources: Record<string, ToolSource> = {
   'java-jdk': { datasource: 'java-version', packageName: 'java-jdk', versioning: 'npm' },
   'java-jre': { datasource: 'java-version', packageName: 'java-jre', versioning: 'npm' },
   jq: github('jqlang/jq'),
+  julia: { datasource: 'julia-versions', packageName: 'julia', versioning: 'semver' },
   kas: { datasource: 'pypi', packageName: 'kas', versioning: 'pep440' },
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
@@ -237,6 +241,7 @@ export const toolLinks: Record<string, ToolLinks> = {
   'java-jdk': { homepage: 'https://adoptium.net' },
   'java-jre': { homepage: 'https://adoptium.net' },
   jq: { sourceUrl: 'https://github.com/jqlang/jq', homepage: 'https://jqlang.org' },
+  julia: { sourceUrl: 'https://github.com/JuliaLang/julia', homepage: 'https://julialang.org' },
   kas: { sourceUrl: 'https://github.com/siemens/kas', homepage: 'https://kas.readthedocs.io' },
   kubectl: {
     sourceUrl: 'https://github.com/kubernetes/kubernetes',
