@@ -92,7 +92,7 @@ ENV ERLANG_VERSION=28.5.0.8
 ENV ERLANG_VERSION=29.1.2.0
 
 # renovate: datasource=github-releases depName=flutter packageName=containerbase/flutter-prebuild
-ENV FLUTTER_VERSION=3.47.9
+ENV FLUTTER_VERSION=3.50.0
 
 # renovate: datasource=github-releases depName=flux packageName=fluxcd/flux2
 ENV FLUX_VERSION=2.10.0
