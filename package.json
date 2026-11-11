@@ -30,7 +30,7 @@
     "@renovatebot/pep440": "6.0.0",
     "@renovatebot/ruby-semver": "6.0.0",
     "renovate": "44.199.2",
-    "semver": "7.8.5",
+    "semver": "7.8.6",
     "zod": "4.6.7"
   },
   "devDependencies": {
