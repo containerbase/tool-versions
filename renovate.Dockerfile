@@ -301,7 +301,7 @@ ENV SCALA_VERSION=2.12.21
 ENV SCALA_VERSION=2.13.18
 
 # renovate: datasource=github-releases depName=skopeo packageName=containerbase/skopeo-prebuild
-ENV SKOPEO_VERSION=1.24.1
+ENV SKOPEO_VERSION=1.25.1
 
 # renovate: datasource=github-releases depName=sops packageName=getsops/sops
 ENV SOPS_VERSION=3.13.3
