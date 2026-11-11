@@ -256,7 +256,7 @@ ENV POETRY_VERSION=2.5.1
 ENV PROTOC_VERSION=36.2
 
 # renovate: datasource=github-releases depName=powershell packageName=PowerShell/PowerShell
-ENV POWERSHELL_VERSION=7.6.9
+ENV POWERSHELL_VERSION=7.6.10
 
 # renovate: datasource=github-releases depName=python packageName=containerbase/python-prebuild
 ENV PYTHON_VERSION=3.10.22
