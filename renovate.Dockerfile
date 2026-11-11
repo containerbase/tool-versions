@@ -101,7 +101,7 @@ ENV FLUX_VERSION=2.10.0
 ENV GH_VERSION=2.103.3
 
 # renovate: datasource=github-releases depName=git packageName=containerbase/git-prebuild
-ENV GIT_VERSION=2.56.0
+ENV GIT_VERSION=2.56.1
 
 # renovate: datasource=github-releases depName=git-lfs packageName=git-lfs/git-lfs
 ENV GIT_LFS_VERSION=3.8.1
