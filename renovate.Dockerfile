@@ -82,13 +82,13 @@ ENV DOCKER_COMPOSE_VERSION=5.7.1
 # renovate: datasource=github-releases depName=elixir packageName=elixir-lang/elixir
 ENV ELIXIR_VERSION=1.20.5
 
-# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
+# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
 ENV ERLANG_VERSION=27.3.4.19
 
-# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
+# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
 ENV ERLANG_VERSION=28.5.0.8
 
-# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=docker
+# renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
 ENV ERLANG_VERSION=29.1.2.0
 
 # renovate: datasource=github-releases depName=flutter packageName=containerbase/flutter-prebuild
@@ -136,7 +136,7 @@ ENV HELM_VERSION=3.22.1
 # renovate: datasource=github-releases depName=helm packageName=helm/helm
 ENV HELM_VERSION=4.3.1
 
-# renovate: datasource=github-releases depName=jb packageName=containerbase/jb-prebuild versioning=loose
+# renovate: datasource=github-releases depName=jb packageName=containerbase/jb-prebuild versioning=semver-extended
 ENV JB_VERSION=0.6.0.1
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
