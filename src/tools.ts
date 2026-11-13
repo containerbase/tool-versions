@@ -355,6 +355,22 @@ function elixirAsset(version: string): AssetFile[] {
 }
 
 /**
+ * The erlang constraint of an elixir release: from the oldest to the newest OTP
+ * major of its `elixir-otp-<major>.zip` assets. Old releases have none.
+ * @param assetNames - the names of the assets of the release
+ * @returns the constraints, or `undefined` without OTP builds
+ */
+function elixirConstraints(assetNames: string[]): Record<string, string> | undefined {
+  const majors = assetNames.flatMap((name) => {
+    const major = /^elixir-otp-(\d+)\.zip$/.exec(name)?.[1];
+    return major ? [Number(major)] : [];
+  });
+  return majors.length
+    ? { erlang: `>=${Math.min(...majors)} <${Math.max(...majors) + 1}` }
+    : undefined;
+}
+
+/**
  * The files of the tools which aren't a release asset with the checksum in
  * another one: a function lists them, or a template for the assets of the
  * release.
@@ -414,6 +430,7 @@ export const toolFiles: Record<string, ToolFiles> = {
   },
   elixir: {
     files: elixirAsset,
+    constraints: elixirConstraints,
     checksum: { sidecar: ['.sha256sum'] },
     // releases before 1.14 have no checksums
     computeMissing: true,

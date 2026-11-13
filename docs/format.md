@@ -110,11 +110,13 @@ It is only set when the version is listed. When the source has no listed one, li
 - Tools from RubyGems have the versions removed from the registry.
 - `nuget` has the `nuget.exe` releases of the stage `Released`, which aren't `ReleasedAndBlessed`.
 
-`versions[].constraints` is only present when the registry has a constraint for the version:
+`versions[].constraints` is only present when the registry or the release has a constraint for the version:
 
 - Constraints don't change once published, the registry is only read for versions without one.
 - It is keyed by the parent tool, like `node`, `python` or `ruby`, and the value is the raw constraint in the syntax of the registry.
   Evaluate it with the versioning of the parent tool, like Renovate does.
+- `elixir` has the `erlang` constraint `>=<min> <<max+1>` of the OTP majors of the `elixir-otp-<major>.zip` assets of the release, like `>=25 <28`.
+  Releases before 1.14 have none.
 - Tools from npm have `engines.node` as the `node` constraint, not `devEngines`.
 - Tools from PyPI have `requires_python` as the `python` constraint.
   It is the first one of the files which are not yanked.
