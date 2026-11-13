@@ -339,8 +339,9 @@ const minimumReleaseAge = 60 * 60 * 1000;
  * fresh flags win, and versions which disappeared upstream are kept, flagged as
  * deprecated for rubygems, which removes yanked versions. Previous
  * files and release times are kept for fresh versions without any. The
- * previous constraints always win, as a published release doesn't change: only
- * versions without previous constraints take the fresh ones. New versions
+ * previous constraints of registries win, as a published release doesn't
+ * change: only versions without previous constraints take the fresh ones. The
+ * constraints of a template hook are derived here, so the fresh ones win. New versions
  * younger than the minimum release age wait for a later build, versions
  * without a release time are published right away.
  * @param tool - the tool name
@@ -372,16 +373,20 @@ async function fetchVersions(
       releaseTimestamp ? [[version, releaseTimestamp] as const] : [],
     ),
   );
+  const template = toolFiles[tool];
+  const derived = typeof template === 'object' && template.constraints !== undefined;
   const constraints = new Map(
-    previous.flatMap(({ version, constraints }) =>
-      constraints ? [[version, constraints] as const] : [],
-    ),
+    derived
+      ? []
+      : previous.flatMap(({ version, constraints }) =>
+          constraints ? [[version, constraints] as const] : [],
+        ),
   );
   const result = await fetch(
     source.packageName,
     known,
     files,
-    toolFiles[tool],
+    template,
     hasFiles(tool),
     new Set(timestamps.keys()),
     source.versioning,

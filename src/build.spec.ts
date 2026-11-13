@@ -846,6 +846,54 @@ describe('build', () => {
     ]);
   });
 
+  it('replaces the previous constraints of a template hook with fresh ones', async () => {
+    const files: ToolFile[] = [
+      {
+        name: 'Precompiled.zip',
+        url: 'https://github.com/elixir-lang/elixir/releases/download/v1.10.4/Precompiled.zip',
+        checksum: `sha256:${'a'.repeat(64)}`,
+      },
+    ];
+    const previousArchive = await archiveOf({
+      tool: 'elixir',
+      source: {
+        datasource: 'github-releases',
+        packageName: 'elixir-lang/elixir',
+        versioning: 'semver',
+      },
+      updatedAt: '2026-10-07T03:00:00.000Z',
+      versions: [{ version: '1.10.4', constraints: { erlang: '>=21 <24' }, files }],
+    });
+    nock('https://api.github.com')
+      .get('/repos/elixir-lang/elixir/releases')
+      .query({ per_page: '100' })
+      .reply(200, [
+        {
+          tag_name: 'v1.10.4',
+          draft: false,
+          prerelease: false,
+          assets: [{ name: 'Precompiled.zip', browser_download_url: files[0]?.url }],
+        },
+      ]);
+
+    await build({
+      dir,
+      sources: {
+        elixir: {
+          datasource: 'github-releases',
+          packageName: 'elixir-lang/elixir',
+          versioning: 'semver',
+        },
+      },
+      now,
+      previousArchive,
+    });
+
+    expect((await readBack('elixir'))?.versions).toEqual([
+      { version: '1.10.4', constraints: { erlang: '>=24 <25' }, files },
+    ]);
+  });
+
   it('gives each tool which computes checksums a fair share of the download budget', async () => {
     // two tools with two files of 8 bytes: the share of each is 15 bytes
     vi.stubEnv('TOOL_VERSIONS_DOWNLOAD_BUDGET', '30');

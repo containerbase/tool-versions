@@ -112,12 +112,13 @@ It is only set when the version is listed. When the source has no listed one, li
 
 `versions[].constraints` is only present when the registry or the release has a constraint for the version:
 
-- Constraints don't change once published, the registry is only read for versions without one.
+- Constraints of a registry don't change once published, the registry is only read for versions without one.
+  The elixir ones are derived on each build, so a fixed rule replaces published ones.
 - It is keyed by the parent tool, like `node`, `python` or `ruby`, and the value is the raw constraint in the syntax of the registry.
   Evaluate it with the versioning of the parent tool, like Renovate does.
 - `elixir` has the `erlang` constraint `>=<min> <<max+1>` of the OTP majors of the `elixir-otp-<major>.zip` assets of the release, like `>=25 <28`.
   Releases before 1.14 have no such assets, they take the range of the [compatibility table](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#between-elixir-and-erlang-otp).
-  Releases before 1.7 take `>=22 <23`: OTP 22 is the oldest erlang prebuild, the newest one surely breaks them.
+  Releases which don't support OTP 24 (before 1.11.4) take `>=24 <25`: it's the oldest erlang containerbase can install, the newest one surely breaks them.
 - Tools from npm have `engines.node` as the `node` constraint, not `devEngines`.
 - Tools from PyPI have `requires_python` as the `python` constraint.
   It is the first one of the files which are not yanked.
