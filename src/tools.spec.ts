@@ -276,6 +276,21 @@ describe('tools', () => {
       expect(assetTemplate('elixir').files(version)).toEqual([{ name }]);
     });
 
+    it.each([
+      [['elixir-otp-23.zip', 'elixir-otp-24.zip', 'elixir-otp-25.zip'], '>=23 <26'],
+      [['elixir-otp-27.zip', 'elixir-otp-25.zip', 'elixir-otp-26.zip'], '>=25 <28'],
+      [['elixir-otp-27.zip', 'elixir-otp-28.zip', 'elixir-otp-29.zip'], '>=27 <30'],
+      [['elixir-otp-25.zip', 'elixir-otp-25.exe', 'elixir-otp-25.zip.sha256sum'], '>=25 <26'],
+    ])('has the erlang constraint of the elixir assets %j as %s', (names, erlang) => {
+      expect(assetTemplate('elixir').constraints?.(names)).toEqual({ erlang });
+    });
+
+    it('has no elixir constraint without OTP builds', () => {
+      expect(
+        assetTemplate('elixir').constraints?.(['Precompiled.zip', 'Docs.zip', 'elixir-otp-25.exe']),
+      ).toBeUndefined();
+    });
+
     it('maps the github release tools to their repository with semver', () => {
       expect(toolSources['gh']).toEqual({
         datasource: 'github-releases',

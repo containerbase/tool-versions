@@ -114,6 +114,11 @@ export interface AssetTemplate {
   algorithm?: Algorithm;
   /** the tag part before the version, for tags which aren't `v<version>` or `<version>` */
   tagPrefix?: string;
+  /**
+   * The constraints of a version on its parent tools, derived from the names of
+   * the assets of its release, `undefined` for a release without one.
+   */
+  constraints?: (assetNames: string[]) => Record<string, string> | undefined;
 }
 
 /** How the files of a version are listed, by template function or release assets. */
