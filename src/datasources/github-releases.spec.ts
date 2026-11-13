@@ -614,17 +614,18 @@ describe('datasources/github-releases', () => {
       expect(list.isDone()).toBe(true);
     });
 
-    it('adds the constraints of the template from the asset names', async () => {
+    it('adds the constraints of the template from the version and asset names', async () => {
       mockReleases([withNames('v1.2.0', ['a.zip', 'b.zip']), withNames('v1.1.0', ['c.zip'])]);
 
       await expect(
         fetchWith({
           files: perArch,
           checksum: { list: () => 'checksums.txt' },
-          constraints: (names) => (names.length > 1 ? { erlang: names.join(',') } : undefined),
+          constraints: (version, names) =>
+            names.length > 1 ? { erlang: `${version}:${names.join(',')}` } : undefined,
         }),
       ).resolves.toEqual([
-        { version: '1.2.0', constraints: { erlang: 'a.zip,b.zip' } },
+        { version: '1.2.0', constraints: { erlang: '1.2.0:a.zip,b.zip' } },
         { version: '1.1.0' },
       ]);
     });

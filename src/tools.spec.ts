@@ -282,14 +282,35 @@ describe('tools', () => {
       [['elixir-otp-27.zip', 'elixir-otp-28.zip', 'elixir-otp-29.zip'], '>=27 <30'],
       [['elixir-otp-25.zip', 'elixir-otp-25.exe', 'elixir-otp-25.zip.sha256sum'], '>=25 <26'],
     ])('has the erlang constraint of the elixir assets %j as %s', (names, erlang) => {
-      expect(assetTemplate('elixir').constraints?.(names)).toEqual({ erlang });
+      expect(assetTemplate('elixir').constraints?.('1.20.5', names)).toEqual({ erlang });
     });
 
-    it('has no elixir constraint without OTP builds', () => {
+    it.each([
+      ['1.13.4', '>=22 <26'],
+      ['1.13.0-rc.1', '>=22 <25'],
+      ['1.12.3', '>=22 <25'],
+      ['1.11.4', '>=21 <25'],
+      ['1.10.2', '>=21 <23'],
+      ['1.9.4', '>=20 <23'],
+      ['1.7.4', '>=19 <23'],
+      ['1.6.6', '>=22 <23'],
+      ['1.0.0', '>=22 <23'],
+    ])('has the erlang constraint of elixir %s without OTP builds as %s', (version, erlang) => {
       expect(
-        assetTemplate('elixir').constraints?.(['Precompiled.zip', 'Docs.zip', 'elixir-otp-25.exe']),
-      ).toBeUndefined();
+        assetTemplate('elixir').constraints?.(version, [
+          'Precompiled.zip',
+          'Docs.zip',
+          'elixir-otp-25.exe',
+        ]),
+      ).toEqual({ erlang });
     });
+
+    it.each(['1.14.0', '0.15.1', 'not-a-version'])(
+      'has no elixir constraint for %s without OTP builds',
+      (version) => {
+        expect(assetTemplate('elixir').constraints?.(version, ['Precompiled.zip'])).toBeUndefined();
+      },
+    );
 
     it('maps the github release tools to their repository with semver', () => {
       expect(toolSources['gh']).toEqual({
