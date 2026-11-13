@@ -359,10 +359,6 @@ function elixirAsset(version: string): AssetFile[] {
  * `elixir-otp-<major>.zip` assets: the first release (major * 1000000 + minor *
  * 1000 + patch), the oldest and the newest OTP major. From
  * https://hexdocs.pm/elixir/compatibility-and-deprecations.html
- *
- * Releases before 1.7 don't support OTP 22, the oldest containerbase erlang
- * prebuild. They take OTP 22 anyway: it's the closest, and without a
- * constraint the newest erlang would be picked, which surely breaks them.
  */
 const elixirOtpRanges: [number, number, number][] = [
   [1013004, 22, 25],
@@ -374,13 +370,32 @@ const elixirOtpRanges: [number, number, number][] = [
   [1010000, 21, 22],
   [1008000, 20, 22],
   [1007000, 19, 22],
-  [1000000, 22, 22],
+  [1006006, 19, 21],
+  [1006000, 19, 20],
+  [1005000, 18, 20],
+  [1004005, 18, 20],
+  [1004000, 18, 19],
+  [1003000, 18, 19],
+  [1002006, 18, 19],
+  [1002000, 18, 18],
+  [1001000, 17, 18],
+  [1000005, 17, 18],
+  [1000000, 17, 17],
 ];
+
+/**
+ * The oldest OTP major containerbase can install, the first erlang prebuild
+ * with jammy assets is 24.2.0.0.
+ */
+const oldestErlangMajor = 24;
 
 /**
  * The erlang constraint of an elixir release: from the oldest to the newest OTP
  * major of its `elixir-otp-<major>.zip` assets, or for older releases without
- * them from the compatibility table.
+ * them from the compatibility table. A release which doesn't support the
+ * oldest erlang containerbase can install takes that one anyway: it's the
+ * closest, without a constraint the newest erlang would be picked, which
+ * surely breaks it.
  * @param version - the elixir version
  * @param assetNames - the names of the assets of the release
  * @returns the constraints, or `undefined` for an unknown release
@@ -399,7 +414,13 @@ function elixirConstraints(
   const { major = 0, minor = 0, patch = 0 } = semver.parse(version) ?? {};
   const release = major * 1000000 + minor * 1000 + patch;
   const range = release < 1014000 ? elixirOtpRanges.find(([from]) => release >= from) : undefined;
-  return range ? { erlang: `>=${range[1]} <${range[2] + 1}` } : undefined;
+  if (!range) {
+    return undefined;
+  }
+  const [, min, max] = range;
+  return max < oldestErlangMajor
+    ? { erlang: `>=${oldestErlangMajor} <${oldestErlangMajor + 1}` }
+    : { erlang: `>=${min} <${max + 1}` };
 }
 
 /**
