@@ -355,19 +355,51 @@ function elixirAsset(version: string): AssetFile[] {
 }
 
 /**
- * The erlang constraint of an elixir release: from the oldest to the newest OTP
- * major of its `elixir-otp-<major>.zip` assets. Old releases have none.
- * @param assetNames - the names of the assets of the release
- * @returns the constraints, or `undefined` without OTP builds
+ * The supported OTP majors of the elixir releases before 1.14, which have no
+ * `elixir-otp-<major>.zip` assets: the first release (major * 1000000 + minor *
+ * 1000 + patch), the oldest and the newest OTP major. From
+ * https://hexdocs.pm/elixir/compatibility-and-deprecations.html
+ *
+ * Releases before 1.7 don't support OTP 22, the oldest containerbase erlang
+ * prebuild. They take OTP 22 anyway: it's the closest, and without a
+ * constraint the newest erlang would be picked, which surely breaks them.
  */
-function elixirConstraints(assetNames: string[]): Record<string, string> | undefined {
+const elixirOtpRanges: [number, number, number][] = [
+  [1013004, 22, 25],
+  [1013000, 22, 24],
+  [1012000, 22, 24],
+  [1011004, 21, 24],
+  [1011000, 21, 23],
+  [1010003, 21, 23],
+  [1010000, 21, 22],
+  [1008000, 20, 22],
+  [1007000, 19, 22],
+  [1000000, 22, 22],
+];
+
+/**
+ * The erlang constraint of an elixir release: from the oldest to the newest OTP
+ * major of its `elixir-otp-<major>.zip` assets, or for older releases without
+ * them from the compatibility table.
+ * @param version - the elixir version
+ * @param assetNames - the names of the assets of the release
+ * @returns the constraints, or `undefined` for an unknown release
+ */
+function elixirConstraints(
+  version: string,
+  assetNames: string[],
+): Record<string, string> | undefined {
   const majors = assetNames.flatMap((name) => {
     const major = /^elixir-otp-(\d+)\.zip$/.exec(name)?.[1];
     return major ? [Number(major)] : [];
   });
-  return majors.length
-    ? { erlang: `>=${Math.min(...majors)} <${Math.max(...majors) + 1}` }
-    : undefined;
+  if (majors.length) {
+    return { erlang: `>=${Math.min(...majors)} <${Math.max(...majors) + 1}` };
+  }
+  const { major = 0, minor = 0, patch = 0 } = semver.parse(version) ?? {};
+  const release = major * 1000000 + minor * 1000 + patch;
+  const range = release < 1014000 ? elixirOtpRanges.find(([from]) => release >= from) : undefined;
+  return range ? { erlang: `>=${range[1]} <${range[2] + 1}` } : undefined;
 }
 
 /**

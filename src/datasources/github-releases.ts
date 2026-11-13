@@ -190,7 +190,10 @@ export async function fetchGithubReleases(
         releaseTimestamp: toTimestamp(release.published_at),
         constraints:
           typeof template === 'object'
-            ? template.constraints?.(release.assets.map(({ name }) => name))
+            ? template.constraints?.(
+                version,
+                release.assets.map(({ name }) => name),
+              )
             : undefined,
       });
       const files = fetchFiles ? [...(previous.get(version) ?? [])] : [];
