@@ -162,7 +162,7 @@ ENV JAVA_VERSION=25.0.5+8.0.LTS
 ENV JQ_VERSION=1.8.2
 
 # renovate: datasource=github-releases depName=julia packageName=JuliaLang/julia
-ENV JULIA_VERSION=1.13.3
+ENV JULIA_VERSION=1.13.4
 
 # renovate: datasource=pypi depName=kas
 ENV KAS_VERSION=5.5
