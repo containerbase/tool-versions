@@ -179,8 +179,8 @@ importers:
   .:
     dependencies:
       '@containerbase/base':
-        specifier: 14.66.26
-        version: 14.66.26(zod@4.6.7)
+        specifier: 14.66.27
+        version: 14.66.27(zod@4.6.7)
       '@nodable/compact-builder':
         specifier: 2.0.1
         version: 2.0.1
@@ -413,8 +413,8 @@ packages:
       zod:
         optional: true
 
-  '@containerbase/base@14.66.26':
-    resolution: {integrity: sha512-RD0niLTB6ZMO7mIliSzi3Br1pLQ6QJelf5nxfEuEHsqvTrcrF2nBMAV3GiCv8FWwvUoTGWzuB7QSUG2/d17LoQ==}
+  '@containerbase/base@14.66.27':
+    resolution: {integrity: sha512-p5uKasXarOyx/VvgJLMORynakVUEOIDPFT8nMaMCxH2tJvSXxjitlYNtALrL1paiutQJPD4323UsFcRCJ7NqDA==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -3872,7 +3872,7 @@ snapshots:
     optionalDependencies:
       zod: 4.6.7
 
-  '@containerbase/base@14.66.26(zod@4.6.7)':
+  '@containerbase/base@14.66.27(zod@4.6.7)':
     dependencies:
       semver: 7.8.6
     optionalDependencies:
@@ -4416,7 +4416,7 @@ snapshots:
 
   '@renovatebot/osv-offline-db@4.5.10(supports-color@7.2.0)(zod@4.6.7)':
     dependencies:
-      '@containerbase/base': 14.66.26(zod@4.6.7)
+      '@containerbase/base': 14.66.27(zod@4.6.7)
       debug: 4.4.3(supports-color@7.2.0)
     transitivePeerDependencies:
       - supports-color
