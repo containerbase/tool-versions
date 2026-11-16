@@ -235,7 +235,7 @@ ENV PHP_VERSION=8.4.27
 ENV PHP_VERSION=8.5.12
 
 # renovate: datasource=pypi depName=pip-tools
-ENV PIP_TOOLS_VERSION=7.6.2
+ENV PIP_TOOLS_VERSION=7.7.0
 
 # renovate: datasource=pypi depName=pipenv
 ENV PIPENV_VERSION=2026.11.0
