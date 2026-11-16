@@ -322,7 +322,7 @@ ENV TOFU_VERSION=1.13.9
 ENV UV_VERSION=0.13.8
 
 # renovate: datasource=github-releases depName=vendir packageName=vmware-tanzu/carvel-vendir
-ENV VENDIR_VERSION=0.46.3
+ENV VENDIR_VERSION=0.47.0
 
 # renovate: datasource=github-releases depName=vp packageName=voidzero-dev/vite-plus
 ENV VP_VERSION=1.6.0
