@@ -29,7 +29,7 @@
     "@nodable/flexible-xml-parser": "1.11.4",
     "@renovatebot/pep440": "6.0.0",
     "@renovatebot/ruby-semver": "6.0.0",
-    "renovate": "44.199.2",
+    "renovate": "44.239.1",
     "semver": "7.8.6",
     "zod": "4.6.7"
   },
