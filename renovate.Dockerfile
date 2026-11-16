@@ -137,7 +137,7 @@ ENV HELM_VERSION=3.22.1
 ENV HELM_VERSION=4.3.2
 
 # renovate: datasource=github-releases depName=jb packageName=containerbase/jb-prebuild versioning=semver-extended
-ENV JB_VERSION=0.6.0.1
+ENV JB_VERSION=0.6.0.2
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
 ENV HELMFILE_VERSION=1.8.4
