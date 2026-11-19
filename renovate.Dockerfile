@@ -229,7 +229,7 @@ ENV PHP_VERSION=8.2.36
 ENV PHP_VERSION=8.3.37
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
-ENV PHP_VERSION=8.4.27
+ENV PHP_VERSION=8.4.28
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
 ENV PHP_VERSION=8.5.12
