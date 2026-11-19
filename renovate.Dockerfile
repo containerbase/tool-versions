@@ -232,7 +232,7 @@ ENV PHP_VERSION=8.3.37
 ENV PHP_VERSION=8.4.27
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
-ENV PHP_VERSION=8.5.12
+ENV PHP_VERSION=8.5.13
 
 # renovate: datasource=pypi depName=pip-tools
 ENV PIP_TOOLS_VERSION=7.7.0
