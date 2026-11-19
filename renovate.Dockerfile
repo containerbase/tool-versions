@@ -226,7 +226,7 @@ ENV PDM_VERSION=2.29.7
 ENV PHP_VERSION=8.2.35
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
-ENV PHP_VERSION=8.3.36
+ENV PHP_VERSION=8.3.37
 
 # renovate: datasource=github-releases depName=php packageName=containerbase/php-prebuild
 ENV PHP_VERSION=8.4.27
