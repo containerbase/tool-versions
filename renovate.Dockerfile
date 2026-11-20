@@ -143,7 +143,7 @@ ENV JB_VERSION=0.6.0.2
 ENV HELMFILE_VERSION=1.8.4
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
-ENV JAVA_VERSION=8.0.512+9
+ENV JAVA_VERSION=8.0.514+1
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=11.0.33+10
