@@ -310,7 +310,7 @@ ENV SKOPEO_VERSION=1.25.2
 ENV SOPS_VERSION=3.13.3
 
 # renovate: datasource=docker depName=swift versioning=docker
-ENV SWIFT_VERSION=6.4.2
+ENV SWIFT_VERSION=6.4.3
 
 # renovate: datasource=docker depName=terraform packageName=hashicorp/terraform versioning=docker
 ENV TERRAFORM_VERSION=1.17.2
