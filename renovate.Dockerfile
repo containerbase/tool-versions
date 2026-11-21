@@ -253,7 +253,7 @@ ENV PNPM_VERSION=11.28.13
 ENV PNPM_VERSION=12.22.0
 
 # renovate: datasource=pypi depName=poetry
-ENV POETRY_VERSION=2.5.1
+ENV POETRY_VERSION=2.5.2
 
 # renovate: datasource=github-releases depName=protoc packageName=protocolbuffers/protobuf versioning=docker
 ENV PROTOC_VERSION=36.2
