@@ -13,7 +13,7 @@ FROM scratch
 ENV APKO_VERSION=1.5.2
 
 # renovate: datasource=github-releases depName=apm packageName=microsoft/apm
-ENV APM_VERSION=0.36.1
+ENV APM_VERSION=0.37.0
 
 # renovate: datasource=github-releases depName=aube packageName=jdx/aube
 ENV AUBE_VERSION=2.10.1
