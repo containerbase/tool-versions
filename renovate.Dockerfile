@@ -208,7 +208,7 @@ ENV NPM_VERSION=10.9.11
 ENV NPM_VERSION=11.21.3
 
 # renovate: datasource=npm depName=npm
-ENV NPM_VERSION=12.2.2
+ENV NPM_VERSION=12.2.3
 
 # renovate: datasource=nuget depName=nuget packageName=NuGet.CommandLine
 ENV NUGET_VERSION=7.9.0
