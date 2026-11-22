@@ -29,7 +29,7 @@ ENV BUILDX_VERSION=0.39.1
 
 # the github tags have a `bun-v` prefix, the npm versions are the same
 # renovate: datasource=npm depName=bun
-ENV BUN_VERSION=1.4.4
+ENV BUN_VERSION=1.4.5
 
 # renovate: datasource=rubygems depName=bundler versioning=ruby
 ENV BUNDLER_VERSION=2.7.2
