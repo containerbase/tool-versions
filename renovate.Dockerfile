@@ -181,7 +181,7 @@ ENV KUBECTL_VERSION=1.37.2
 ENV KUSTOMIZE_VERSION=5.8.3
 
 # renovate: datasource=maven depName=maven packageName=org.apache.maven:apache-maven versioning=maven
-ENV MAVEN_VERSION=3.10.1
+ENV MAVEN_VERSION=3.10.2
 
 # renovate: datasource=github-releases depName=mise packageName=jdx/mise
 ENV MISE_VERSION=2026.11.12
