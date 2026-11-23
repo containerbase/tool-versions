@@ -140,7 +140,7 @@ ENV HELM_VERSION=4.3.2
 ENV JB_VERSION=0.6.0.2
 
 # renovate: datasource=github-releases depName=helmfile packageName=helmfile/helmfile
-ENV HELMFILE_VERSION=1.8.4
+ENV HELMFILE_VERSION=1.8.5
 
 # renovate: datasource=java-version depName=java packageName=java-jdk?os=linux&architecture=x64
 ENV JAVA_VERSION=8.0.514+1
