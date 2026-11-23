@@ -316,7 +316,7 @@ ENV SWIFT_VERSION=6.4.3
 ENV TERRAFORM_VERSION=1.17.2
 
 # renovate: datasource=github-releases depName=tofu packageName=opentofu/opentofu
-ENV TOFU_VERSION=1.13.9
+ENV TOFU_VERSION=1.13.10
 
 # renovate: datasource=pypi depName=uv
 ENV UV_VERSION=0.13.9
