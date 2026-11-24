@@ -334,4 +334,4 @@ ENV WALLY_VERSION=0.3.2
 ENV YARN_VERSION=1.22.22
 
 # renovate: datasource=npm depName=@yarnpkg/cli-dist
-ENV YARN_VERSION=4.18.1
+ENV YARN_VERSION=4.19.0
