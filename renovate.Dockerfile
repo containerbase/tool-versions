@@ -16,7 +16,7 @@ ENV APKO_VERSION=1.5.3
 ENV APM_VERSION=0.38.1
 
 # renovate: datasource=github-releases depName=aube packageName=jdx/aube
-ENV AUBE_VERSION=2.10.1
+ENV AUBE_VERSION=2.11.0
 
 # renovate: datasource=github-releases depName=bazelisk packageName=bazelbuild/bazelisk
 ENV BAZELISK_VERSION=1.30.0
