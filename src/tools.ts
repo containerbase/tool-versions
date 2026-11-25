@@ -21,6 +21,8 @@ import { nightlyDate } from './versioning.ts';
 export const toolExceptions: Record<string, ToolMetadata> = {
   // containerbase/base#8215
   julia: { minVersion: '1.6.0' },
+  // containerbase/base#8447
+  mercurial: { type: 'pip', parent: 'python' },
 };
 
 /** The metadata of the tools: the ones of `@containerbase/base` and the exceptions. */
@@ -111,6 +113,7 @@ export const toolSources: Record<string, ToolSource> = {
   kubectl: github('kubernetes/kubernetes'),
   kustomize: github('kubernetes-sigs/kustomize'),
   maven: { datasource: 'maven-version', packageName: 'maven', versioning: 'maven' },
+  mercurial: { datasource: 'pypi', packageName: 'mercurial', versioning: 'pep440' },
   mise: github('jdx/mise', 'npm'),
   mono: prebuild('mono'),
   nix: prebuild('nix'),
@@ -252,6 +255,10 @@ export const toolLinks: Record<string, ToolLinks> = {
     homepage: 'https://kustomize.io',
   },
   maven: { sourceUrl: 'https://github.com/apache/maven', homepage: 'https://maven.apache.org' },
+  mercurial: {
+    sourceUrl: 'https://foss.heptapod.net/mercurial/mercurial-devel',
+    homepage: 'https://www.mercurial-scm.org',
+  },
   mise: { sourceUrl: 'https://github.com/jdx/mise', homepage: 'https://mise.jdx.dev' },
   mono: {
     sourceUrl: 'https://gitlab.winehq.org/mono/mono',

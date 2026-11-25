@@ -183,6 +183,9 @@ ENV KUSTOMIZE_VERSION=5.8.3
 # renovate: datasource=maven depName=maven packageName=org.apache.maven:apache-maven versioning=maven
 ENV MAVEN_VERSION=3.10.2
 
+# renovate: datasource=pypi depName=mercurial
+ENV MERCURIAL_VERSION=7.2.4
+
 # renovate: datasource=github-releases depName=mise packageName=jdx/mise
 ENV MISE_VERSION=2026.11.14
 
