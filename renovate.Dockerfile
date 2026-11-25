@@ -83,7 +83,7 @@ ENV DOCKER_COMPOSE_VERSION=5.8.0
 ENV ELIXIR_VERSION=1.20.5
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
-ENV ERLANG_VERSION=27.3.4.19
+ENV ERLANG_VERSION=27.3.4.20
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
 ENV ERLANG_VERSION=28.5.0.8
