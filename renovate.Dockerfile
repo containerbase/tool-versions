@@ -174,7 +174,7 @@ ENV KUBECTL_VERSION=1.35.11
 ENV KUBECTL_VERSION=1.36.7
 
 # renovate: datasource=github-releases depName=kubectl packageName=kubernetes/kubernetes
-ENV KUBECTL_VERSION=1.37.2
+ENV KUBECTL_VERSION=1.37.3
 
 # the `kustomize/v` tag prefix is stripped by the containerbase preset
 # renovate: datasource=github-releases depName=kustomize packageName=kubernetes-sigs/kustomize
