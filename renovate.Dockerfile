@@ -86,7 +86,7 @@ ENV ELIXIR_VERSION=1.20.5
 ENV ERLANG_VERSION=27.3.4.20
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
-ENV ERLANG_VERSION=28.5.0.8
+ENV ERLANG_VERSION=28.5.0.9
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
 ENV ERLANG_VERSION=29.1.2.0
