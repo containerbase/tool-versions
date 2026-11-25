@@ -89,7 +89,7 @@ ENV ERLANG_VERSION=27.3.4.20
 ENV ERLANG_VERSION=28.5.0.9
 
 # renovate: datasource=github-releases depName=erlang packageName=containerbase/erlang-prebuild versioning=semver-extended
-ENV ERLANG_VERSION=29.1.2.0
+ENV ERLANG_VERSION=29.1.3.0
 
 # renovate: datasource=github-releases depName=flutter packageName=containerbase/flutter-prebuild
 ENV FLUTTER_VERSION=3.50.1
