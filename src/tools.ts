@@ -18,12 +18,7 @@ import { nightlyDate } from './versioning.ts';
  * Each entry replaces the metadata of the package for its tool and names the
  * containerbase pull request, the bump of `@containerbase/base` removes it.
  */
-export const toolExceptions: Record<string, ToolMetadata> = {
-  // containerbase/base#8215
-  julia: { minVersion: '1.6.0' },
-  // containerbase/base#8447
-  mercurial: { type: 'pip', parent: 'python' },
-};
+export const toolExceptions: Record<string, ToolMetadata> = {};
 
 /** The metadata of the tools: the ones of `@containerbase/base` and the exceptions. */
 export const toolMetadata: Record<string, ToolMetadata> = { ...tools, ...toolExceptions };
