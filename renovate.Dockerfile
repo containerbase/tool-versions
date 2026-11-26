@@ -19,7 +19,7 @@ ENV APM_VERSION=0.39.0
 ENV AUBE_VERSION=2.11.0
 
 # renovate: datasource=github-releases depName=bazelisk packageName=bazelbuild/bazelisk
-ENV BAZELISK_VERSION=1.30.0
+ENV BAZELISK_VERSION=1.31.0
 
 # renovate: datasource=github-releases depName=buf packageName=bufbuild/buf
 ENV BUF_VERSION=1.75.0
