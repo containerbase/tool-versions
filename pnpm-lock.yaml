@@ -189,8 +189,8 @@ importers:
   .:
     dependencies:
       '@containerbase/base':
-        specifier: 14.66.27
-        version: 14.66.27(zod@4.6.7)
+        specifier: 14.70.0
+        version: 14.70.0(zod@4.6.7)
       '@nodable/compact-builder':
         specifier: 2.0.1
         version: 2.0.1
@@ -414,8 +414,8 @@ packages:
   '@cdktf/hcl2json@0.21.0':
     resolution: {integrity: sha512-cwX3i/mSJI/cRrtqwEPRfawB7pXgNioriSlkvou8LWiCrrcDe9ZtTbAbu8W1tEJQpe1pnX9VEgpzf/BbM7xF8Q==}
 
-  '@containerbase/base@14.66.27':
-    resolution: {integrity: sha512-p5uKasXarOyx/VvgJLMORynakVUEOIDPFT8nMaMCxH2tJvSXxjitlYNtALrL1paiutQJPD4323UsFcRCJ7NqDA==}
+  '@containerbase/base@14.68.3':
+    resolution: {integrity: sha512-PiUE8GjftYvVZ1z+XEhGCDestdOFnpzTk8EQ3wdrH4BvpJ4kXMTsqG4BUIwi1ui9dBDFOq5ICESFNy5PA555NA==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -423,8 +423,8 @@ packages:
       zod:
         optional: true
 
-  '@containerbase/base@14.68.3':
-    resolution: {integrity: sha512-PiUE8GjftYvVZ1z+XEhGCDestdOFnpzTk8EQ3wdrH4BvpJ4kXMTsqG4BUIwi1ui9dBDFOq5ICESFNy5PA555NA==}
+  '@containerbase/base@14.70.0':
+    resolution: {integrity: sha512-2jgXI/w0+GRGcpONzxuHgbL2knEnImgNEd5Zflc7QapQY0TvEhaC4DKVv+Y1HNttCTph8eJ+PbU97Gv66r+JYg==}
     engines: {node: '>=24.10.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -3872,13 +3872,13 @@ snapshots:
     dependencies:
       fs-extra: 11.3.0
 
-  '@containerbase/base@14.66.27(zod@4.6.7)':
+  '@containerbase/base@14.68.3(zod@4.6.7)':
     dependencies:
       semver: 7.8.6
     optionalDependencies:
       zod: 4.6.7
 
-  '@containerbase/base@14.68.3(zod@4.6.7)':
+  '@containerbase/base@14.70.0(zod@4.6.7)':
     dependencies:
       semver: 7.8.6
     optionalDependencies:
@@ -4422,7 +4422,7 @@ snapshots:
 
   '@renovatebot/osv-offline-db@4.5.10(supports-color@7.2.0)(zod@4.6.7)':
     dependencies:
-      '@containerbase/base': 14.66.27(zod@4.6.7)
+      '@containerbase/base': 14.70.0(zod@4.6.7)
       debug: 4.4.3(supports-color@7.2.0)
     transitivePeerDependencies:
       - supports-color
