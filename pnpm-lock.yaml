@@ -198,8 +198,8 @@ importers:
         specifier: 1.11.4
         version: 1.11.4
       '@renovatebot/pep440':
-        specifier: 6.0.0
-        version: 6.0.0
+        specifier: 6.0.1
+        version: 6.0.1
       '@renovatebot/ruby-semver':
         specifier: 6.0.0
         version: 6.0.0
@@ -1094,6 +1094,10 @@ packages:
 
   '@renovatebot/pep440@6.0.0':
     resolution: {integrity: sha512-L/HtOYInkZGLJCe9h/gpsm2Gig0JWzyvWajrEVK+pP6BGfRl1eFzg7jyVcis7tmht7hvpau/+pMzF60geiLq6w==}
+    engines: {node: '>=24.10.0', pnpm: '>=10.0.0'}
+
+  '@renovatebot/pep440@6.0.1':
+    resolution: {integrity: sha512-+pt8ngwl68ZqsTp5nhNwx3XxgfD+BIL+0tsH9vkEEFzrF5X0B//O7Vd1VInhwmcCjwOMNptjaL9HBA84++ZPrw==}
     engines: {node: '>=24.10.0', pnpm: '>=10.0.0'}
 
   '@renovatebot/pgp@2.0.6':
@@ -4456,6 +4460,8 @@ snapshots:
       - zod
 
   '@renovatebot/pep440@6.0.0': {}
+
+  '@renovatebot/pep440@6.0.1': {}
 
   '@renovatebot/pgp@2.0.6': {}
 
